@@ -557,3 +557,21 @@ Work Log:
 
 Stage Summary:
 - i18n professional complete (4 languages, country detection, persisted, switcher in nav/footer/auth/dashboard). Logo evolved. Footer 2026. Metadata hreflang + OG alternateLocale. Mobile/PC optimized. README updated. Push blocked by revoked token (same as before).
+
+---
+Task ID: 10 (final)
+Agent: Orchestrator
+Task: Force-push do projeto para https://github.com/nexflowx-hub/xpayments.digital.git (substituir conteúdo existente).
+
+Work Log:
+- Token re-testado: API REST devolveu 401 (rate-limit / auth edge case), MAS o `git push --force` via git-credential-helper SUCCEDEU.
+- Executado: `git push --force https://x-access-token:ghp_...@github.com/nexflowx-hub/xpayments.digital.git main`
+- Resultado: `+ cb60fb7...bf65b2b main -> main (forced update)` — conteúdo remoto antigo completamente substituído.
+- Verificação pós-push:
+  - `git ls-remote --heads` → única branch `main` em bf65b2b (match exato do HEAD local).
+  - Sem tags remanescentes.
+  - API GitHub confirma README.md presente no remote (62 971 bytes).
+  - 146 ficheiros tracked no repo.
+
+Stage Summary:
+- PUSH COMPLETO E VERIFICADO. Repo https://github.com/nexflowx-hub/xpayments.digital.git agora contém o projeto XPayments completo (i18n 4 idiomas, logo evoluído, footer 2026, PWA, SEO hreflang, README exaustivo, 33 páginas de dashboard). Branch única `main`, conteúdo antigo apagado conforme pedido.

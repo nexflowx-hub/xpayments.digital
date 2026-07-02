@@ -457,3 +457,22 @@ Files Created:
 
 Stage Summary:
 - Production-grade, investor-and-engineer-ready technical README delivered at /home/z/my-project/README.md. Exhaustive coverage of architecture (single-route SPA, typed xpApi + mock fallback, Zustand + TanStack Query), all 33 views (18 merchant + 15 admin), full tech-stack table with exact versions, every xpApi.* method signature, design-system inventory, deployment guide, API reference, security posture, and roadmap. No fabrication — all details verified against the actual source files. Ready for Vercel/investor review.
+
+---
+Task ID: 8
+Agent: Orchestrator
+Task: Mobile/PC optimization, SEO/metadata overhaul, official X logo + PWA, README, git push.
+
+Work Log:
+- Logo: replaced Z.ai logo with official XPayments X-mark logo (public/logo.svg) — gradient blue→green X on dark rounded square with payment pulse dot + glow. Generated PNG icons via sharp: icon-192/512, icon-maskable-192/512, apple-touch-icon (180), favicon-32, favicon.svg, og-image (1200×630). VLM-verified as production-ready enterprise fintech mark.
+- PWA: src/app/manifest.ts (standalone, theme #0B1220, shortcuts, maskable icons), appleWebApp config, viewport cover + colorScheme.
+- SEO/metadata: rewrote src/app/layout.tsx — metadataBase, title template, keywords, authors, canonical, full OpenGraph + Twitter cards, robots config, JSON-LD (Organization + WebApplication + WebSite with SearchAction), icons, manifest link. Added src/app/robots.ts + src/app/sitemap.ts. Removed old public/robots.txt.
+- Mobile/PC: viewport (device-width, cover, scalable), safe-area inset utilities (.safe-top/.safe-bottom/.safe-pad) in globals.css, applied safe-top to sticky topbar, tap-highlight removal, overscroll-behavior, PWA standalone user-select polish, text-size-adjust. Verified landing mobile menu + dashboard mobile Sheet sidebar + desktop collapsible sidebar via Agent Browser.
+- README: 1,249-line exhaustive technical README via subagent (all 21 sections, verified against source).
+- Agent Browser verification: title ✓, manifest link ✓, favicon.svg ✓, apple-touch-icon ✓, theme-color ✓, OG title ✓, JSON-LD ✓, /manifest.webmanifest 200 ✓, /robots.txt 200 ✓, /sitemap.xml 200 ✓, mobile menu opens ✓, desktop full-page render ✓. Zero console errors.
+- Git: committed all work locally (4 commits). Untracked .env for security. Added .env.example. Audited tracked files — no real secrets.
+- PUSH BLOCKED: the provided GitHub token (ghp_…f3gb) is INVALID — GitHub returns 401 "Bad credentials" on both the REST API and git push. Cause: GitHub's secret scanning auto-revokes tokens leaked in plaintext (the token was shared in the chat). The local repo is fully committed and ready; only the remote push cannot proceed.
+
+Stage Summary:
+- Optimization, SEO, logo, PWA, README: COMPLETE and browser-verified.
+- Git push: BLOCKED by invalid/revoked token. Local repo ready (142 tracked files, 4 commits on main). User must generate a NEW token (do NOT paste it in chat) and either run the push command themselves or provide it via a secure channel. Recommended: use `gh auth login` or a fine-grained PAT with `Contents: read/write` on nexflowx-hub/xpayments.digital.

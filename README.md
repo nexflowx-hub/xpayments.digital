@@ -830,6 +830,47 @@ matches the view id.
 
 ---
 
+## Internationalization (i18n)
+
+XPayments ships with a professional, client-side internationalization layer supporting **English (en)**, **Português do Brasil (pt-BR)**, **Français (fr)** and **Español (es)**.
+
+### Architecture
+
+| File | Responsibility |
+|------|----------------|
+| `src/lib/i18n/locales.ts` | Type-safe `Locale` union, the 4 dictionaries (`dictionaries`), browser-language resolver (`resolveBrowserLocale`), timezone→locale fallback (`localeFromTimezone`), and the `LOCALES` metadata array (code, label, flag, native name). |
+| `src/lib/i18n/index.ts` | `useI18n` Zustand store (persisted to `localStorage` under `xp-locale`) with `setLocale()` and `detect()`. `useT()` hook returning a `t(key)` function bound to the active locale with English fallback. `useLocale()` selector. |
+| `src/components/shared/language-switcher.tsx` | Reusable `<LanguageSwitcher variant="icon"|"full" />` dropdown — used in the landing nav, landing footer, auth screen and dashboard topbar. |
+
+### Country / Language Detection
+
+On first mount (`src/app/page.tsx`), `useI18n().detect()` runs:
+
+1. **Browser language** — `navigator.language` (or `navigator.languages[0]`) mapped via `resolveBrowserLocale` (`pt*`→`pt-BR`, `fr*`→`fr`, `es*`→`es`, default `en`).
+2. **Timezone fallback** — if the browser language is ambiguous (e.g. `en`), `localeFromTimezone()` inspects `Intl.DateTimeFormat().resolvedOptions().timeZone` and maps known zones (e.g. `America/Sao_Paulo`→`pt-BR`, `Europe/Paris`→`fr`, `Europe/Madrid`→`es`).
+3. The chosen locale is **persisted** to `localStorage` so the user's preference survives reloads; the manual `<LanguageSwitcher>` overrides detection.
+
+### Coverage
+
+The shared chrome is fully localized across all four languages:
+
+- **Landing page** — nav, hero, trust bar, animated stats, payment methods, developer section, features, security pillars, testimonials, final CTA, footer (columns + copyright + language switcher).
+- **Auth screens** — login, forgot password, reset password, branded panel, demo-credentials block, toasts.
+- **Dashboard shell** — sidebar sections + items (via `tKey` on `NavSection`/`NavItem` in `src/config/index.ts`), workspace switcher, topbar (search, live mode, notifications, profile menu, sign-out), command palette (headings + quick actions), notifications panel.
+
+### SEO & hreflang
+
+`src/app/layout.tsx` exports `alternates.languages` with `hreflang` entries for `en`, `pt-BR`, `fr`, `es` and `x-default`, plus `openGraph.alternateLocale` (`pt_BR`, `fr_FR`, `es_ES`) so search engines and social crawlers index the right locale.
+
+### Adding a language
+
+1. Add the code + dictionary to `dictionaries` in `src/lib/i18n/locales.ts`.
+2. Add an entry to the `LOCALES` array and the `resolveBrowserLocale` / `tzCountry` maps.
+3. Add an `alternates.languages` entry in `src/app/layout.tsx`.
+4. Add an `openGraph.alternateLocale` entry.
+
+No other code changes are required — all components read from the dictionaries via `useT()`.
+
 ## Responsive & PWA
 
 ### Responsive

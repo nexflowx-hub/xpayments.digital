@@ -10,6 +10,7 @@ import {
 import { useTheme } from "next-themes";
 import { useAuth } from "@/stores/auth";
 import { useUi } from "@/stores/ui";
+import { useT } from "@/lib/i18n";
 import { merchantNav, adminNav, type NavSection } from "@/config";
 import { cn, initials } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,7 @@ import {
   CommandGroup, CommandItem,
 } from "@/components/ui/command";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
+import { LanguageSwitcher } from "@/components/shared/language-switcher";
 import { toast } from "sonner";
 import { APP_NAME } from "@/config";
 
@@ -48,6 +50,7 @@ function Logo({ compact = false }: { compact?: boolean }) {
 
 function WorkspaceSwitcher({ compact }: { compact?: boolean }) {
   const { user } = useAuth();
+  const t = useT();
   const [workspace, setWorkspace] = React.useState(user?.company ?? "Nimbus Labs");
   return (
     <DropdownMenu>
@@ -65,7 +68,7 @@ function WorkspaceSwitcher({ compact }: { compact?: boolean }) {
             <>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-xs font-medium text-foreground">{workspace}</p>
-                <p className="truncate text-[10px] text-muted-foreground">Merchant workspace</p>
+                <p className="truncate text-[10px] text-muted-foreground">{t("shell.workspace")}</p>
               </div>
               <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
             </>
@@ -105,12 +108,13 @@ function NavList({
   active: string;
   onSelect: (id: string) => void;
 }) {
+  const t = useT();
   return (
     <nav className="flex flex-col gap-5 px-3 py-4">
       {sections.map((section) => (
         <div key={section.id}>
           <p className="mb-1.5 px-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-            {section.label}
+            {section.tKey ? t(section.tKey) : section.label}
           </p>
           <div className="flex flex-col gap-0.5">
             {section.items.map((item) => {
@@ -134,7 +138,7 @@ function NavList({
                     />
                   )}
                   <item.icon className={cn("h-4 w-4 shrink-0", isActive && "text-primary")} />
-                  <span className="flex-1 text-left font-medium">{item.label}</span>
+                  <span className="flex-1 text-left font-medium">{item.tKey ? t(item.tKey) : item.label}</span>
                   {item.badge && (
                     <Badge className="h-[18px] min-w-[18px] px-1 text-[10px] font-semibold" variant="default">
                       {item.badge}
@@ -162,6 +166,7 @@ function SidebarBody({
   collapsed?: boolean;
 }) {
   const { user } = useAuth();
+  const t = useT();
   return (
     <div className="flex h-full flex-col">
       <div className={cn("flex h-14 items-center border-b border-border/60 px-4", collapsed && "justify-center px-2")}>
@@ -179,7 +184,7 @@ function SidebarBody({
                 <button
                   key={item.id}
                   onClick={() => onSelect(item.id)}
-                  title={item.label}
+                  title={item.tKey ? t(item.tKey) : item.label}
                   className={cn(
                     "grid h-9 w-9 place-items-center rounded-lg transition",
                     isActive ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
@@ -217,15 +222,16 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
   const { theme, setTheme } = useTheme();
   const { user, logout } = useAuth();
   const { setCommandOpen, setNotificationsOpen, toggleSidebar } = useUi();
+  const t = useT();
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
 
   return (
     <header className="safe-top sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border/60 bg-background/80 px-3 backdrop-blur-xl sm:px-5">
-      <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenu}>
+      <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenu} aria-label={t("nav.toggleMenu")}>
         <Menu className="h-5 w-5" />
       </Button>
-      <Button variant="ghost" size="icon" className="hidden lg:inline-flex" onClick={toggleSidebar}>
+      <Button variant="ghost" size="icon" className="hidden lg:inline-flex" onClick={toggleSidebar} aria-label="Toggle sidebar">
         <PanelLeft className="h-[18px] w-[18px]" />
       </Button>
 
@@ -234,30 +240,31 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
         className="group flex h-9 flex-1 items-center gap-2 rounded-lg border border-border/60 bg-card/40 px-3 text-sm text-muted-foreground transition hover:bg-card/70 sm:max-w-md"
       >
         <Search className="h-4 w-4" />
-        <span className="flex-1 text-left">Search payments, customers…</span>
+        <span className="flex-1 text-left">{t("common.search")}</span>
         <kbd className="hidden items-center gap-0.5 rounded border border-border/60 bg-muted/40 px-1.5 py-0.5 font-mono text-[10px] sm:flex">
           <Command className="h-2.5 w-2.5" />K
         </kbd>
       </button>
 
       <div className="ml-auto flex items-center gap-1">
-        <Button variant="ghost" size="icon" onClick={() => toast.info("Live mode", { description: "You are operating in Live mode." })}>
+        <Button variant="ghost" size="sm" className="hidden h-9 px-2 sm:flex" onClick={() => toast.info(t("shell.liveMode"), { description: t("shell.liveModeDesc") })}>
           <span className="flex items-center gap-1 rounded-md bg-emerald-500/12 px-2 py-0.5 text-[11px] font-semibold text-emerald-400">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" /> Live
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" /> {t("common.live")}
           </span>
         </Button>
-        <Button variant="ghost" size="icon" onClick={() => setNotificationsOpen(true)}>
+        <LanguageSwitcher />
+        <Button variant="ghost" size="icon" onClick={() => setNotificationsOpen(true)} aria-label={t("shell.notifications")}>
           <Bell className="h-[18px] w-[18px]" />
           <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-primary" />
         </Button>
         {mounted && (
-          <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+          <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} aria-label="Toggle theme">
             {theme === "dark" ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
           </Button>
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="ml-1 flex items-center gap-2 rounded-lg p-0.5 transition hover:bg-muted/60">
+            <button className="ml-1 flex items-center gap-2 rounded-lg p-0.5 transition hover:bg-muted/60" aria-label="Profile menu">
               <Avatar className="h-8 w-8 border border-border/60">
                 <AvatarFallback className="bg-gradient-to-br from-primary/80 to-primary/40 text-xs font-semibold text-white">
                   {user ? initials(user.name) : "U"}
@@ -273,14 +280,14 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem><UserIcon className="mr-2 h-4 w-4" /> Profile</DropdownMenuItem>
-            <DropdownMenuItem><Settings className="mr-2 h-4 w-4" /> Settings</DropdownMenuItem>
-            <DropdownMenuItem><CreditCard className="mr-2 h-4 w-4" /> Billing</DropdownMenuItem>
-            <DropdownMenuItem><ShieldCheck className="mr-2 h-4 w-4" /> Security</DropdownMenuItem>
-            <DropdownMenuItem><LifeBuoy className="mr-2 h-4 w-4" /> Support</DropdownMenuItem>
+            <DropdownMenuItem><UserIcon className="mr-2 h-4 w-4" /> {t("shell.profile")}</DropdownMenuItem>
+            <DropdownMenuItem><Settings className="mr-2 h-4 w-4" /> {t("nav.settings")}</DropdownMenuItem>
+            <DropdownMenuItem><CreditCard className="mr-2 h-4 w-4" /> {t("shell.billing")}</DropdownMenuItem>
+            <DropdownMenuItem><ShieldCheck className="mr-2 h-4 w-4" /> {t("shell.security")}</DropdownMenuItem>
+            <DropdownMenuItem><LifeBuoy className="mr-2 h-4 w-4" /> {t("nav.support")}</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-rose-400 focus:text-rose-400" onClick={() => { logout(); toast.success("Signed out"); }}>
-              <LogOut className="mr-2 h-4 w-4" /> Sign out
+            <DropdownMenuItem className="text-rose-400 focus:text-rose-400" onClick={() => { logout(); toast.success(t("shell.signedOut")); }}>
+              <LogOut className="mr-2 h-4 w-4" /> {t("shell.signout")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -299,6 +306,7 @@ function CommandPalette({
   onSelect: (id: string) => void;
 }) {
   const { commandOpen, setCommandOpen } = useUi();
+  const t = useT();
   React.useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -312,11 +320,11 @@ function CommandPalette({
 
   return (
     <CommandDialog open={commandOpen} onOpenChange={setCommandOpen}>
-      <CommandInput placeholder="Search pages, actions…" />
+      <CommandInput placeholder={t("cmd.placeholder")} />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
         {items.map((section) => (
-          <CommandGroup key={section.id} heading={section.label}>
+          <CommandGroup key={section.id} heading={section.tKey ? t(section.tKey) : section.label}>
             {section.items.map((item) => (
               <CommandItem
                 key={item.id}
@@ -324,17 +332,17 @@ function CommandPalette({
                 className={cn(active === item.id && "bg-primary/10")}
               >
                 <item.icon className="mr-2 h-4 w-4" />
-                {item.label}
+                {item.tKey ? t(item.tKey) : item.label}
               </CommandItem>
             ))}
           </CommandGroup>
         ))}
-        <CommandGroup heading="Quick actions">
-          <CommandItem onSelect={() => { toast.success("Export started", { description: "CSV will be emailed when ready." }); setCommandOpen(false); }}>
-            <ExternalLink className="mr-2 h-4 w-4" /> Export payments (CSV)
+        <CommandGroup heading={t("cmd.quickActions")}>
+          <CommandItem onSelect={() => { toast.success(t("cmd.exportPayments"), { description: "CSV will be emailed when ready." }); setCommandOpen(false); }}>
+            <ExternalLink className="mr-2 h-4 w-4" /> {t("cmd.exportPayments")}
           </CommandItem>
-          <CommandItem onSelect={() => { toast.success("New payment link created"); setCommandOpen(false); }}>
-            <Plus className="mr-2 h-4 w-4" /> Create payment link
+          <CommandItem onSelect={() => { toast.success(t("cmd.createLink")); setCommandOpen(false); }}>
+            <Plus className="mr-2 h-4 w-4" /> {t("cmd.createLink")}
           </CommandItem>
         </CommandGroup>
       </CommandList>
@@ -344,6 +352,7 @@ function CommandPalette({
 
 function NotificationsPanel() {
   const { notificationsOpen, setNotificationsOpen } = useUi();
+  const t = useT();
   const notifications = [
     { id: 1, title: "Large payout approved", desc: "€48,200.00 to Acme Ltd", time: "2m ago", type: "success" },
     { id: 2, title: "Risk alert: velocity rule", desc: "Card ending 4821 — 14 attempts in 60s", time: "18m ago", type: "warning" },
@@ -362,7 +371,7 @@ function NotificationsPanel() {
           <div className="flex items-center justify-between border-b border-border/60 px-5 py-4">
             <div className="flex items-center gap-2">
               <Bell className="h-4 w-4" />
-              <h3 className="text-sm font-semibold">Notifications</h3>
+              <h3 className="text-sm font-semibold">{t("shell.notifications")}</h3>
               <Badge variant="secondary" className="text-[10px]">{notifications.length}</Badge>
             </div>
             <Button variant="ghost" size="icon" onClick={() => setNotificationsOpen(false)}>
@@ -382,7 +391,7 @@ function NotificationsPanel() {
             ))}
           </div>
           <div className="border-t border-border/60 p-3">
-            <Button variant="outline" className="w-full" size="sm">Mark all as read</Button>
+            <Button variant="outline" className="w-full" size="sm">{t("shell.markAllRead")}</Button>
           </div>
         </div>
       </SheetContent>

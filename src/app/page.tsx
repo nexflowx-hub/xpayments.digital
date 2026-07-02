@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useAuth } from "@/stores/auth";
 import { useUi } from "@/stores/ui";
+import { useI18n } from "@/lib/i18n";
 import { DashboardShell } from "@/components/dashboard/shell";
 import { MerchantViewRouter, AdminViewRouter } from "@/components/dashboard/view-router";
 import { AuthScreen } from "@/components/auth/auth-screen";
@@ -30,12 +31,14 @@ function SplashScreen() {
 export default function Home() {
   const { isAuthenticated, user, hydrate } = useAuth();
   const { appView, setAppView, activeMerchantView, activeAdminView } = useUi();
+  const detectLocale = useI18n((s) => s.detect);
   const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {
     hydrate();
+    detectLocale();
     setMounted(true);
-  }, [hydrate]);
+  }, [hydrate, detectLocale]);
 
   // Reset to landing when signed out
   React.useEffect(() => {

@@ -32,6 +32,8 @@ import {
 export interface NavItem {
   id: string;
   label: string;
+  /** i18n key for the label, e.g. "nav.dashboard" */
+  tKey?: string;
   icon: LucideIcon;
   badge?: string;
 }
@@ -39,92 +41,86 @@ export interface NavItem {
 export interface NavSection {
   id: string;
   label: string;
+  /** i18n key for the section label, e.g. "sec.overview" */
+  tKey?: string;
   items: NavItem[];
 }
 
 export const merchantNav: NavSection[] = [
   {
-    id: "overview",
-    label: "Overview",
+    id: "overview", label: "Overview", tKey: "sec.overview",
     items: [
-      { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-      { id: "analytics", label: "Analytics", icon: BarChart3 },
-      { id: "risk", label: "Risk Center", icon: ShieldCheck },
+      { id: "dashboard", label: "Dashboard", tKey: "nav.dashboard", icon: LayoutDashboard },
+      { id: "analytics", label: "Analytics", tKey: "nav.analytics", icon: BarChart3 },
+      { id: "risk", label: "Risk Center", tKey: "nav.risk", icon: ShieldCheck },
     ],
   },
   {
-    id: "money",
-    label: "Money Movement",
+    id: "money", label: "Money Movement", tKey: "sec.money",
     items: [
-      { id: "payments", label: "Payments", icon: Receipt },
-      { id: "wallets", label: "Wallets", icon: Wallet },
-      { id: "fx", label: "FX", icon: ArrowLeftRight },
-      { id: "treasury", label: "Treasury", icon: Banknote },
+      { id: "payments", label: "Payments", tKey: "nav.payments", icon: Receipt },
+      { id: "wallets", label: "Wallets", tKey: "nav.wallets", icon: Wallet },
+      { id: "fx", label: "FX", tKey: "nav.fx", icon: ArrowLeftRight },
+      { id: "treasury", label: "Treasury", tKey: "nav.treasury", icon: Banknote },
     ],
   },
   {
-    id: "commerce",
-    label: "Commerce",
+    id: "commerce", label: "Commerce", tKey: "sec.commerce",
     items: [
-      { id: "stores", label: "Stores", icon: Store },
-      { id: "products", label: "Products", icon: Package },
-      { id: "customers", label: "Customers", icon: Users },
-      { id: "subscriptions", label: "Subscriptions", icon: Repeat },
-      { id: "payment-links", label: "Payment Links", icon: Link2 },
-      { id: "invoices", label: "Invoices", icon: FileText },
+      { id: "stores", label: "Stores", tKey: "nav.stores", icon: Store },
+      { id: "products", label: "Products", tKey: "nav.products", icon: Package },
+      { id: "customers", label: "Customers", tKey: "nav.customers", icon: Users },
+      { id: "subscriptions", label: "Subscriptions", tKey: "nav.subscriptions", icon: Repeat },
+      { id: "payment-links", label: "Payment Links", tKey: "nav.paymentLinks", icon: Link2 },
+      { id: "invoices", label: "Invoices", tKey: "nav.invoices", icon: FileText },
     ],
   },
   {
-    id: "developers",
-    label: "Developers",
+    id: "developers", label: "Developers", tKey: "sec.developers",
     items: [
-      { id: "developers", label: "Developers", icon: Code2 },
-      { id: "api-keys", label: "API Keys", icon: KeyRound },
-      { id: "webhooks", label: "Webhooks", icon: Webhook },
+      { id: "developers", label: "Developers", tKey: "nav.developers", icon: Code2 },
+      { id: "api-keys", label: "API Keys", tKey: "nav.apiKeys", icon: KeyRound },
+      { id: "webhooks", label: "Webhooks", tKey: "nav.webhooks", icon: Webhook },
     ],
   },
   {
-    id: "system",
-    label: "System",
+    id: "system", label: "System", tKey: "sec.system",
     items: [
-      { id: "settings", label: "Settings", icon: Settings },
-      { id: "support", label: "Support", icon: LifeBuoy },
+      { id: "settings", label: "Settings", tKey: "nav.settings", icon: Settings },
+      { id: "support", label: "Support", tKey: "nav.support", icon: LifeBuoy },
     ],
   },
 ];
 
 export const adminNav: NavSection[] = [
   {
-    id: "platform",
-    label: "Platform",
+    id: "platform", label: "Platform", tKey: "sec.platform",
     items: [
-      { id: "admin-dashboard", label: "Overview", icon: LayoutDashboard },
-      { id: "admin-merchants", label: "Merchants", icon: Building2 },
-      { id: "admin-kyc", label: "KYC Queue", icon: ScrollText, badge: "7" },
-      { id: "admin-treasury", label: "Treasury", icon: Landmark },
-      { id: "admin-revenue", label: "Revenue", icon: Banknote },
+      { id: "admin-dashboard", label: "Overview", tKey: "nav.adminDashboard", icon: LayoutDashboard },
+      { id: "admin-merchants", label: "Merchants", tKey: "nav.adminMerchants", icon: Building2 },
+      { id: "admin-kyc", label: "KYC Queue", tKey: "nav.adminKyc", icon: ScrollText, badge: "7" },
+      { id: "admin-treasury", label: "Treasury", tKey: "nav.adminTreasury", icon: Landmark },
+      { id: "admin-revenue", label: "Revenue", tKey: "nav.adminRevenue", icon: Banknote },
     ],
   },
   {
-    id: "ops",
-    label: "Operations",
+    id: "ops", label: "Operations", tKey: "sec.ops",
     items: [
-      { id: "admin-gateways", label: "Gateways", icon: Server },
-      { id: "admin-risk", label: "Risk", icon: ShieldCheck },
-      { id: "admin-analytics", label: "Platform Analytics", icon: BarChart3 },
-      { id: "admin-support", label: "Support", icon: LifeBuoy },
+      { id: "admin-gateways", label: "Gateways", tKey: "nav.adminGateways", icon: Server },
+      { id: "admin-risk", label: "Risk", tKey: "nav.adminRisk", icon: ShieldCheck },
+      { id: "admin-analytics", label: "Platform Analytics", tKey: "nav.adminAnalytics", icon: BarChart3 },
+      { id: "admin-support", label: "Support", tKey: "nav.adminSupport", icon: LifeBuoy },
     ],
   },
   {
-    id: "infra",
-    label: "Infrastructure",
+    id: "infra", label: "Infrastructure", tKey: "sec.infra",
     items: [
-      { id: "admin-health", label: "System Health", icon: Gauge },
-      { id: "admin-workers", label: "Workers", icon: Cpu },
-      { id: "admin-queues", label: "Queues", icon: Activity },
-      { id: "admin-logs", label: "Logs", icon: FileText },
-      { id: "admin-flags", label: "Feature Flags", icon: Flag },
-      { id: "admin-compliance", label: "Compliance", icon: ShieldCheck },
+      { id: "admin-health", label: "System Health", tKey: "nav.adminHealth", icon: Gauge },
+      { id: "admin-workers", label: "Workers", tKey: "nav.adminWorkers", icon: Cpu },
+      { id: "admin-queues", label: "Queues", tKey: "nav.adminQueues", icon: Activity },
+      { id: "admin-logs", label: "Logs", tKey: "nav.adminLogs", icon: FileText },
+      { id: "admin-flags", label: "Feature Flags", tKey: "nav.adminFlags", icon: Flag },
+      { id: "admin-compliance", label: "Compliance", tKey: "nav.adminCompliance", icon: ShieldCheck },
     ],
   },
 ];

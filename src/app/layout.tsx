@@ -62,11 +62,19 @@ export const metadata: Metadata = {
 
   alternates: {
     canonical: SITE_URL,
+    languages: {
+      "en": SITE_URL,
+      "pt-BR": `${SITE_URL}/?lang=pt-BR`,
+      "fr": `${SITE_URL}/?lang=fr`,
+      "es": `${SITE_URL}/?lang=es`,
+      "x-default": SITE_URL,
+    },
   },
 
   openGraph: {
     type: "website",
     locale: "en_US",
+    alternateLocale: ["pt_BR", "fr_FR", "es_ES"],
     url: SITE_URL,
     siteName: APP_NAME,
     title: "XPayments — Enterprise Payments Infrastructure",

@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
+import { useT } from "@/lib/i18n";
+import { LanguageSwitcher } from "@/components/shared/language-switcher";
 
 const loginSchema = z.object({
   email: z.string().email("Enter a valid email"),
@@ -21,6 +23,7 @@ const loginSchema = z.object({
 type LoginValues = z.infer<typeof loginSchema>;
 
 function BrandedPanel() {
+  const t = useT();
   return (
     <div className="relative hidden overflow-hidden bg-background lg:flex lg:w-1/2">
       <div className="absolute inset-0 bg-radial-blue" />
@@ -50,9 +53,9 @@ function BrandedPanel() {
             transition={{ duration: 0.6 }}
             className="text-balance text-4xl font-semibold leading-tight tracking-tight"
           >
-            Payments infrastructure for the{" "}
+            {t("auth.brandedTitle")}{" "}
             <span className="bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent">
-              global economy
+              {t("auth.brandedAccent")}
             </span>
           </motion.h2>
           <motion.p
@@ -61,14 +64,13 @@ function BrandedPanel() {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="mt-4 text-muted-foreground"
           >
-            Accept cards, Pix, MBWay and crypto. Manage FX, treasury and risk —
-            all in one enterprise platform trusted by fintechs worldwide.
+            {t("auth.brandedSubtitle")}
           </motion.p>
           <div className="mt-8 flex flex-col gap-3">
             {[
-              { icon: Zap, text: "99.99% uptime, 42ms median latency" },
-              { icon: Globe2, text: "120+ currencies, 45 countries" },
-              { icon: ShieldCheck, text: "PCI DSS Level 1, SOC 2 Type II" },
+              { icon: Zap, text: t("auth.feature1") },
+              { icon: Globe2, text: t("auth.feature2") },
+              { icon: ShieldCheck, text: t("auth.feature3") },
             ].map((f, i) => (
               <motion.div
                 key={i}
@@ -86,7 +88,7 @@ function BrandedPanel() {
           </div>
         </div>
         <div className="flex items-center gap-6 text-xs text-muted-foreground">
-          <span>© 2025 XPayments, Inc.</span>
+          <span>© 2026 XPayments, Inc.</span>
           <span>·</span>
           <span>Security</span>
           <span>·</span>
@@ -100,6 +102,7 @@ function BrandedPanel() {
 export function AuthScreen() {
   const { appView, setAppView } = useUi();
   const { login } = useAuth();
+  const t = useT();
   const [showPwd, setShowPwd] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
 
@@ -116,10 +119,10 @@ export function AuthScreen() {
     setLoading(true);
     try {
       const user = await login(values.email, values.password, !!form.getValues("remember" as never) || false);
-      toast.success(`Welcome back, ${user.name.split(" ")[0]}`);
+      toast.success(`${t("auth.welcomeBack")}, ${user.name.split(" ")[0]}`);
       setAppView(user.role === "admin" ? "admin" : "merchant");
     } catch {
-      toast.error("Sign in failed", { description: "Check your credentials and try again." });
+      toast.error(t("auth.signinFailed"), { description: t("auth.signinFailedDesc") });
     } finally {
       setLoading(false);
     }
@@ -130,7 +133,7 @@ export function AuthScreen() {
     setLoading(true);
     await new Promise((r) => setTimeout(r, 800));
     setLoading(false);
-    toast.success("Reset link sent", { description: "Check your inbox for instructions." });
+    toast.success(t("auth.resetSent"), { description: t("auth.resetSentDesc") });
     setAppView("login");
   }
 
@@ -153,23 +156,26 @@ export function AuthScreen() {
             </div>
           </div>
 
-          <button
-            onClick={() => setAppView("landing")}
-            className="mb-6 flex items-center gap-1.5 text-xs text-muted-foreground transition hover:text-foreground"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" /> Back to home
-          </button>
+          <div className="mb-6 flex items-center justify-between">
+            <button
+              onClick={() => setAppView("landing")}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground transition hover:text-foreground"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" /> {t("auth.backHome")}
+            </button>
+            <LanguageSwitcher />
+          </div>
 
           {isLogin && (
             <>
-              <h1 className="text-2xl font-semibold tracking-tight">Sign in to your account</h1>
+              <h1 className="text-2xl font-semibold tracking-tight">{t("auth.loginTitle")}</h1>
               <p className="mt-1.5 text-sm text-muted-foreground">
-                Welcome back. Enter your credentials to access the dashboard.
+                {t("auth.loginSubtitle")}
               </p>
 
               <form onSubmit={form.handleSubmit(onLogin)} className="mt-8 flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium text-foreground">Email</label>
+                  <label className="text-xs font-medium text-foreground">{t("auth.email")}</label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
@@ -184,13 +190,13 @@ export function AuthScreen() {
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-medium text-foreground">Password</label>
+                    <label className="text-xs font-medium text-foreground">{t("auth.password")}</label>
                     <button
                       type="button"
                       onClick={() => setAppView("forgot")}
                       className="text-xs text-primary transition hover:underline"
                     >
-                      Forgot?
+                      {t("auth.forgot")}
                     </button>
                   </div>
                   <div className="relative">
@@ -216,32 +222,32 @@ export function AuthScreen() {
                 <div className="flex items-center gap-2">
                   <Checkbox id="remember" defaultChecked />
                   <label htmlFor="remember" className="text-xs text-muted-foreground">
-                    Remember me for 30 days
+                    {t("auth.remember")}
                   </label>
                 </div>
                 <Button type="submit" disabled={loading} className="mt-1 h-10 gap-1.5">
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Sign in <ArrowRight className="h-4 w-4" /></>}
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>{t("auth.signinBtn")} <ArrowRight className="h-4 w-4" /></>}
                 </Button>
               </form>
 
               <div className="my-6 flex items-center gap-3">
                 <Separator className="flex-1" />
-                <span className="text-xs text-muted-foreground">or</span>
+                <span className="text-xs text-muted-foreground">{t("auth.or")}</span>
                 <Separator className="flex-1" />
               </div>
 
               <div className="rounded-xl border border-border/60 bg-card/40 p-4">
-                <p className="text-xs font-medium text-foreground">Demo credentials</p>
+                <p className="text-xs font-medium text-foreground">{t("auth.demoTitle")}</p>
                 <div className="mt-2 space-y-1 text-xs text-muted-foreground">
-                  <p><span className="text-muted-foreground/70">Merchant:</span> merchant@xpayments.digital / demo1234</p>
-                  <p><span className="text-muted-foreground/70">Admin:</span> admin@xpayments.digital / demo1234</p>
+                  <p><span className="text-muted-foreground/70">{t("auth.demoMerchant")}:</span> merchant@xpayments.digital / demo1234</p>
+                  <p><span className="text-muted-foreground/70">{t("auth.demoAdmin")}:</span> admin@xpayments.digital / demo1234</p>
                 </div>
               </div>
 
               <p className="mt-6 text-center text-xs text-muted-foreground">
-                New to XPayments?{" "}
+                {t("auth.newTo")}{" "}
                 <button onClick={() => setAppView("landing")} className="text-primary transition hover:underline">
-                  Request access
+                  {t("auth.requestAccess")}
                 </button>
               </p>
             </>
@@ -249,42 +255,42 @@ export function AuthScreen() {
 
           {isForgot && (
             <>
-              <h1 className="text-2xl font-semibold tracking-tight">Reset your password</h1>
+              <h1 className="text-2xl font-semibold tracking-tight">{t("auth.forgotTitle")}</h1>
               <p className="mt-1.5 text-sm text-muted-foreground">
-                Enter your email and we'll send you a reset link.
+                {t("auth.forgotSubtitle")}
               </p>
               <form onSubmit={onForgot} className="mt-8 flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium">Email</label>
+                  <label className="text-xs font-medium">{t("auth.email")}</label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input className="pl-9" type="email" placeholder="you@company.com" required />
                   </div>
                 </div>
                 <Button type="submit" disabled={loading} className="h-10 gap-1.5">
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Send reset link <ArrowRight className="h-4 w-4" /></>}
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>{t("auth.forgotBtn")} <ArrowRight className="h-4 w-4" /></>}
                 </Button>
               </form>
               <button onClick={() => setAppView("login")} className="mt-6 flex items-center gap-1.5 text-xs text-muted-foreground transition hover:text-foreground">
-                <ArrowLeft className="h-3.5 w-3.5" /> Back to sign in
+                <ArrowLeft className="h-3.5 w-3.5" /> {t("auth.backSignin")}
               </button>
             </>
           )}
 
           {isReset && (
             <>
-              <h1 className="text-2xl font-semibold tracking-tight">Set a new password</h1>
-              <p className="mt-1.5 text-sm text-muted-foreground">Choose a strong password for your account.</p>
+              <h1 className="text-2xl font-semibold tracking-tight">{t("auth.resetTitle")}</h1>
+              <p className="mt-1.5 text-sm text-muted-foreground">{t("auth.resetSubtitle")}</p>
               <form onSubmit={onForgot} className="mt-8 flex flex-col gap-4">
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-medium">New password</label>
+                  <label className="text-xs font-medium">{t("auth.password")}</label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input className="px-9" type="password" placeholder="••••••••" required />
                   </div>
                 </div>
                 <Button type="submit" disabled={loading} className="h-10 gap-1.5">
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Update password <ArrowRight className="h-4 w-4" /></>}
+                  {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>{t("auth.resetBtn")} <ArrowRight className="h-4 w-4" /></>}
                 </Button>
               </form>
             </>

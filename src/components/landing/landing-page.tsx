@@ -52,12 +52,14 @@ import {
   Rocket,
   Plug,
 } from "lucide-react";
+import { useT } from "@/lib/i18n";
+import { LanguageSwitcher } from "@/components/shared/language-switcher";
 
 // ----------------------------------------------------------------------------
 // Helpers
 // ----------------------------------------------------------------------------
 
-const NAV_LINKS = ["Product", "Pricing", "Developers", "Enterprise", "Docs"];
+const NAV_LINKS = ["nav.product", "nav.pricing", "nav.developers", "nav.enterprise", "nav.docs"];
 
 const LANGS: { id: keyof typeof sdkSnippets; label: string }[] = [
   { id: "curl", label: "cURL" },
@@ -141,6 +143,7 @@ function BrandLogo({ className }: { className?: string }) {
 
 function NavBar() {
   const { setAppView } = useUi();
+  const t = useT();
   const [open, setOpen] = React.useState(false);
   const [scrolled, setScrolled] = React.useState(false);
 
@@ -171,32 +174,33 @@ function NavBar() {
               onClick={(e) => e.preventDefault()}
               className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
-              {l}
+              {t(l)}
             </a>
           ))}
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
+          <LanguageSwitcher variant="full" />
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setAppView("login")}
             className="text-muted-foreground hover:text-foreground"
           >
-            Sign in
+            {t("common.signin")}
           </Button>
           <Button
             size="sm"
             onClick={() => setAppView("login")}
             className="glow-blue-sm"
           >
-            Start Building
+            {t("common.signup")}
             <ArrowRight className="size-3.5" />
           </Button>
         </div>
 
         <button
-          aria-label="Toggle menu"
+          aria-label={t("nav.toggleMenu")}
           className="grid size-9 place-items-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground md:hidden"
           onClick={() => setOpen((o) => !o)}
         >
@@ -224,19 +228,20 @@ function NavBar() {
                   }}
                   className="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
                 >
-                  {l}
+                  {t(l)}
                 </a>
               ))}
               <Separator className="my-2" />
+              <LanguageSwitcher variant="full" className="w-full justify-start" />
               <Button
                 variant="ghost"
                 onClick={() => setAppView("login")}
                 className="justify-start"
               >
-                Sign in
+                {t("common.signin")}
               </Button>
               <Button onClick={() => setAppView("login")} className="justify-center">
-                Start Building
+                {t("common.signup")}
                 <ArrowRight className="size-4" />
               </Button>
             </div>
@@ -448,10 +453,11 @@ const LIVE_PAYMENTS = [
 ];
 
 function LivePaymentToast() {
+  const t = useT();
   const [idx, setIdx] = React.useState(0);
   React.useEffect(() => {
-    const t = setInterval(() => setIdx((i) => (i + 1) % LIVE_PAYMENTS.length), 2600);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setIdx((i) => (i + 1) % LIVE_PAYMENTS.length), 2600);
+    return () => clearInterval(timer);
   }, []);
   const p = LIVE_PAYMENTS[idx];
   return (
@@ -467,7 +473,7 @@ function LivePaymentToast() {
         <span className="relative inline-flex size-2.5 rounded-full bg-emerald-400" />
       </span>
       <div className="flex flex-col">
-        <span className="text-[11px] text-muted-foreground">Payment received</span>
+        <span className="text-[11px] text-muted-foreground">{t("hero.paymentReceived")}</span>
         <span className="text-sm font-semibold text-foreground">
           {formatCurrency(p.amount, p.currency)}{" "}
           <span className="text-muted-foreground">· {p.method}</span>
@@ -570,6 +576,7 @@ function CodeBlock({
 
 function Hero() {
   const { setAppView } = useUi();
+  const t = useT();
   return (
     <section className="relative overflow-hidden">
       {/* ambient backgrounds */}
@@ -608,21 +615,19 @@ function Hero() {
           >
             <Sparkles className="size-3.5" />
             <span className="text-xs font-medium">
-              One API for global money movement
+              {t("hero.badge")}
             </span>
           </Badge>
 
           <h1 className="text-balance text-4xl font-semibold leading-[1.05] tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-            Payments infrastructure for the{" "}
+            {t("hero.title")}{" "}
             <span className="bg-gradient-to-r from-primary via-blue-400 to-cyan-300 bg-clip-text text-transparent text-glow">
-              global economy
+              {t("hero.titleAccent")}
             </span>
           </h1>
 
           <p className="mt-5 max-w-xl text-pretty text-base text-muted-foreground sm:text-lg">
-            Accept cards, Pix, MBWay and crypto in 45 countries. Move money
-            across wallets, FX and treasury with a single, type-safe API —
-            built for enterprise scale and 99.99% uptime.
+            {t("hero.subtitle")}
           </p>
 
           <div className="mt-7 flex flex-col gap-3 sm:flex-row">
@@ -631,7 +636,7 @@ function Hero() {
               onClick={() => setAppView("login")}
               className="glow-blue-sm h-11 px-6 text-sm"
             >
-              Start Building
+              {t("hero.cta1")}
               <ArrowRight className="size-4" />
             </Button>
             <Button
@@ -640,24 +645,14 @@ function Hero() {
               onClick={() => setAppView("login")}
               className="h-11 border-border/70 bg-background/40 px-6 text-sm backdrop-blur"
             >
-              Book Demo
+              {t("hero.cta2")}
             </Button>
           </div>
 
           <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1.5">
               <ShieldCheck className="size-3.5 text-primary" />
-              PCI DSS Level 1
-            </span>
-            <span className="opacity-30">·</span>
-            <span className="inline-flex items-center gap-1.5">
-              <Lock className="size-3.5 text-primary" />
-              SOC 2 Type II
-            </span>
-            <span className="opacity-30">·</span>
-            <span className="inline-flex items-center gap-1.5">
-              <Activity className="size-3.5 text-primary" />
-              99.99% uptime
+              {t("hero.trust")}
             </span>
           </div>
         </motion.div>
@@ -693,6 +688,9 @@ function Hero() {
             transition={{ duration: 0.6, delay: 0.35 }}
             className="mt-5"
           >
+            <p className="mb-2 text-xs font-medium text-muted-foreground">
+              {t("hero.codeTitle")}
+            </p>
             <CodeBlock autoCycle />
           </motion.div>
         </motion.div>
@@ -715,12 +713,13 @@ const TRUST_LOGOS = [
 ];
 
 function TrustBar() {
+  const t = useT();
   const row = [...TRUST_LOGOS, ...TRUST_LOGOS];
   return (
     <section className="border-y border-border/40 bg-background/40 py-10">
       <div className="mx-auto max-w-7xl px-5 sm:px-8">
         <p className="mb-6 text-center text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
-          Trusted by teams at
+          {t("trust.label")}
         </p>
         <div className="relative overflow-hidden [mask-image:linear-gradient(to_right,transparent,#000_12%,#000_88%,transparent)] [-webkit-mask-image:linear-gradient(to_right,transparent,#000_12%,#000_88%,transparent)]">
           <div className="flex w-max animate-[xp-marquee_28s_linear_infinite] items-center gap-14">
@@ -745,25 +744,26 @@ function TrustBar() {
 // ----------------------------------------------------------------------------
 
 function StatsBand() {
+  const t = useT();
   const stats = [
     {
       value: 18.9,
-      label: "Processed in 2024",
+      labelKey: "stats.processed",
       format: (n: number) => `$${n.toFixed(1)}B`,
     },
     {
       value: 120,
-      label: "Currencies supported",
+      labelKey: "stats.currencies",
       format: (n: number) => `${formatNumber(n)}+`,
     },
     {
       value: 45,
-      label: "Countries live",
+      labelKey: "stats.countries",
       format: (n: number) => formatNumber(n),
     },
     {
       value: 99.99,
-      label: "Platform uptime",
+      labelKey: "stats.uptime",
       format: (n: number) => formatPercent(n, 2),
     },
   ];
@@ -773,7 +773,7 @@ function StatsBand() {
         <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border/50 bg-border/40 lg:grid-cols-4">
           {stats.map((s, i) => (
             <Reveal
-              key={s.label}
+              key={s.labelKey}
               delay={i * 0.08}
               className="bg-background/60 backdrop-blur-xl"
             >
@@ -784,7 +784,7 @@ function StatsBand() {
                   className="bg-gradient-to-b from-foreground to-foreground/60 bg-clip-text text-4xl font-semibold tracking-tight text-transparent sm:text-5xl"
                 />
                 <p className="mt-2 text-xs font-medium uppercase tracking-wider text-muted-foreground sm:text-sm">
-                  {s.label}
+                  {t(s.labelKey)}
                 </p>
               </div>
             </Reveal>
@@ -799,18 +799,8 @@ function StatsBand() {
 // Section: Payment methods
 // ----------------------------------------------------------------------------
 
-const METHOD_COPY: Record<string, string> = {
-  visa: "Global card payments with native 3-D Secure and network tokens.",
-  mastercard: "Worldwide acceptance across 210+ countries and territories.",
-  pix: "Instant Brazilian bank transfers, settled 24/7 in seconds.",
-  mbway: "Portuguese mobile wallet — confirm and settle in under a second.",
-  apple_pay: "One-tap biometric checkout for iOS and Safari customers.",
-  google_pay: "Frictionless, tokenized payments for Android and web.",
-  crypto: "Accept BTC, ETH and stablecoins with auto-conversion to fiat.",
-  sepa: "Single Euro Payments Area transfers across 36 European markets.",
-};
-
 function PaymentMethods() {
+  const t = useT();
   return (
     <section className="py-16 sm:py-24">
       <div className="mx-auto max-w-7xl px-5 sm:px-8">
@@ -819,11 +809,10 @@ function PaymentMethods() {
             Coverage
           </Badge>
           <h2 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-            One API. Every payment method.
+            {t("pm.title")}
           </h2>
           <p className="mt-3 text-muted-foreground">
-            From cards to instant bank transfers and crypto — orchestrate every
-            rail your customers expect through a single integration.
+            {t("pm.subtitle")}
           </p>
         </Reveal>
 
@@ -845,7 +834,7 @@ function PaymentMethods() {
                     </span>
                   </div>
                   <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                    {METHOD_COPY[m.id]}
+                    {t("pm." + m.id.replace("_", ""))}
                   </p>
                 </GlowCard>
               </motion.div>
@@ -864,28 +853,29 @@ function PaymentMethods() {
 const DEV_FEATURES = [
   {
     icon: Code2,
-    title: "Typed SDKs",
-    desc: "First-class TypeScript types for Node, plus Python, PHP and Go clients.",
+    titleKey: "dev.feature1",
+    descKey: "dev.feature1d",
   },
   {
     icon: Webhook,
-    title: "Webhooks",
-    desc: "Signed, retryable events delivered to your endpoints in under 500ms.",
+    titleKey: "dev.feature2",
+    descKey: "dev.feature2d",
   },
   {
     icon: Plug,
-    title: "API Explorer",
-    desc: "Browse, test and cURL any endpoint directly from the dashboard.",
+    titleKey: "dev.feature3",
+    descKey: "dev.feature3d",
   },
   {
     icon: RefreshCw,
-    title: "Idempotency",
-    desc: "Safe automatic retries with idempotency keys on every write request.",
+    titleKey: "dev.feature4",
+    descKey: "dev.feature4d",
   },
 ];
 
 function DeveloperSection() {
   const copy = useCopy();
+  const t = useT();
   return (
     <section className="py-16 sm:py-24">
       <div className="mx-auto grid max-w-7xl grid-cols-1 gap-12 px-5 sm:px-8 lg:grid-cols-2 lg:gap-16">
@@ -894,28 +884,26 @@ function DeveloperSection() {
             For developers
           </Badge>
           <h2 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-            Built for developers, loved by finance teams.
+            {t("dev.title")}
           </h2>
           <p className="mt-4 text-muted-foreground">
-            Clean abstractions, predictable errors and docs that match the code.
-            Go from <code className="rounded bg-muted px-1.5 py-0.5 text-xs">npm install</code> to
-            first successful charge in under five minutes.
+            {t("dev.subtitle")}
           </p>
 
           <div className="mt-8 grid gap-4 sm:grid-cols-2">
             {DEV_FEATURES.map((f) => (
               <div
-                key={f.title}
+                key={f.titleKey}
                 className="rounded-xl border border-border/50 bg-card/40 p-4 backdrop-blur-sm"
               >
                 <div className="mb-2 grid size-9 place-items-center rounded-lg bg-primary/10 text-primary">
                   <f.icon className="size-[18px]" />
                 </div>
                 <h3 className="text-sm font-semibold text-foreground">
-                  {f.title}
+                  {t(f.titleKey)}
                 </h3>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  {f.desc}
+                  {t(f.descKey)}
                 </p>
               </div>
             ))}
@@ -985,7 +973,7 @@ function DeveloperSection() {
                     <ArrowUpRight className="size-3.5 text-emerald-400" />
                     200 OK · 142ms
                   </span>
-                  <span className="text-[11px] text-muted-foreground">Response</span>
+                  <span className="text-[11px] text-muted-foreground">{t("dev.response")}</span>
                 </div>
                 <pre className="scrollbar-thin overflow-auto px-5 pb-5 font-mono text-[12px] leading-relaxed text-emerald-300/90">
                   <code className="whitespace-pre">{RESPONSE_JSON}</code>
@@ -1006,37 +994,38 @@ function DeveloperSection() {
 const FEATURES = [
   {
     icon: Wallet,
-    title: "Wallets & FX",
-    desc: "Hold 6+ currencies, convert at interbank rates and settle across wallets in real time.",
+    titleKey: "features.wallets",
+    descKey: "features.walletsD",
   },
   {
     icon: Landmark,
-    title: "Treasury",
-    desc: "Sweep balances, schedule payouts and manage liquidity across entities and currencies.",
+    titleKey: "features.treasury",
+    descKey: "features.treasuryD",
   },
   {
     icon: ShieldAlert,
-    title: "Risk Engine",
-    desc: "Real-time fraud scoring with ML models and configurable rules per route and channel.",
+    titleKey: "features.risk",
+    descKey: "features.riskD",
   },
   {
     icon: ShoppingBag,
-    title: "Commerce",
-    desc: "Stores, products, subscriptions, payment links and invoices — all native to the platform.",
+    titleKey: "features.commerce",
+    descKey: "features.commerceD",
   },
   {
     icon: LineChart,
-    title: "Analytics",
-    desc: "Cohort, waterfall and FX dashboards with sub-second queries over your full history.",
+    titleKey: "features.analytics",
+    descKey: "features.analyticsD",
   },
   {
     icon: Code2,
-    title: "Developers",
-    desc: "Typed SDKs, signed webhooks, idempotency keys and an interactive API explorer.",
+    titleKey: "features.developers",
+    descKey: "features.developersD",
   },
 ];
 
 function FeaturesGrid() {
+  const t = useT();
   return (
     <section className="py-16 sm:py-24">
       <div className="mx-auto max-w-7xl px-5 sm:px-8">
@@ -1045,17 +1034,16 @@ function FeaturesGrid() {
             Platform
           </Badge>
           <h2 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-            Everything you need to scale payments.
+            {t("features.title")}
           </h2>
           <p className="mt-3 text-muted-foreground">
-            One unified platform for money in, money out and every report your
-            finance team asks for — replacing a stack of disconnected vendors.
+            {t("features.subtitle")}
           </p>
         </Reveal>
 
         <div className="mt-12 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map((f, i) => (
-            <Reveal key={f.title} delay={(i % 3) * 0.06}>
+            <Reveal key={f.titleKey} delay={(i % 3) * 0.06}>
               <GradientBorder className="h-full">
                 <motion.div
                   whileHover={{ y: -4 }}
@@ -1065,10 +1053,10 @@ function FeaturesGrid() {
                     <f.icon className="size-5" />
                   </div>
                   <h3 className="text-base font-semibold text-foreground">
-                    {f.title}
+                    {t(f.titleKey)}
                   </h3>
                   <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                    {f.desc}
+                    {t(f.descKey)}
                   </p>
                   <div className="mt-4 flex items-center text-xs font-medium text-primary opacity-0 transition-opacity group-hover:opacity-100">
                     Learn more <ChevronRight className="size-3.5" />
@@ -1090,22 +1078,23 @@ function FeaturesGrid() {
 const SECURITY_PILLARS = [
   {
     icon: CreditCard,
-    title: "PCI DSS Level 1",
-    desc: "Card data handled in certified vaults. SAQ-A scope for merchants — no sensitive data on your servers.",
+    titleKey: "security.pci",
+    descKey: "security.pciD",
   },
   {
     icon: ShieldCheck,
-    title: "SOC 2 Type II",
-    desc: "Audited annually across security, availability, processing integrity and confidentiality controls.",
+    titleKey: "security.soc",
+    descKey: "security.socD",
   },
   {
     icon: Gauge,
-    title: "99.99% uptime SLA",
-    desc: "Multi-region active-active deployment with sub-500ms p95 API latency and automatic failover.",
+    titleKey: "security.uptime",
+    descKey: "security.uptimeD",
   },
 ];
 
 function SecuritySection() {
+  const t = useT();
   return (
     <section className="relative overflow-hidden py-16 sm:py-24">
       <div className="pointer-events-none absolute left-1/2 top-1/2 size-[520px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-[120px]" />
@@ -1116,18 +1105,16 @@ function SecuritySection() {
             Trust & compliance
           </Badge>
           <h2 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-            Enterprise-grade security, by default.
+            {t("security.title")}
           </h2>
           <p className="mt-3 text-muted-foreground">
-            Security is not an add-on tier. Every account ships with the
-            controls, certifications and operational rigor that regulated
-            enterprises require.
+            {t("security.subtitle")}
           </p>
         </Reveal>
 
         <div className="mt-12 grid grid-cols-1 gap-4 md:grid-cols-3">
           {SECURITY_PILLARS.map((p, i) => (
-            <Reveal key={p.title} delay={i * 0.08}>
+            <Reveal key={p.titleKey} delay={i * 0.08}>
               <GlowCard glow className="relative h-full overflow-hidden p-6">
                 <div className="pointer-events-none absolute -right-10 -top-10 size-32 rounded-full bg-primary/15 blur-2xl" />
                 <div className="relative">
@@ -1135,10 +1122,10 @@ function SecuritySection() {
                     <p.icon className="size-[22px]" />
                   </div>
                   <h3 className="text-lg font-semibold text-foreground">
-                    {p.title}
+                    {t(p.titleKey)}
                   </h3>
                   <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                    {p.desc}
+                    {t(p.descKey)}
                   </p>
                 </div>
               </GlowCard>
@@ -1156,29 +1143,27 @@ function SecuritySection() {
 
 const TESTIMONIALS = [
   {
-    quote:
-      "XPayments let us launch in Brazil in a week. Pix volume is up 3× since — it's now our largest corridor.",
-    name: "Daniel Reyes",
-    role: "CTO, Nimbus Labs",
-    initials: "DR",
+    quoteKey: "t1.quote",
+    authorKey: "t1.author",
+    roleKey: "t1.role",
+    initials: "LF",
   },
   {
-    quote:
-      "One API for cards, wallets and FX replaced four vendors. Treasury is finally unified and reconcilable.",
-    name: "Aisha Karim",
-    role: "Head of Payments, Vertex Commerce",
-    initials: "AK",
+    quoteKey: "t2.quote",
+    authorKey: "t2.author",
+    roleKey: "t2.role",
+    initials: "CD",
   },
   {
-    quote:
-      "The risk engine caught a fraud ring we'd been chasing for months. It paid for itself in a single week.",
-    name: "Marta Lopes",
-    role: "VP Risk, Meridian Bank",
-    initials: "ML",
+    quoteKey: "t3.quote",
+    authorKey: "t3.author",
+    roleKey: "t3.role",
+    initials: "MB",
   },
 ];
 
 function Testimonials() {
+  const t = useT();
   return (
     <section className="py-16 sm:py-24">
       <div className="mx-auto max-w-7xl px-5 sm:px-8">
@@ -1187,29 +1172,29 @@ function Testimonials() {
             Customers
           </Badge>
           <h2 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl">
-            Powering payments for modern companies.
+            {t("testimonials.title")}
           </h2>
         </Reveal>
 
         <div className="mt-12 grid grid-cols-1 gap-4 md:grid-cols-3">
-          {TESTIMONIALS.map((t, i) => (
-            <Reveal key={t.name} delay={i * 0.08}>
+          {TESTIMONIALS.map((tm, i) => (
+            <Reveal key={tm.authorKey} delay={i * 0.08}>
               <GlowCard className="flex h-full flex-col p-6">
                 <Quote className="size-7 text-primary/40" />
                 <p className="mt-4 flex-1 text-[15px] leading-relaxed text-foreground/90">
-                  "{t.quote}"
+                  "{t(tm.quoteKey)}"
                 </p>
                 <div className="mt-6 flex items-center gap-3">
                   <Avatar className="size-9 ring-1 ring-inset ring-primary/30">
                     <AvatarFallback className="bg-primary/15 text-xs font-semibold text-primary">
-                      {t.initials}
+                      {tm.initials}
                     </AvatarFallback>
                   </Avatar>
                   <div>
                     <p className="text-sm font-semibold text-foreground">
-                      {t.name}
+                      {t(tm.authorKey)}
                     </p>
-                    <p className="text-xs text-muted-foreground">{t.role}</p>
+                    <p className="text-xs text-muted-foreground">{t(tm.roleKey)}</p>
                   </div>
                 </div>
               </GlowCard>
@@ -1227,6 +1212,7 @@ function Testimonials() {
 
 function FinalCTA() {
   const { setAppView } = useUi();
+  const t = useT();
   return (
     <section className="px-5 py-16 sm:px-8 sm:py-24">
       <Reveal className="mx-auto max-w-5xl">
@@ -1243,12 +1229,10 @@ function FinalCTA() {
                 Get started in minutes
               </Badge>
               <h2 className="mx-auto max-w-2xl text-balance text-3xl font-semibold tracking-tight sm:text-5xl">
-                Start accepting payments today.
+                {t("cta.title")}
               </h2>
               <p className="mx-auto mt-4 max-w-xl text-pretty text-muted-foreground">
-                Create a free account, drop in your test keys and process your
-                first charge before your coffee gets cold. No sales call
-                required to begin.
+                {t("cta.subtitle")}
               </p>
               <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
                 <Button
@@ -1256,7 +1240,7 @@ function FinalCTA() {
                   onClick={() => setAppView("login")}
                   className="glow-blue h-12 px-8 text-sm"
                 >
-                  Start Building
+                  {t("cta.button")}
                   <ArrowRight className="size-4" />
                 </Button>
                 <Button
@@ -1265,7 +1249,7 @@ function FinalCTA() {
                   onClick={() => setAppView("login")}
                   className="h-12 border-border/70 bg-background/40 px-8 text-sm backdrop-blur"
                 >
-                  Talk to sales
+                  {t("cta.secondary")}
                 </Button>
               </div>
             </div>
@@ -1280,30 +1264,39 @@ function FinalCTA() {
 // Footer
 // ----------------------------------------------------------------------------
 
-const FOOTER_COLS: { title: string; links: string[] }[] = [
+type FooterLink = string | { key: string };
+const FOOTER_COLS: { titleKey: string; links: FooterLink[] }[] = [
   {
-    title: "Product",
+    titleKey: "footer.product",
     links: ["Payments", "Wallets & FX", "Treasury", "Risk Engine", "Commerce", "Analytics"],
   },
   {
-    title: "Developers",
+    titleKey: "footer.developers",
     links: ["Documentation", "API Reference", "SDKs", "Webhooks", "API Explorer", "Status"],
   },
   {
-    title: "Company",
+    titleKey: "footer.company",
     links: ["About", "Customers", "Careers", "Press", "Partners", "Contact"],
   },
   {
-    title: "Resources",
+    titleKey: "footer.resources",
     links: ["Blog", "Guides", "Help Center", "Community", "Changelog", "Roadmap"],
   },
   {
-    title: "Legal",
-    links: ["Terms", "Privacy", "Compliance", "Security", "DPA", "Licenses"],
+    titleKey: "footer.legal",
+    links: [
+      { key: "footer.terms" },
+      { key: "footer.privacy" },
+      { key: "footer.compliance" },
+      { key: "footer.security" },
+      "DPA",
+      "Licenses",
+    ],
   },
 ];
 
 function Footer() {
+  const t = useT();
   return (
     <footer className="mt-auto border-t border-border/60 bg-background/60">
       <div className="mx-auto max-w-7xl px-5 py-14 sm:px-8">
@@ -1311,8 +1304,7 @@ function Footer() {
           <div className="col-span-2">
             <BrandLogo />
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">
-              Enterprise payments infrastructure for the global economy. Move
-              money, manage risk and scale commerce — all in one platform.
+              {t("footer.tagline")}
             </p>
             <div className="mt-5 flex items-center gap-2">
               {[Twitter, Github, Linkedin, Globe2].map((Icon, i) => (
@@ -1329,22 +1321,25 @@ function Footer() {
           </div>
 
           {FOOTER_COLS.map((col) => (
-            <div key={col.title}>
+            <div key={col.titleKey}>
               <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground">
-                {col.title}
+                {t(col.titleKey)}
               </h4>
               <ul className="mt-4 space-y-2.5">
-                {col.links.map((l) => (
-                  <li key={l}>
-                    <a
-                      href="#"
-                      onClick={(e) => e.preventDefault()}
-                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                    >
-                      {l}
-                    </a>
-                  </li>
-                ))}
+                {col.links.map((l, i) => {
+                  const label = typeof l === "string" ? l : t(l.key);
+                  return (
+                    <li key={i}>
+                      <a
+                        href="#"
+                        onClick={(e) => e.preventDefault()}
+                        className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        {label}
+                      </a>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           ))}
@@ -1353,7 +1348,7 @@ function Footer() {
         <Separator className="my-8" />
 
         <div className="flex flex-col items-center justify-between gap-4 text-xs text-muted-foreground sm:flex-row">
-          <p>© 2025 {APP_NAME}, Inc. All rights reserved.</p>
+          <p>© 2026 {APP_NAME}, Inc. {t("footer.rights")}</p>
           <div className="flex items-center gap-5">
             <span className="inline-flex items-center gap-1.5">
               <span className="size-1.5 rounded-full bg-emerald-400" />
@@ -1361,6 +1356,11 @@ function Footer() {
             </span>
             <span className="opacity-30">·</span>
             <span>Made for the global economy</span>
+            <span className="opacity-30">·</span>
+            <span className="inline-flex items-center gap-1.5">
+              {t("footer.language")}
+              <LanguageSwitcher variant="full" />
+            </span>
           </div>
         </div>
       </div>

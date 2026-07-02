@@ -1,20 +1,25 @@
 <svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="XPayments logo">
   <defs>
     <linearGradient id="xp-bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#0B1220"/>
-      <stop offset="100%" stop-color="#111A33"/>
+      <stop offset="0%" stop-color="#0A1020"/>
+      <stop offset="55%" stop-color="#0E1A33"/>
+      <stop offset="100%" stop-color="#0B1220"/>
     </linearGradient>
     <linearGradient id="xp-x" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#3B82F6"/>
-      <stop offset="55%" stop-color="#2563EB"/>
+      <stop offset="0%" stop-color="#60A5FA"/>
+      <stop offset="48%" stop-color="#3B82F6"/>
       <stop offset="100%" stop-color="#10B981"/>
     </linearGradient>
-    <linearGradient id="xp-stroke" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#60A5FA" stop-opacity="0.9"/>
-      <stop offset="100%" stop-color="#34D399" stop-opacity="0.9"/>
+    <linearGradient id="xp-edge" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#60A5FA" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#34D399" stop-opacity="0.45"/>
     </linearGradient>
-    <filter id="xp-glow" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="14" result="blur"/>
+    <radialGradient id="xp-glow" cx="50%" cy="42%" r="55%">
+      <stop offset="0%" stop-color="#3B82F6" stop-opacity="0.30"/>
+      <stop offset="100%" stop-color="#3B82F6" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="xp-soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="9" result="blur"/>
       <feMerge>
         <feMergeNode in="blur"/>
         <feMergeNode in="SourceGraphic"/>
@@ -23,26 +28,33 @@
   </defs>
 
   <!-- Rounded square background -->
-  <rect x="16" y="16" width="480" height="480" rx="112" fill="url(#xp-bg)"/>
-  <rect x="16" y="16" width="480" height="480" rx="112" fill="none" stroke="url(#xp-stroke)" stroke-width="2" opacity="0.35"/>
+  <rect x="14" y="14" width="484" height="484" rx="118" fill="url(#xp-bg)"/>
+  <rect x="14" y="14" width="484" height="484" rx="118" fill="url(#xp-glow)"/>
+  <rect x="14" y="14" width="484" height="484" rx="118" fill="none" stroke="url(#xp-edge)" stroke-width="1.5" opacity="0.6"/>
 
-  <!-- Subtle grid glow -->
-  <circle cx="256" cy="256" r="200" fill="url(#xp-x)" opacity="0.10"/>
+  <!-- Subtle inner ring -->
+  <rect x="34" y="34" width="444" height="444" rx="100" fill="none" stroke="oklch(1 0 0 / 0.04)" stroke-width="1"/>
 
-  <!-- The X mark -->
-  <g filter="url(#xp-glow)">
-    <path d="M 168 168 L 344 344" stroke="url(#xp-x)" stroke-width="56" stroke-linecap="round"/>
-    <path d="M 344 168 L 168 344" stroke="url(#xp-x)" stroke-width="56" stroke-linecap="round"/>
+  <!-- The X mark: two crossed bars with a gap, modern + sharp -->
+  <g filter="url(#xp-soft)">
+    <!-- diagonal 1: top-left to bottom-right -->
+    <line x1="172" y1="172" x2="340" y2="340" stroke="url(#xp-x)" stroke-width="52" stroke-linecap="round"/>
+    <!-- diagonal 2: top-right to bottom-left -->
+    <line x1="340" y1="172" x2="172" y2="340" stroke="url(#xp-x)" stroke-width="52" stroke-linecap="round"/>
   </g>
 
-  <!-- Inner highlight -->
-  <path d="M 168 168 L 344 344" stroke="#BFDBFE" stroke-width="8" stroke-linecap="round" opacity="0.55"/>
-  <path d="M 344 168 L 168 344" stroke="#A7F3D0" stroke-width="8" stroke-linecap="round" opacity="0.45"/>
+  <!-- Crisp inner core (no blur) for sharpness at small sizes -->
+  <line x1="172" y1="172" x2="340" y2="340" stroke="url(#xp-x)" stroke-width="52" stroke-linecap="round"/>
+  <line x1="340" y1="172" x2="172" y2="340" stroke="url(#xp-x)" stroke-width="52" stroke-linecap="round"/>
 
-  <!-- Payment pulse dot (bottom-right of X) -->
-  <circle cx="356" cy="356" r="16" fill="#34D399"/>
-  <circle cx="356" cy="356" r="16" fill="#34D399" opacity="0.5">
-    <animate attributeName="r" values="16;26;16" dur="2.4s" repeatCount="indefinite"/>
-    <animate attributeName="opacity" values="0.5;0;0.5" dur="2.4s" repeatCount="indefinite"/>
+  <!-- Highlight strands -->
+  <line x1="172" y1="172" x2="340" y2="340" stroke="#DBEAFE" stroke-width="6" stroke-linecap="round" opacity="0.6"/>
+  <line x1="340" y1="172" x2="172" y2="340" stroke="#A7F3D0" stroke-width="6" stroke-linecap="round" opacity="0.45"/>
+
+  <!-- Payment node (bottom-right) with pulse — represents a settled transaction -->
+  <circle cx="352" cy="352" r="14" fill="#34D399"/>
+  <circle cx="352" cy="352" r="14" fill="#34D399" opacity="0.5">
+    <animate attributeName="r" values="14;26;14" dur="2.6s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.5;0;0.5" dur="2.6s" repeatCount="indefinite"/>
   </circle>
 </svg>

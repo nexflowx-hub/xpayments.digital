@@ -1,29 +1,48 @@
-<?xml version="1.0" encoding="utf-8"?>
-<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
-	 viewBox="0 0 30 30" style="enable-background:new 0 0 30 30;" xml:space="preserve">
-<defs>
-  <style type="text/css">
-    .st194{fill:#2D2D2D;stroke:#FFFFFF;stroke-width:0.6317;stroke-miterlimit:10;}
-    .st23{fill:#FFFFFF;}
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="XPayments logo">
+  <defs>
+    <linearGradient id="xp-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0B1220"/>
+      <stop offset="100%" stop-color="#111A33"/>
+    </linearGradient>
+    <linearGradient id="xp-x" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#3B82F6"/>
+      <stop offset="55%" stop-color="#2563EB"/>
+      <stop offset="100%" stop-color="#10B981"/>
+    </linearGradient>
+    <linearGradient id="xp-stroke" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#60A5FA" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#34D399" stop-opacity="0.9"/>
+    </linearGradient>
+    <filter id="xp-glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="14" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
 
-    .z-breathe {
-      animation: breathe 2.5s ease-in-out infinite;
-    }
+  <!-- Rounded square background -->
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="url(#xp-bg)"/>
+  <rect x="16" y="16" width="480" height="480" rx="112" fill="none" stroke="url(#xp-stroke)" stroke-width="2" opacity="0.35"/>
 
-    @keyframes breathe {
-      0%, 100% { opacity: 0.7; }
-      50% { opacity: 1; }
-    }
-  </style>
-</defs>
+  <!-- Subtle grid glow -->
+  <circle cx="256" cy="256" r="200" fill="url(#xp-x)" opacity="0.10"/>
 
-<g>
-  <path class="st194" d="M24.51,28.51H5.49c-2.21,0-4-1.79-4-4V5.49c0-2.21,1.79-4,4-4h19.03c2.21,0,4,1.79,4,4v19.03
-    C28.51,26.72,26.72,28.51,24.51,28.51z"/>
-  <g class="z-breathe">
-    <path class="st23" d="M15.47,7.1l-1.3,1.85c-0.2,0.29-0.54,0.47-0.9,0.47h-7.1V7.09C6.16,7.1,15.47,7.1,15.47,7.1z"/>
-    <polygon class="st23" points="24.3,7.1 13.14,22.91 5.7,22.91 16.86,7.1"/>
-    <path class="st23" d="M14.53,22.91l1.31-1.86c0.2-0.29,0.54-0.47,0.9-0.47h7.09v2.33H14.53z"/>
+  <!-- The X mark -->
+  <g filter="url(#xp-glow)">
+    <path d="M 168 168 L 344 344" stroke="url(#xp-x)" stroke-width="56" stroke-linecap="round"/>
+    <path d="M 344 168 L 168 344" stroke="url(#xp-x)" stroke-width="56" stroke-linecap="round"/>
   </g>
-</g>
+
+  <!-- Inner highlight -->
+  <path d="M 168 168 L 344 344" stroke="#BFDBFE" stroke-width="8" stroke-linecap="round" opacity="0.55"/>
+  <path d="M 344 168 L 168 344" stroke="#A7F3D0" stroke-width="8" stroke-linecap="round" opacity="0.45"/>
+
+  <!-- Payment pulse dot (bottom-right of X) -->
+  <circle cx="356" cy="356" r="16" fill="#34D399"/>
+  <circle cx="356" cy="356" r="16" fill="#34D399" opacity="0.5">
+    <animate attributeName="r" values="16;26;16" dur="2.4s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.5;0;0.5" dur="2.4s" repeatCount="indefinite"/>
+  </circle>
 </svg>

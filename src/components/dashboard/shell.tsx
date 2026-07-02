@@ -221,7 +221,7 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
   React.useEffect(() => setMounted(true), []);
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border/60 bg-background/80 px-3 backdrop-blur-xl sm:px-5">
+    <header className="safe-top sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-border/60 bg-background/80 px-3 backdrop-blur-xl sm:px-5">
       <Button variant="ghost" size="icon" className="lg:hidden" onClick={onMenu}>
         <Menu className="h-5 w-5" />
       </Button>

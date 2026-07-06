@@ -20,6 +20,7 @@ export interface User {
   avatarUrl?: string;
   company?: string;
   merchantId?: string;
+  tier?: string;
   twoFactorEnabled?: boolean;
 }
 
@@ -35,6 +36,32 @@ export interface LoginPayload {
   password: string;
   remember?: boolean;
 }
+
+export interface RegisterPayload {
+  name: string;
+  email: string;
+  password: string;
+  companyName: string;
+}
+
+/**
+ * Raw envelope returned by the Master Backend on POST auth/login and
+ * auth/register. The client maps this into `AuthSession` (see xpApi.auth).
+ */
+export interface AuthEnvelope {
+  success: boolean;
+  data: {
+    merchantId: string;
+    name: string;
+    tier: string;
+    token: string;
+    role: string;
+  };
+  error?: string;
+}
+
+/** Shape returned by auth/login and auth/register (after envelope mapping) */
+export type AuthResponse = AuthSession;
 
 // ---- Wallets ----
 export type CurrencyCode = "EUR" | "USD" | "BRL" | "USDT" | "GBP" | "BTC";

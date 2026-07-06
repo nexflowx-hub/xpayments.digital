@@ -7,6 +7,7 @@ import { useI18n } from "@/lib/i18n";
 import { DashboardShell } from "@/components/dashboard/shell";
 import { MerchantViewRouter, AdminViewRouter } from "@/components/dashboard/view-router";
 import { AuthScreen } from "@/components/auth/auth-screen";
+import { XSymbol } from "@/components/shared/x-symbol";
 import dynamic from "next/dynamic";
 
 const LandingPage = dynamic(() => import("@/components/landing/landing-page"), {
@@ -18,10 +19,7 @@ function SplashScreen() {
   return (
     <div className="grid min-h-screen place-items-center bg-background">
       <div className="flex flex-col items-center gap-4">
-        <div className="relative grid h-12 w-12 place-items-center rounded-xl bg-gradient-to-br from-primary to-primary/60 shadow-lg shadow-primary/40">
-          <span className="text-xl font-bold text-white">X</span>
-          <div className="absolute inset-0 animate-ping rounded-xl bg-primary/40" />
-        </div>
+        <XSymbol className="h-12 w-12" />
         <p className="text-sm text-muted-foreground">Loading XPayments…</p>
       </div>
     </div>

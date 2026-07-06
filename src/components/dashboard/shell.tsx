@@ -26,16 +26,14 @@ import {
 } from "@/components/ui/command";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { LanguageSwitcher } from "@/components/shared/language-switcher";
+import { XSymbol } from "@/components/shared/x-symbol";
 import { toast } from "sonner";
 import { APP_NAME } from "@/config";
 
 function Logo({ compact = false }: { compact?: boolean }) {
   return (
     <div className="flex items-center gap-2.5">
-      <div className="relative grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-primary to-primary/60 shadow-lg shadow-primary/30">
-        <span className="text-sm font-bold text-white">X</span>
-        <div className="absolute inset-0 rounded-lg ring-1 ring-inset ring-white/20" />
-      </div>
+      <XSymbol className="h-8 w-8" />
       {!compact && (
         <div className="flex flex-col leading-none">
           <span className="text-sm font-semibold tracking-tight text-foreground">

@@ -16,6 +16,7 @@ import {
 } from "@/lib/utils";
 import { APP_NAME, PAYMENT_METHODS } from "@/config";
 import { PAYMENT_LOGOS } from "@/components/shared/payment-logos";
+import { XSymbol } from "@/components/shared/x-symbol";
 import { sdkSnippets } from "@/lib/api/mock";
 import {
   AnimatedCounter,
@@ -127,10 +128,7 @@ function useCopy() {
 function BrandLogo({ className }: { className?: string }) {
   return (
     <div className={cn("flex items-center gap-2.5", className)}>
-      <div className="relative grid size-8 place-items-center rounded-lg bg-gradient-to-br from-primary to-blue-500 font-bold text-primary-foreground shadow-[0_4px_18px_oklch(0.62_0.21_258/0.45)]">
-        <span className="text-base leading-none">X</span>
-        <div className="pointer-events-none absolute inset-0 rounded-lg ring-1 ring-inset ring-white/20" />
-      </div>
+      <XSymbol className="size-8" />
       <span className="text-[17px] font-semibold tracking-tight text-foreground">
         {APP_NAME}
       </span>

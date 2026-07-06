@@ -4,6 +4,7 @@ import * as React from "react";
 import { cn, formatCurrency } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { CURRENCIES, PAYMENT_METHODS } from "@/config";
+import { PAYMENT_LOGOS } from "@/components/shared/payment-logos";
 import type { CurrencyCode, PaymentMethod, TxStatus } from "@/types";
 import { AlertTriangle, CheckCircle2, Clock, XCircle, RefreshCw, ShieldAlert, FileText } from "lucide-react";
 
@@ -64,17 +65,17 @@ export function CurrencyBadge({ currency, amount, compact }: { currency: Currenc
 
 // ---- MethodBadge ----
 export function MethodBadge({ method }: { method: PaymentMethod }) {
-  const m = PAYMENT_METHODS.find((x) => x.id === method);
   const labels: Record<string, string> = {
     visa: "Visa", mastercard: "Mastercard", amex: "Amex", pix: "Pix",
     mbway: "MBWay", apple_pay: "Apple Pay", google_pay: "Google Pay",
-    crypto: "Crypto", sepa: "SEPA", wise: "Wise",
+    crypto: "Crypto", sepa: "SEPA", wise: "Wise", bizum: "Bizum",
   };
+  const Logo = PAYMENT_LOGOS[method];
   return (
-    <Badge variant="outline" className="gap-1.5 border-border/60 bg-muted/30">
-      <span className="h-1.5 w-1.5 rounded-full" style={{ background: m?.color ?? "#888" }} />
-      {labels[method] ?? method}
-    </Badge>
+    <span className="inline-flex items-center gap-1.5 rounded-md border border-border/60 bg-muted/30 px-2 py-1">
+      {Logo ? <Logo /> : <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground" />}
+      <span className="text-xs font-medium text-foreground">{labels[method] ?? method}</span>
+    </span>
   );
 }
 

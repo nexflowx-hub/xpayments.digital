@@ -132,6 +132,7 @@ export const PAYMENT_METHODS = [
   { id: "apple_pay", label: "Apple Pay", color: "#FFFFFF" },
   { id: "google_pay", label: "Google Pay", color: "#4285F4" },
   { id: "mbway", label: "MBWay", color: "#00B14E" },
+  { id: "bizum", label: "Bizum", color: "#00B8A9" },
   { id: "crypto", label: "Crypto", color: "#F7931A" },
   { id: "sepa", label: "SEPA", color: "#003399" },
 ] as const;

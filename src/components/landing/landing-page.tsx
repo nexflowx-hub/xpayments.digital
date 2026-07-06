@@ -15,6 +15,7 @@ import {
   formatPercent,
 } from "@/lib/utils";
 import { APP_NAME, PAYMENT_METHODS } from "@/config";
+import { PAYMENT_LOGOS } from "@/components/shared/payment-logos";
 import { sdkSnippets } from "@/lib/api/mock";
 import {
   AnimatedCounter,
@@ -816,30 +817,27 @@ function PaymentMethods() {
           </p>
         </Reveal>
 
-        <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {PAYMENT_METHODS.map((m, i) => (
-            <Reveal key={m.id} delay={i * 0.05}>
-              <motion.div whileHover={{ y: -4 }} className="h-full">
-                <GlowCard className="group h-full p-5 transition-colors hover:border-primary/40">
-                  <div className="flex items-center gap-3">
-                    <span
-                      className="size-2.5 rounded-full"
-                      style={{
-                        backgroundColor: m.color,
-                        boxShadow: `0 0 12px ${m.color}`,
-                      }}
-                    />
-                    <span className="font-semibold text-foreground">
-                      {m.label}
-                    </span>
-                  </div>
-                  <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                    {t("pm." + m.id.replace("_", ""))}
-                  </p>
-                </GlowCard>
-              </motion.div>
-            </Reveal>
-          ))}
+        <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {PAYMENT_METHODS.map((m, i) => {
+            const Logo = PAYMENT_LOGOS[m.id];
+            return (
+              <Reveal key={m.id} delay={i * 0.04}>
+                <motion.div whileHover={{ y: -4 }} className="h-full">
+                  <GlowCard className="group flex h-full items-center gap-4 p-5 transition-colors hover:border-primary/40">
+                    <div className="flex h-10 w-16 shrink-0 items-center justify-center">
+                      {Logo ? <Logo /> : <span className="text-sm font-medium text-foreground">{m.label}</span>}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-foreground">{m.label}</p>
+                      <p className="mt-0.5 text-sm leading-snug text-muted-foreground">
+                        {t("pm." + m.id.replace("_", ""))}
+                      </p>
+                    </div>
+                  </GlowCard>
+                </motion.div>
+              </Reveal>
+            );
+          })}
         </div>
       </div>
     </section>

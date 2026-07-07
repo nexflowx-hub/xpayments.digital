@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 const loginSchema = z.object({
   email: z.string().email("Enter a valid email"),
   password: z.string().min(6, "Min 6 characters"),
+  remember: z.boolean().optional(),
 });
 type LoginValues = z.infer<typeof loginSchema>;
 
@@ -168,7 +169,7 @@ export function AuthScreen() {
   async function onLogin(values: LoginValues) {
     setLoading(true);
     try {
-      const user = await login(values.email, values.password, !!loginForm.getValues("remember" as never) || false);
+      const user = await login(values.email, values.password, values.remember ?? false);
       toast.success(`${t("auth.welcomeBack")}, ${user.name.split(" ")[0]}`);
       setAppView(user.role === "admin" ? "admin" : "merchant");
     } catch {
@@ -199,12 +200,12 @@ export function AuthScreen() {
   async function onForgot(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const email = (formData.get("email") as string) || "";
+    const token = (formData.get("token") as string) || "";
     const password = (formData.get("password") as string) || "";
     setLoading(true);
     try {
       if (isReset) {
-        await xpApi.auth.reset(email, password); // email field carries the reset token
+        await xpApi.auth.reset(token, password); // email field carries the reset token
       } else {
         await xpApi.auth.forgot(email);
       }
@@ -257,7 +258,7 @@ export function AuthScreen() {
                   <label className="text-xs font-medium">{t("auth.email")}</label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input name="email" className="pl-9" type="email" placeholder="you@company.com" autoComplete="email" required />
+                    <Input name={isReset ? "token" : "email"} className="pl-9" type={isReset ? "text" : "email"} placeholder={isReset ? "Reset token" : "you@company.com"} autoComplete={isReset ? "off" : "email"} required />
                   </div>
                 </div>
                 {isReset && (
@@ -316,7 +317,7 @@ export function AuthScreen() {
                           <PasswordInput show={showPwd} onToggle={() => setShowPwd((s) => !s)} autoComplete="current-password" {...loginForm.register("password")} />
                         </Field>
                         <div className="flex items-center gap-2">
-                          <Checkbox id="remember" defaultChecked />
+                          <Checkbox id="remember" defaultChecked onCheckedChange={(v) => loginForm.setValue("remember", v === true)} />
                           <label htmlFor="remember" className="text-xs text-muted-foreground">{t("auth.remember")}</label>
                         </div>
                         <Button type="submit" disabled={loading} className="mt-1 h-10 gap-1.5">
@@ -365,7 +366,7 @@ export function AuthScreen() {
                           <PasswordInput show={showPwd} onToggle={() => setShowPwd((s) => !s)} autoComplete="new-password" {...registerForm.register("password")} />
                         </Field>
                         <div className="flex items-start gap-2">
-                          <Checkbox id="terms" onCheckedChange={(v) => registerForm.setValue("terms", v as true)} />
+                          <Checkbox id="terms" onCheckedChange={(v) => registerForm.setValue("terms", v === true)} />
                           <label htmlFor="terms" className="text-xs leading-relaxed text-muted-foreground">
                             I agree to the <a href="#" onClick={(e) => e.preventDefault()} className="text-primary hover:underline">Terms</a> and <a href="#" onClick={(e) => e.preventDefault()} className="text-primary hover:underline">Privacy Policy</a>.
                           </label>

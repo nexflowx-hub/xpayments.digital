@@ -129,6 +129,7 @@ export function Sparkline({
   className?: string;
   height?: number;
 }) {
+  if (!data.length) return null;
   const w = 120;
   const h = height;
   const max = Math.max(...data);

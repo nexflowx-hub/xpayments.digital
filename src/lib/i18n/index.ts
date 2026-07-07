@@ -23,10 +23,18 @@ export const useI18n = create<I18nState>()(
       setLocale: (l) => set({ locale: l }),
       detect: () => {
         if (typeof window === "undefined") return;
+        // If the user already chose a locale (persisted), respect it — don't
+        // override their explicit choice with browser detection.
+        const persisted = localStorage.getItem("xp-locale");
+        if (persisted) {
+          try {
+            const parsed = JSON.parse(persisted);
+            if (parsed?.state?.locale) return;
+          } catch {}
+        }
         const fromLang = resolveBrowserLocale(
           navigator.language || (navigator.languages?.[0] ?? "en")
         );
-        // Prefer browser language; fall back to timezone-based country guess
         const fromTz = localeFromTimezone();
         set({ locale: fromLang !== "en" ? fromLang : fromTz ?? "en" });
       },

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, Bell, Menu, X, ChevronDown, Sun, Moon, LogOut, User as UserIcon,
   Settings, CreditCard, Globe, Check, Command, Sparkles, PanelLeftClose,
-  PanelLeft, LifeBuoy, ExternalLink, ShieldCheck, Plus, ArrowRight,
+  PanelLeft, LifeBuoy, ExternalLink, ShieldCheck, Plus,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/stores/auth";
@@ -407,8 +407,9 @@ export function DashboardShell({
   const { sidebarCollapsed, sidebarOpen, setSidebarOpen } = useUi();
   const { user } = useAuth();
   const sections = mode === "merchant" ? merchantNav : adminNav;
-  const active = mode === "merchant" ? useUi().activeMerchantView : useUi().activeAdminView;
-  const select = mode === "merchant" ? useUi().setMerchantView : useUi().setAdminView;
+  const { activeMerchantView, activeAdminView, setMerchantView, setAdminView } = useUi();
+  const active = mode === "merchant" ? activeMerchantView : activeAdminView;
+  const select = mode === "merchant" ? setMerchantView : setAdminView;
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">

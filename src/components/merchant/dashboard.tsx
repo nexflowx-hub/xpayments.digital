@@ -81,7 +81,7 @@ export default function MerchantOverview() {
             <Skeleton className="h-60 w-full" />
           ) : (
             <DonutChart
-              data={analytics.currencies.map((c) => ({ name: c.currency, value: c.volume }))}
+              data={(analytics.currencies ?? []).map((c) => ({ name: c.currency, value: c.volume }))}
               formatter={(v) => formatCurrency(v, "EUR", { compact: true })}
               height={260}
             />
@@ -142,7 +142,7 @@ export default function MerchantOverview() {
             </div>
           </div>
           <div className="flex flex-col gap-2">
-            {analytics?.realtime.map((r) => (
+            {analytics?.realtime?.map((r) => (
               <motion.div
                 key={r.id}
                 initial={{ opacity: 0, x: 8 }}
@@ -171,7 +171,7 @@ export default function MerchantOverview() {
             <Skeleton className="h-56 w-full" />
           ) : (
             <BarTrend
-              data={analytics.paymentMethods.map((p) => ({ name: p.method, value: p.volume }))}
+              data={(analytics.paymentMethods ?? []).map((p) => ({ name: p.method, value: p.volume }))}
               dataKey="value"
               xKey="name"
               height={220}

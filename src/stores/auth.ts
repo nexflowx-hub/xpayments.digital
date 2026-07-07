@@ -3,7 +3,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { AuthSession, RegisterPayload, User, UserRole } from "@/types";
-import { xpApi, auth as authApi } from "@/lib/api/xpApi";
+import { auth as authApi } from "@/lib/api/xpApi";
 import { tokenStore, registerLogoutHandler } from "@/lib/api/client";
 
 interface AuthState {
@@ -103,7 +103,7 @@ export const useAuth = create<AuthState>()(
             authApi.me()
               .then((user) => {
                 if (user) {
-                  tokenStore.set(tokenStore.access!, tokenStore.refresh!, user);
+                  if (tokenStore.access) tokenStore.set(tokenStore.access, tokenStore.refresh ?? "", user);
                   set({ user, isAuthenticated: true });
                 }
               })

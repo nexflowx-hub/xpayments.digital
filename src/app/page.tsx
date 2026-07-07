@@ -48,6 +48,12 @@ export default function Home() {
   if (!mounted) return <SplashScreen />;
 
   // Authenticated → dashboard by role
+  // Guard: if unauthenticated but appView is merchant/admin, show splash
+  // to avoid rendering the shell with a null user (which crashes TopBar).
+  if (mounted && !isAuthenticated && (appView === "merchant" || appView === "admin")) {
+    return <SplashScreen />;
+  }
+
   if (isAuthenticated && user) {
     if (user.role === "admin") {
       return (

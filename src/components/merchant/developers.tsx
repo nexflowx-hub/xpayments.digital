@@ -17,7 +17,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from "@/components/ui/select";
-import { sdkSnippets } from "@/lib/api/mock";
+import { sdkSnippets } from "@/lib/sdk-snippets";
 import { cn, timeAgo } from "@/lib/utils";
 import { toast } from "sonner";
 

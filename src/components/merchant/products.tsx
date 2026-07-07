@@ -69,7 +69,7 @@ import type { CurrencyCode, Product } from "@/types";
 export default function ProductsPage() {
   const { data, isLoading } = useProducts();
   const qc = useQueryClient();
-  const products = data?.data ?? [];
+  const products = data ?? [];
 
   const total = products.length;
   const active = products.filter((p) => p.active).length;

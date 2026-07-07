@@ -68,7 +68,7 @@ export default function WebhooksPage() {
     onError: () => toast.error("Could not remove webhook"),
   });
 
-  const webhooks = data?.data ?? [];
+  const webhooks = data ?? [];
 
   const toggleEvent = (e: string) =>
     setEvents((prev) => (prev.includes(e) ? prev.filter((x) => x !== e) : [...prev, e]));

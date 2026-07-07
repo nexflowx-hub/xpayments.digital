@@ -103,7 +103,7 @@ export default function AdminRiskPage() {
     onError: () => toast.error("Failed to update merchant"),
   });
 
-  const list = merchants?.data ?? [];
+  const list = merchants ?? [];
 
   // Aggregated platform risk metrics
   const avgRisk = list.length

@@ -75,7 +75,7 @@ export default function AdminKycPage() {
     onError: () => toast.error("Decision could not be recorded"),
   });
 
-  const queue = data?.data ?? [];
+  const queue = data ?? [];
   const pending = queue.filter((k) => k.status === "pending");
 
   return (

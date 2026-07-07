@@ -1,4 +1,4 @@
-import { request, tokenStore } from "./client";
+import { request, requestData, tokenStore } from "./client";
 import type {
   AdminMerchant,
   AnalyticsOverview,
@@ -31,26 +31,23 @@ import type {
 /**
  * XPayments API surface — real REST only.
  *
- * Base URL is inherited from `client.ts` (NEXT_PUBLIC_API_URL). Every protected
- * request carries `Authorization: Bearer <token>` via the request interceptor.
+ * Routes are RELATIVE (no leading slash) and match BACKEND.md §5.4 exactly:
+ *   - Merchant-scoped resources are TOP-LEVEL (the JWT identifies the merchant;
+ *     no /merchants/ prefix in the URL).
+ *   - Admin resources live under admin/...
+ *   - Auth lives under auth/...
  *
- * Routes are RELATIVE (no leading slash) so axios appends them to the baseURL
- * (https://api.xpayments.digital/api/v1). Adding a leading slash would make
- * axios treat the path as absolute and discard the /api/v1 prefix.
+ * ALL non-auth endpoints use `requestData<T>()` which unwraps the standard
+ * `{ success, data, message? }` envelope and returns `.data` directly.
+ * Components receive clean domain objects, never the envelope wrapper.
  */
 
 // ---- Auth ----
 
-/**
- * Maps the Master Backend auth envelope
- * `{ success, data: { merchantId, name, tier, token, role } }`
- * into the internal `AuthSession` shape used by the Zustand store and the
- * Axios request interceptor (which reads `tokenStore.access`).
- */
 function mapEnvelopeToSession(envelope: AuthEnvelope, email: string): AuthSession {
   if (!envelope.success || !envelope.data) {
     throw {
-      message: envelope.error || "Authentication failed.",
+      message: envelope.error || envelope.message || "Authentication failed.",
       status: 401,
     };
   }
@@ -72,7 +69,6 @@ function mapEnvelopeToSession(envelope: AuthEnvelope, email: string): AuthSessio
 }
 
 export const auth = {
-  /** POST auth/login — parses the { success, data: {...} } envelope */
   login: async (email: string, password: string, remember = false): Promise<AuthSession> => {
     const envelope = await request<AuthEnvelope>({
       url: "auth/login",
@@ -81,7 +77,6 @@ export const auth = {
     });
     return mapEnvelopeToSession(envelope, email);
   },
-  /** POST auth/register — same envelope as login */
   register: async (data: RegisterPayload): Promise<AuthResponse> => {
     const envelope = await request<AuthEnvelope>({
       url: "auth/register",
@@ -90,133 +85,165 @@ export const auth = {
     });
     return mapEnvelopeToSession(envelope, data.email);
   },
-  /** POST auth/forgot */
   forgot: (email: string) =>
-    request<{ ok: boolean }>({ url: "auth/forgot", method: "POST", data: { email } }),
-  /** POST auth/reset */
+    request<{ success: boolean; message?: string }>({ url: "auth/forgot", method: "POST", data: { email } }),
   reset: (token: string, password: string) =>
-    request<{ ok: boolean }>({ url: "auth/reset", method: "POST", data: { token, password } }),
-  /** GET auth/me */
-  me: () => request({ url: "auth/me", method: "GET" }),
-  /** Client-side only: clears the persisted session */
-  logout() {
-    tokenStore.clear();
-  },
+    request<{ success: boolean; message?: string }>({ url: "auth/reset", method: "POST", data: { token, password } }),
+  me: () => requestData<User>({ url: "auth/me", method: "GET" }),
+  /** POST auth/logout — revokes the refresh token server-side */
+  logout: () =>
+    request<{ success: boolean }>({ url: "auth/logout", method: "POST" }).catch(() => {
+      // Best-effort — even if the network fails, clear locally
+    }).then(() => tokenStore.clear()),
 };
 
-// ---- Wallets (merchant-scoped) ----
+// ---- Wallets (top-level per BACKEND.md) ----
 export const wallets = {
-  list: () => request<{ data: Wallet[] }>({ url: "merchants/wallets", method: "GET" }),
+  /** GET wallets */
+  list: () => requestData<Wallet[]>({ url: "wallets", method: "GET" }),
+  /** GET wallets/movements?walletId= */
   movements: (walletId?: string) =>
-    request<{ data: WalletMovement[] }>({ url: "merchants/wallets/movements", method: "GET", params: { walletId } }),
+    requestData<WalletMovement[]>({ url: "wallets/movements", method: "GET", params: { walletId } }),
+  /** POST wallets/swap */
   swap: (from: CurrencyCode, to: CurrencyCode, amount: number) =>
-    request<{ ok: boolean; rate: number }>({ url: "merchants/wallets/swap", method: "POST", data: { from, to, amount } }),
+    requestData<{ ok: boolean; rate: number }>({ url: "wallets/swap", method: "POST", data: { from, to, amount } }),
+  /** POST wallets/deposit */
   deposit: (currency: CurrencyCode, amount: number, method: string) =>
-    request<{ ok: boolean; reference: string }>({ url: "merchants/wallets/deposit", method: "POST", data: { currency, amount, method } }),
+    requestData<{ ok: boolean; reference: string }>({ url: "wallets/deposit", method: "POST", data: { currency, amount, method } }),
+  /** POST wallets/payout */
   payout: (currency: CurrencyCode, amount: number, beneficiary: string) =>
-    request<{ ok: boolean; reference: string }>({ url: "merchants/wallets/payout", method: "POST", data: { currency, amount, beneficiary } }),
+    requestData<{ ok: boolean; reference: string }>({ url: "wallets/payout", method: "POST", data: { currency, amount, beneficiary } }),
 };
 
-// ---- Analytics ----
+// ---- Analytics (top-level per BACKEND.md) ----
 export const analytics = {
-  overview: () => request<AnalyticsOverview>({ url: "merchants/analytics", method: "GET" }),
+  /** GET analytics/overview */
+  overview: () => requestData<AnalyticsOverview>({ url: "analytics/overview", method: "GET" }),
 };
 
-// ---- Risk ----
+// ---- Risk (top-level per BACKEND.md) ----
 export const risk = {
-  profile: () => request<RiskProfile>({ url: "merchants/risk/profile", method: "GET" }),
+  /** GET risk/profile */
+  profile: () => requestData<RiskProfile>({ url: "risk/profile", method: "GET" }),
 };
 
-// ---- Transactions ----
+// ---- Transactions (top-level per BACKEND.md) ----
 export const transactions = {
+  /** GET transactions — paginated + filtered */
   list: (filters: DataTableFilters = {}) =>
-    request<Paginated<Transaction>>({ url: "merchants/transactions", method: "GET", params: filters }),
+    requestData<Paginated<Transaction>>({ url: "transactions", method: "GET", params: filters }),
+  /** GET transactions/:id */
   detail: (id: string) =>
-    request<Transaction>({ url: `merchants/transactions/${id}`, method: "GET" }),
+    requestData<Transaction>({ url: `transactions/${id}`, method: "GET" }),
 };
 
-// ---- Customers ----
+// ---- Customers (top-level per BACKEND.md) ----
 export const customers = {
-  list: () => request<{ data: Customer[] }>({ url: "merchants/customers", method: "GET" }),
+  /** GET customers */
+  list: () => requestData<Customer[]>({ url: "customers", method: "GET" }),
 };
 
-// ---- Commerce ----
+// ---- Commerce (top-level per BACKEND.md) ----
 export const products = {
-  list: () => request<{ data: Product[] }>({ url: "merchants/products", method: "GET" }),
+  /** GET products */
+  list: () => requestData<Product[]>({ url: "products", method: "GET" }),
+  /** POST products */
   create: (data: Partial<Product>) =>
-    request<Product>({ url: "merchants/products", method: "POST", data }),
+    requestData<Product>({ url: "products", method: "POST", data }),
+  /** DELETE products/:id */
   remove: (id: string) =>
-    request<{ ok: boolean }>({ url: `merchants/products/${id}`, method: "DELETE" }),
+    requestData<{ ok: boolean }>({ url: `products/${id}`, method: "DELETE" }),
 };
 
 export const stores = {
-  list: () => request<{ data: Store[] }>({ url: "merchants/stores", method: "GET" }),
+  /** GET stores */
+  list: () => requestData<Store[]>({ url: "stores", method: "GET" }),
 };
 
 export const paymentLinks = {
-  list: () => request<{ data: PaymentLink[] }>({ url: "merchants/payment-links", method: "GET" }),
+  /** GET payment-links */
+  list: () => requestData<PaymentLink[]>({ url: "payment-links", method: "GET" }),
 };
 
 export const invoices = {
-  list: () => request<{ data: Invoice[] }>({ url: "merchants/invoices", method: "GET" }),
+  /** GET invoices */
+  list: () => requestData<Invoice[]>({ url: "invoices", method: "GET" }),
 };
 
 export const subscriptions = {
-  list: () => request<{ data: Subscription[] }>({ url: "merchants/subscriptions", method: "GET" }),
+  /** GET subscriptions */
+  list: () => requestData<Subscription[]>({ url: "subscriptions", method: "GET" }),
 };
 
-// ---- Developers ----
+// ---- Developers (top-level per BACKEND.md) ----
 export const apiKeys = {
-  list: () => request<{ data: ApiKey[] }>({ url: "api-keys", method: "GET" }),
+  /** GET api-keys */
+  list: () => requestData<ApiKey[]>({ url: "api-keys", method: "GET" }),
+  /** POST api-keys */
   create: (name: string, environment: "live" | "test", scopes: string[]) =>
-    request<ApiKey>({ url: "api-keys", method: "POST", data: { name, environment, scopes } }),
+    requestData<ApiKey>({ url: "api-keys", method: "POST", data: { name, environment, scopes } }),
+  /** DELETE api-keys/:id */
   revoke: (id: string) =>
-    request<{ ok: boolean }>({ url: `api-keys/${id}`, method: "DELETE" }),
+    requestData<{ ok: boolean }>({ url: `api-keys/${id}`, method: "DELETE" }),
 };
 
 export const webhooks = {
-  list: () => request<{ data: Webhook[] }>({ url: "merchants/webhooks", method: "GET" }),
+  /** GET webhooks */
+  list: () => requestData<Webhook[]>({ url: "webhooks", method: "GET" }),
+  /** POST webhooks */
   create: (url: string, events: string[]) =>
-    request<Webhook>({ url: "merchants/webhooks", method: "POST", data: { url, events } }),
+    requestData<Webhook>({ url: "webhooks", method: "POST", data: { url, events } }),
+  /** DELETE webhooks/:id */
   remove: (id: string) =>
-    request<{ ok: boolean }>({ url: `merchants/webhooks/${id}`, method: "DELETE" }),
+    requestData<{ ok: boolean }>({ url: `webhooks/${id}`, method: "DELETE" }),
 };
 
-// ---- Payouts / Deposits ----
+// ---- Payouts / Deposits (top-level per BACKEND.md) ----
 export const payouts = {
-  list: () => request<{ data: WalletMovement[] }>({ url: "merchants/payouts", method: "GET" }),
+  /** GET payouts */
+  list: () => requestData<WalletMovement[]>({ url: "payouts", method: "GET" }),
 };
 
 export const deposits = {
-  list: () => request<{ data: WalletMovement[] }>({ url: "merchants/deposits", method: "GET" }),
+  /** GET deposits */
+  list: () => requestData<WalletMovement[]>({ url: "deposits", method: "GET" }),
 };
 
-// ---- Treasury ----
+// ---- Treasury (top-level per BACKEND.md) ----
 export const treasury = {
-  overview: () => request<TreasuryOverview>({ url: "merchants/treasury", method: "GET" }),
+  /** GET treasury/overview */
+  overview: () => requestData<TreasuryOverview>({ url: "treasury/overview", method: "GET" }),
 };
 
-// ---- KYC ----
+// ---- KYC (top-level per BACKEND.md) ----
 export const kyc = {
+  /** GET kyc/status */
   status: () =>
-    request<{ status: string; submittedAt?: string; documents?: unknown[]; riskFlags?: string[] }>({
+    requestData<{ status: string; submittedAt?: string; documents?: unknown[]; riskFlags?: string[] }>({
       url: "kyc/status",
       method: "GET",
     }),
 };
 
-// ---- Admin ----
+// ---- Admin (platform-level per BACKEND.md) ----
 export const admin = {
-  treasury: () => request<TreasuryOverview>({ url: "admin/treasury/overview", method: "GET" }),
-  merchants: () => request<{ data: AdminMerchant[] }>({ url: "admin/merchants", method: "GET" }),
+  /** GET admin/treasury/overview */
+  treasury: () => requestData<TreasuryOverview>({ url: "admin/treasury/overview", method: "GET" }),
+  /** GET admin/merchants */
+  merchants: () => requestData<AdminMerchant[]>({ url: "admin/merchants", method: "GET" }),
+  /** POST admin/merchants/:id/status */
   setMerchantStatus: (id: string, status: AdminMerchant["status"]) =>
-    request<{ ok: boolean }>({ url: `admin/merchants/${id}/status`, method: "POST", data: { status } }),
-  kycQueue: () => request<{ data: KycReview[] }>({ url: "admin/kyc", method: "GET" }),
+    requestData<{ ok: boolean }>({ url: `admin/merchants/${id}/status`, method: "POST", data: { status } }),
+  /** GET admin/kyc — approval queue */
+  kycQueue: () => requestData<KycReview[]>({ url: "admin/kyc", method: "GET" }),
+  /** POST admin/kyc/:id/approved | admin/kyc/:id/rejected */
   kycDecision: (id: string, decision: "approved" | "rejected") =>
-    request<{ ok: boolean }>({ url: `admin/kyc/${id}/${decision}`, method: "POST" }),
-  health: () => request<SystemHealth>({ url: "admin/health", method: "GET" }),
+    requestData<{ ok: boolean }>({ url: `admin/kyc/${id}/${decision}`, method: "POST" }),
+  /** GET admin/health */
+  health: () => requestData<SystemHealth>({ url: "admin/health", method: "GET" }),
+  /** GET admin/revenue */
   revenue: () =>
-    request<{ total: number; series: { date: string; value: number }[] }>({ url: "admin/revenue", method: "GET" }),
+    requestData<{ total: number; series: { date: string; value: number }[] }>({ url: "admin/revenue", method: "GET" }),
 };
 
 export const xpApi = {

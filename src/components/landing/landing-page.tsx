@@ -17,7 +17,7 @@ import {
 import { APP_NAME, PAYMENT_METHODS } from "@/config";
 import { PAYMENT_LOGOS } from "@/components/shared/payment-logos";
 import { XSymbol } from "@/components/shared/x-symbol";
-import { sdkSnippets } from "@/lib/api/mock";
+import { sdkSnippets } from "@/lib/sdk-snippets";
 import {
   AnimatedCounter,
   GlowCard,

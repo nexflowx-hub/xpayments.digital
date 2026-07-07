@@ -22,7 +22,7 @@ export default function AdminAnalyticsPage() {
   const { data: merchantsResp, isLoading: mLoading } = useAdminMerchants();
   const [range, setRange] = React.useState("Last 30 days");
 
-  const merchants = merchantsResp?.data ?? [];
+  const merchants = merchantsResp ?? [];
 
   // ---- Derived BI series ----
   const merchantGrowth = React.useMemo(() => {

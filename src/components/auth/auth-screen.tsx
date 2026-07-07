@@ -19,6 +19,7 @@ import { Separator } from "@/components/ui/separator";
 import { useT } from "@/lib/i18n";
 import { LanguageSwitcher } from "@/components/shared/language-switcher";
 import { XSymbol } from "@/components/shared/x-symbol";
+import { xpApi } from "@/lib/api/xpApi";
 import { cn } from "@/lib/utils";
 
 // ---- Schemas ----
@@ -154,7 +155,7 @@ export function AuthScreen() {
 
   const loginForm = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: "merchant@xpayments.digital", password: "demo1234" },
+    defaultValues: { email: "", password: "" },
   });
   const registerForm = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
@@ -195,13 +196,25 @@ export function AuthScreen() {
     }
   }
 
-  async function onForgot(e: React.FormEvent) {
+  async function onForgot(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const email = (formData.get("email") as string) || "";
+    const password = (formData.get("password") as string) || "";
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
-    setLoading(false);
-    toast.success(t("auth.resetSent"), { description: t("auth.resetSentDesc") });
-    setAppView("login");
+    try {
+      if (isReset) {
+        await xpApi.auth.reset(email, password); // email field carries the reset token
+      } else {
+        await xpApi.auth.forgot(email);
+      }
+      toast.success(t("auth.resetSent"), { description: t("auth.resetSentDesc") });
+      setAppView("login");
+    } catch {
+      toast.error(t("auth.signinFailed"), { description: t("auth.signinFailedDesc") });
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -244,9 +257,18 @@ export function AuthScreen() {
                   <label className="text-xs font-medium">{t("auth.email")}</label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input className="pl-9" type="email" placeholder="you@company.com" autoComplete="email" required />
+                    <Input name="email" className="pl-9" type="email" placeholder="you@company.com" autoComplete="email" required />
                   </div>
                 </div>
+                {isReset && (
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium">{t("auth.password")}</label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input name="password" className="px-9" type="password" placeholder="••••••••" autoComplete="new-password" required />
+                    </div>
+                  </div>
+                )}
                 <Button type="submit" disabled={loading} className="h-10 gap-1.5">
                   {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>{isForgot ? t("auth.forgotBtn") : t("auth.resetBtn")} <ArrowRight className="h-4 w-4" /></>}
                 </Button>
@@ -301,20 +323,6 @@ export function AuthScreen() {
                           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>{t("auth.signinBtn")} <ArrowRight className="h-4 w-4" /></>}
                         </Button>
                       </form>
-
-                      <div className="my-6 flex items-center gap-3">
-                        <Separator className="flex-1" />
-                        <span className="text-xs text-muted-foreground">{t("auth.or")}</span>
-                        <Separator className="flex-1" />
-                      </div>
-
-                      <div className="rounded-xl border border-border/60 bg-card/40 p-4">
-                        <p className="text-xs font-medium text-foreground">{t("auth.demoTitle")}</p>
-                        <div className="mt-2 space-y-1 text-xs text-muted-foreground">
-                          <p><span className="text-muted-foreground/70">{t("auth.demoMerchant")}:</span> merchant@xpayments.digital / demo1234</p>
-                          <p><span className="text-muted-foreground/70">{t("auth.demoAdmin")}:</span> admin@xpayments.digital / demo1234</p>
-                        </div>
-                      </div>
 
                       <p className="mt-6 text-center text-xs text-muted-foreground">
                         {t("auth.noAccount")}{" "}

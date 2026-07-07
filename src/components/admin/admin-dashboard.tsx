@@ -33,9 +33,9 @@ export default function AdminOverviewPage() {
   const { data: health, isLoading: hLoading } = useAdminHealth();
   const { data: kyc } = useAdminKyc();
 
-  const totalMerchants = merchants?.data.length ?? 0;
-  const pendingKyc = kyc?.data.length ?? 0;
-  const recentMerchants = (merchants?.data ?? [])
+  const totalMerchants = merchants?.length ?? 0;
+  const pendingKyc = kyc?.length ?? 0;
+  const recentMerchants = (merchants ?? [])
     .slice()
     .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
     .slice(0, 6);

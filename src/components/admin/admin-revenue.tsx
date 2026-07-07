@@ -19,7 +19,7 @@ export default function AdminRevenuePage() {
   const { data: revenue, isLoading: rLoading } = useAdminRevenue();
   const { data: merchants, isLoading: mLoading } = useAdminMerchants();
 
-  const merchantList = merchants?.data ?? [];
+  const merchantList = merchants ?? [];
 
   // ---- Derived metrics ----
   const totalRevenue = revenue?.total ?? 0;

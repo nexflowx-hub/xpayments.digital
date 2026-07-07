@@ -63,6 +63,19 @@ export interface AuthEnvelope {
 /** Shape returned by auth/login and auth/register (after envelope mapping) */
 export type AuthResponse = AuthSession;
 
+/**
+ * Standard API response envelope used by ALL non-auth endpoints.
+ * The backend MUST return this shape for every request:
+ *   { success: true,  data: T, message?: string }
+ *   { success: false, data: null, message: "error description" }
+ * The client (`requestData<T>()`) unwraps `.data` automatically.
+ */
+export interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message?: string;
+}
+
 // ---- Wallets ----
 export type CurrencyCode = "EUR" | "USD" | "BRL" | "USDT" | "GBP" | "BTC";
 

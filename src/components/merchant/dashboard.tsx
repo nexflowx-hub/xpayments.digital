@@ -103,7 +103,7 @@ export default function MerchantOverview() {
             {!wallets ? (
               Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)
             ) : (
-              wallets.data.slice(0, 4).map((w) => {
+              (wallets ?? []).slice(0, 4).map((w) => {
                 const c = CURRENCIES.find((x) => x.code === w.currency);
                 return (
                   <div key={w.id} className="relative overflow-hidden rounded-xl border border-border/60 bg-background/40 p-4">
@@ -223,7 +223,7 @@ export default function MerchantOverview() {
               </tr>
             </thead>
             <tbody>
-              {txPage?.data.map((t) => (
+              {txPage?.data?.map((t) => (
                 <tr key={t.id} className="border-b border-border/30 transition hover:bg-muted/30">
                   <td className="py-2.5 font-mono text-xs text-primary">{t.reference}</td>
                   <td className="py-2.5">

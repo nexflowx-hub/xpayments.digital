@@ -65,7 +65,7 @@ export default function AdminMerchantsPage() {
   };
 
   const filtered = React.useMemo(() => {
-    const list = (data?.data ?? []).slice();
+    const list = (data ?? []).slice();
     return list.filter((m) => {
       if (search) {
         const q = search.toLowerCase();
@@ -85,7 +85,7 @@ export default function AdminMerchantsPage() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageRows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const all = data?.data ?? [];
+  const all = data ?? [];
   const stats = {
     total: all.length,
     active: all.filter((m) => m.status === "active").length,

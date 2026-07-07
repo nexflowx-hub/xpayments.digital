@@ -80,7 +80,7 @@ export default function ApiKeysPage() {
     onError: () => toast.error("Could not revoke key"),
   });
 
-  const keys = data?.data ?? [];
+  const keys = data ?? [];
   const filtered = keys.filter((k) => envFilter === "all" || k.environment === envFilter);
 
   const toggleScope = (s: string) =>

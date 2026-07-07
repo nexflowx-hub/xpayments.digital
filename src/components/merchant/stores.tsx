@@ -44,7 +44,7 @@ import type { CurrencyCode } from "@/types";
 
 export default function StoresPage() {
   const { data, isLoading } = useStores();
-  const stores = data?.data ?? [];
+  const stores = data ?? [];
 
   const totalStores = stores.length;
   const active = stores.filter((s) => s.status === "active").length;

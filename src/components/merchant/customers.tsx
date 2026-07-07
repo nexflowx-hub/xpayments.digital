@@ -55,7 +55,7 @@ export default function CustomersPage() {
   const { data: customersRes, isLoading } = useCustomers();
   const { data: txPage } = useTransactions({ page: 1, pageSize: 200, sortBy: "createdAt", sortDir: "desc" });
 
-  const customers: Customer[] = customersRes?.data ?? [];
+  const customers: Customer[] = customersRes ?? [];
   const [query, setQuery] = React.useState("");
   const [selected, setSelected] = React.useState<Customer | null>(null);
 

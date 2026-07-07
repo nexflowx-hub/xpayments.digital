@@ -52,7 +52,7 @@ const STATUS_GROUPS: { key: Subscription["status"]; label: string }[] = [
 
 export default function SubscriptionsPage() {
   const { data, isLoading } = useSubscriptions();
-  const subs = data?.data ?? [];
+  const subs = data ?? [];
 
   const activeSubs = subs.filter((s) => s.status === "active");
   const churned = subs.filter((s) => s.status === "canceled").length;

@@ -50,7 +50,7 @@ type Filter = (typeof FILTERS)[number];
 
 export default function InvoicesPage() {
   const { data, isLoading } = useInvoices();
-  const invoices = data?.data ?? [];
+  const invoices = data ?? [];
 
   const totalInvoiced = invoices.reduce((s, inv) => s + inv.amount, 0);
   const paid = invoices.filter((i) => i.status === "paid");

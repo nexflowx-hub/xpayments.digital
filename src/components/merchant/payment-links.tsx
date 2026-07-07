@@ -53,7 +53,7 @@ import type { CurrencyCode } from "@/types";
 
 export default function PaymentLinksPage() {
   const { data, isLoading } = usePaymentLinks();
-  const links = data?.data ?? [];
+  const links = data ?? [];
 
   const total = links.length;
   const active = links.filter((l) => l.status === "active").length;

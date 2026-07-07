@@ -235,7 +235,7 @@ export default function TreasuryPage() {
             <Button variant="ghost" size="sm" className="text-xs">View all</Button>
           </div>
           <div className="flex flex-col gap-1">
-            {(movements?.data ?? []).slice(0, 8).map((m) => {
+            {(movements ?? []).slice(0, 8).map((m) => {
               const Icon = movementIcon[m.type];
               const isIn = m.direction === "in";
               return (
@@ -274,7 +274,7 @@ export default function TreasuryPage() {
             <p className="text-xs text-muted-foreground">All active balances</p>
           </div>
           <div className="flex flex-col gap-2">
-            {(wallets?.data ?? []).slice(0, 6).map((w) => {
+            {(wallets ?? []).slice(0, 6).map((w) => {
               const meta = walletTypeMeta(w.type);
               const c = CURRENCIES.find((x) => x.code === w.currency);
               return (

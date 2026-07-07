@@ -99,8 +99,8 @@ export default function FxPage() {
   const { data: movementsRes } = useWalletMovements();
   const swapM = useWalletSwap();
 
-  const wallets = walletsRes?.data ?? [];
-  const swaps = (movementsRes?.data ?? []).filter((m) => m.type === "swap");
+  const wallets = walletsRes ?? [];
+  const swaps = (movementsRes ?? []).filter((m) => m.type === "swap");
 
   // Calculator state
   const [from, setFrom] = React.useState<CurrencyCode>("EUR");

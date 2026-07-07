@@ -90,13 +90,27 @@ export const useAuth = create<AuthState>()(
             throw e;
           }
         },
-        logout: () => {
-          authApi.logout();
+        logout: async () => {
+          await authApi.logout(); // POST auth/logout (revokes refresh token server-side)
           set({ user: null, accessToken: null, isAuthenticated: false });
         },
         hydrate: () => {
           const next = getInitialAuth();
           set(next);
+          // If we have a token, validate it server-side via auth/me().
+          // If the server rejects it (401), the interceptor will forceLogout.
+          if (next.isAuthenticated) {
+            authApi.me()
+              .then((user) => {
+                if (user) {
+                  tokenStore.set(tokenStore.access!, tokenStore.refresh!, user);
+                  set({ user, isAuthenticated: true });
+                }
+              })
+              .catch(() => {
+                // 401 → interceptor already called forceLogout → onLogout clears state
+              });
+          }
         },
         hasRole: (...roles) => {
           const u = get().user;

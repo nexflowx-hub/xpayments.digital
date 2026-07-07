@@ -3,19 +3,21 @@ import axios, {
   type AxiosRequestConfig,
   type InternalAxiosRequestConfig,
 } from "axios";
-import type { ApiError } from "@/types";
+import type { ApiError, ApiResponse } from "@/types";
 import { API_BASE_URL } from "@/config";
 
 /**
  * XPayments centralized API client.
  *
- * - Axios instance whose baseURL inherits from NEXT_PUBLIC_API_URL (see config).
- * - Request interceptor injects `Authorization: Bearer <token>` on every
- *   protected request, reading the JWT from `tokenStore`.
- * - Response interceptor catches 401: attempts a single token refresh; if that
- *   fails it clears the session, notifies the auth store via `onLogout`, and
- *   lets React re-render to the unauthenticated landing state.
- * - `request<T>()` is a thin typed wrapper — real HTTP only, no mock fallback.
+ * - `request<T>()` — raw HTTP, returns `res.data` as-is (used by auth which has
+ *   its own envelope mapping).
+ * - `requestData<T>()` — unwraps the standard `{ success, data, message? }`
+ *   envelope and returns `.data` directly. If `success === false` it throws an
+ *   `ApiError`. If `.data` is null/undefined it returns `null` (callers must
+ *   guard with `?? []` or `?.`).
+ * - Request interceptor injects `Authorization: Bearer <token>`.
+ * - Response interceptor handles 401 with a **request queue** (concurrent
+ *   requests during refresh are queued, not dropped).
  */
 
 const STORAGE = {
@@ -24,12 +26,6 @@ const STORAGE = {
   user: "xp_user",
 };
 
-/**
- * Low-level localStorage-backed token store (source of truth for the
- * interceptor). All reads are defensive: if the stored value is missing or not
- * valid JSON, the getter returns null and clears the corrupt entry instead of
- * throwing — a throw here would crash the entire client bundle at module load.
- */
 export const tokenStore = {
   get access() {
     if (typeof window === "undefined") return null;
@@ -64,13 +60,34 @@ export const tokenStore = {
   },
 };
 
+// ---- 401 refresh with request queue (fixes concurrent-401 bug) ----
 let isRefreshing = false;
+let failedQueue: Array<{
+  config: AxiosRequestConfig;
+  resolve: (v: unknown) => void;
+  reject: (e: unknown) => void;
+}> = [];
+
+function processQueue(error: unknown, token: string | null) {
+  failedQueue.forEach(({ config, resolve, reject }) => {
+    if (error || !token) {
+      reject(error);
+    } else {
+      (config.headers as Record<string, string>) = {
+        ...(config.headers as Record<string, string>),
+        Authorization: `Bearer ${token}`,
+      };
+      resolve(api(config));
+    }
+  });
+  failedQueue = [];
+}
+
 let onLogout: (() => void) | null = null;
 export function registerLogoutHandler(fn: () => void) {
   onLogout = fn;
 }
 
-/** Clear the session and reset auth state (no hard redirect). */
 function forceLogout() {
   tokenStore.clear();
   onLogout?.();
@@ -79,10 +96,12 @@ function forceLogout() {
 export const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   timeout: 15000,
-  headers: { "Content-Type": "application/json" },
+  // Do NOT set Content-Type globally — let axios set it per-request based on
+  // the data type. Setting it globally can trigger CORS preflight on every
+  // request because it becomes a non-simple header.
 });
 
-// ---- Request interceptor: inject JWT Bearer token ----
+// ---- Request interceptor: inject JWT ----
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = tokenStore.access;
@@ -94,55 +113,64 @@ api.interceptors.request.use(
   (err) => Promise.reject(err)
 );
 
-// ---- Response interceptor: 401 → refresh once, else force logout ----
+// ---- Response interceptor: 401 → refresh with queue, else force logout ----
 api.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
-    // Auth routes are public — a 401 there means bad credentials. Propagate.
     const isAuthRoute =
       typeof original?.url === "string" &&
       (original.url.includes("auth/login") ||
         original.url.includes("auth/register") ||
         original.url.includes("auth/refresh") ||
         original.url.includes("auth/forgot") ||
-        original.url.includes("auth/reset"));
+        original.url.includes("auth/reset") ||
+        original.url.includes("auth/logout"));
 
     if (isAuthRoute) {
       return Promise.reject(normalizeError(error));
     }
 
-    // Protected route: 401 → attempt a single token refresh.
-    if (error.response?.status === 401 && !original._retry && tokenStore.refresh) {
-      original._retry = true;
-      if (!isRefreshing) {
-        isRefreshing = true;
-        try {
-          const { data } = await axios.post(
-            `${API_BASE_URL}auth/refresh`,
-            { refreshToken: tokenStore.refresh },
-            { headers: { "Content-Type": "application/json" } }
-          );
-          tokenStore.set(
-            data.accessToken,
-            data.refreshToken ?? tokenStore.refresh,
-            data.user ?? tokenStore.user
-          );
-          isRefreshing = false;
-          original.headers.set("Authorization", `Bearer ${data.accessToken}`);
-          return api(original);
-        } catch {
-          isRefreshing = false;
-          forceLogout();
-          return Promise.reject(normalizeError(error));
-        }
-      }
-    }
-
-    // Any other 401 on a protected route → force logout.
+    // Protected route: 401 → refresh once, queue concurrent requests
     if (error.response?.status === 401 && !original._retry) {
-      forceLogout();
+      if (isRefreshing) {
+        // Queue this request — it will be retried after the refresh completes
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ config: original, resolve, reject });
+        });
+      }
+
+      if (!tokenStore.refresh) {
+        forceLogout();
+        return Promise.reject(normalizeError(error));
+      }
+
+      original._retry = true;
+      isRefreshing = true;
+
+      try {
+        const { data } = await axios.post(
+          `${API_BASE_URL}auth/refresh`,
+          { refreshToken: tokenStore.refresh },
+          { headers: { "Content-Type": "application/json" } }
+        );
+        const newToken = data.data?.token ?? data.accessToken ?? data.token;
+        tokenStore.set(
+          newToken,
+          data.refreshToken ?? tokenStore.refresh,
+          data.user ?? data.data?.user ?? tokenStore.user
+        );
+        isRefreshing = false;
+        processQueue(null, newToken);
+        original.headers.set("Authorization", `Bearer ${newToken}`);
+        return api(original);
+      } catch (refreshError) {
+        isRefreshing = false;
+        processQueue(refreshError, null);
+        forceLogout();
+        return Promise.reject(normalizeError(error));
+      }
     }
 
     return Promise.reject(normalizeError(error));
@@ -152,7 +180,7 @@ api.interceptors.response.use(
 function normalizeError(err: unknown): ApiError {
   if (axios.isAxiosError(err)) {
     if (err.code === "ECONNABORTED") {
-      return { message: "Request timed out — the server took too long to respond.", code: err.code, status: 0 };
+      return { message: "Request timed out.", code: err.code, status: 0 };
     }
     if (err.code === "ERR_NETWORK") {
       return { message: "Network error — could not reach the API.", code: err.code, status: 0 };
@@ -164,19 +192,45 @@ function normalizeError(err: unknown): ApiError {
       message: data?.message || data?.error || err.message,
       code: data?.code,
       status: err.response?.status,
-      details: data?.details as Record<string, unknown> | undefined,
     };
   }
   return { message: "Unexpected error", status: 500 };
 }
 
 /**
- * Typed request wrapper. Performs a real HTTP request via the configured Axios
- * instance and returns the response payload. Errors are normalized by the
- * response interceptor and rethrown as `ApiError`.
+ * Raw request — returns `res.data` as-is. Used by auth endpoints that have
+ * their own envelope mapping (`mapEnvelopeToSession`).
  */
 export async function request<T>(config: AxiosRequestConfig): Promise<T> {
   const res = await api(config);
+  return res.data as T;
+}
+
+/**
+ * Envelope-unwrapping request. Assumes the backend returns:
+ *   { success: true,  data: T, message?: string }
+ *   { success: false, data: null, message: "..." }
+ *
+ * Returns `envelope.data` directly. If `success === false`, throws an `ApiError`.
+ * If `envelope.data` is null/undefined, returns null — callers MUST guard with
+ * `?? []` or optional chaining.
+ */
+export async function requestData<T>(config: AxiosRequestConfig): Promise<T> {
+  const res = await api(config);
+  const envelope = res.data as ApiResponse<T>;
+
+  // Handle both envelope and non-envelope responses (backwards compatible)
+  if (envelope && typeof envelope === "object" && "success" in envelope) {
+    if (!envelope.success) {
+      throw {
+        message: envelope.message || "Request failed.",
+        status: res.status,
+      } as ApiError;
+    }
+    return envelope.data as T;
+  }
+
+  // No envelope — return raw data (backwards compatible with non-standard endpoints)
   return res.data as T;
 }
 

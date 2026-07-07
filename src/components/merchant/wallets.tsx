@@ -60,8 +60,8 @@ export default function WalletsPage() {
   const payoutM = useWalletPayout();
   const swapM = useWalletSwap();
 
-  const wallets: Wallet[] = walletsRes?.data ?? [];
-  const movements: WalletMovement[] = movementsRes?.data ?? [];
+  const wallets: Wallet[] = walletsRes ?? [];
+  const movements: WalletMovement[] = movementsRes ?? [];
 
   const totalEur = wallets.reduce((s, w) => s + w.balance * EUR_RATES[w.currency], 0);
   const availableEur = wallets.reduce((s, w) => s + w.available * EUR_RATES[w.currency], 0);

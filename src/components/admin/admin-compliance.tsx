@@ -68,7 +68,7 @@ const actionColor: Record<string, string> = {
 
 export default function AdminCompliancePage() {
   const { data: kycResp, isLoading } = useAdminKyc();
-  const kyc = kycResp?.data ?? [];
+  const kyc = kycResp ?? [];
 
   const pending = kyc.filter((k) => k.status === "pending").length;
   const approved = kyc.filter((k) => k.status === "approved").length;

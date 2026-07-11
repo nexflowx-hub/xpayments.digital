@@ -211,7 +211,7 @@ export default function AdminOverviewPage() {
               ? Array.from({ length: 6 }).map((_, i) => (
                   <Skeleton key={i} className="h-9" />
                 ))
-              : health.services.map((s) => (
+              : (health?.services ?? []).map((s) => (
                   <div
                     key={s.name}
                     className="flex items-center justify-between rounded-lg border border-border/40 bg-background/40 px-3 py-2"

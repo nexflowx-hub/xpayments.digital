@@ -137,7 +137,7 @@ export default function RiskPage() {
                   <Lightbulb className="h-3.5 w-3.5" /> Recommendations
                 </h4>
                 <ol className="flex flex-col gap-2">
-                  {risk.recommendations.map((rec, i) => (
+                  {(risk?.recommendations ?? []).map((rec, i) => (
                     <motion.li
                       key={i}
                       initial={{ opacity: 0, x: -8 }}
@@ -175,7 +175,7 @@ export default function RiskPage() {
         <div className="flex flex-col divide-y divide-border/40">
           {!risk
             ? Array.from({ length: 3 }).map((_, i) => <div key={i} className="px-5 py-4"><Skeleton className="h-14" /></div>)
-            : risk.alerts.map((a) => {
+            : (risk?.alerts ?? []).map((a) => {
                 const sev = severityConfig[a.severity];
                 return (
                   <motion.div

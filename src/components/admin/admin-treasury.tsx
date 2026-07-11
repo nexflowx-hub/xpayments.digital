@@ -179,7 +179,7 @@ export default function AdminTreasuryPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {t.balances.map((b) => {
+                {(t?.balances ?? []).map((b) => {
                   const share = (b.amount / totalBalances) * 100;
                   const c = CURRENCIES.find((x) => x.code === b.currency);
                   return (

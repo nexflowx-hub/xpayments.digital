@@ -253,7 +253,7 @@ function WebhookCard({
           </div>
 
           <div className="flex flex-wrap gap-1.5">
-            {webhook.events.map((e) => (
+            {(webhook?.events ?? []).map((e) => (
               <Badge key={e} variant="outline" className="border-primary/30 bg-primary/8 font-mono text-[10px] text-primary">
                 {e}
               </Badge>

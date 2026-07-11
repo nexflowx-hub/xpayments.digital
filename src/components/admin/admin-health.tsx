@@ -170,7 +170,7 @@ export default function AdminHealthPage() {
           {isLoading || !health ? (
             Array.from({ length: 7 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)
           ) : (
-            health.services.map((s, i) => {
+            (health?.services ?? []).map((s, i) => {
               const spark = Array.from({ length: 16 }, () => Math.max(0, s.latencyMs + (Math.random() - 0.5) * s.latencyMs * 0.6));
               return (
                 <motion.div key={s.name} {...fadeUp} transition={{ duration: 0.35, delay: i * 0.03 }}>

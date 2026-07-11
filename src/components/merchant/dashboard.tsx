@@ -189,7 +189,7 @@ export default function MerchantOverview() {
             <Crown className="h-4 w-4 text-amber-400" />
           </div>
           <div className="flex flex-col gap-1">
-            {analytics?.topCustomers.map((c, i) => (
+            {analytics?.topCustomers?.map((c, i) => (
               <div key={i} className="flex items-center gap-3 rounded-lg px-2 py-2 transition hover:bg-muted/40">
                 <span className="grid h-6 w-6 place-items-center rounded-md bg-muted/60 text-[10px] font-semibold text-muted-foreground">{i + 1}</span>
                 <span className="flex-1 truncate text-sm font-medium">{c.name}</span>

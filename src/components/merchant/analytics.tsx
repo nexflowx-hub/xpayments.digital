@@ -135,7 +135,7 @@ export default function AnalyticsPage() {
           </div>
           {isLoading || !a ? <Skeleton className="h-64 w-full" /> : (
             <DonutChart
-              data={a.currencies.map((c) => ({ name: c.currency, value: c.volume }))}
+              data={(a?.currencies ?? []).map((c) => ({ name: c.currency, value: c.volume }))}
               height={260}
               formatter={(v) => formatCurrency(v, "EUR", { compact: true })}
             />
@@ -177,7 +177,7 @@ export default function AnalyticsPage() {
           </div>
           {isLoading || !a ? <Skeleton className="h-64 w-full" /> : (
             <BarTrend
-              data={a.paymentMethods.map((p) => ({ name: methodLabel[p.method] ?? p.method, value: p.volume }))}
+              data={(a?.paymentMethods ?? []).map((p) => ({ name: methodLabel[p.method] ?? p.method, value: p.volume }))}
               dataKey="value"
               xKey="name"
               color="oklch(0.66 0.20 300)"

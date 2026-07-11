@@ -191,7 +191,7 @@ export default function ApiKeysPage() {
                     </td>
                     <td className="py-3">
                       <div className="flex flex-wrap gap-1">
-                        {k.scopes.map((s) => (
+                        {(k?.scopes ?? []).map((s) => (
                           <Badge key={s} variant="outline" className="border-border/60 bg-muted/30 text-[10px] font-medium">
                             {SCOPE_LABELS[s] ?? s}
                           </Badge>

@@ -87,7 +87,7 @@ export default function PaymentsPage() {
     sortBy: "createdAt",
     sortDir: "desc",
   });
-  const { data, isLoading, isFetching } = useTransactions(filters);
+  const { data, isLoading, isFetching, isError, refetch } = useTransactions(filters);
   const [selected, setSelected] = React.useState<Transaction | null>(null);
 
   const rows = data?.data ?? [];
@@ -107,6 +107,12 @@ export default function PaymentsPage() {
 
   const pageList = buildPageList(page, totalPages);
 
+  if (isError) return (
+    <div className="flex flex-col gap-6">
+      <PageHeader title="Payments" description="Every payment across every gateway, currency and channel." />
+      <ErrorState message="Failed to load transactions. The backend may be unreachable." onRetry={() => refetch()} />
+    </div>
+  );
   return (
     <div className="flex flex-col gap-6">
       <PageHeader

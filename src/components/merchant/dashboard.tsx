@@ -20,11 +20,17 @@ import { formatCurrency, formatNumber, formatPercent, timeAgo, cn } from "@/lib/
 import { CURRENCIES, PAYMENT_METHODS } from "@/config";
 
 export default function MerchantOverview() {
-  const { data: analytics, isLoading: aLoading } = useAnalyticsOverview();
+  const { data: analytics, isLoading: aLoading, isError: aError, refetch: aRefetch } = useAnalyticsOverview();
   const { data: risk } = useRiskProfile();
   const { data: wallets } = useWallets();
   const { data: txPage } = useTransactions({ page: 1, pageSize: 6, sortBy: "createdAt", sortDir: "desc" });
 
+  if (aError) return (
+    <div className="flex flex-col gap-6">
+      <PageHeader title="Dashboard" description="Real-time view of your payments, revenue and risk." />
+      <ErrorState message="Failed to load analytics data. The backend may be unreachable." onRetry={() => aRefetch()} />
+    </div>
+  );
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -68,7 +74,7 @@ export default function MerchantOverview() {
           {aLoading || !analytics ? (
             <Skeleton className="h-60 w-full" />
           ) : (
-            <AreaTrend data={analytics.revenueSeries} formatter={(v) => formatCurrency(v, "EUR", { compact: true })} height={260} />
+            <AreaTrend data={(analytics?.revenueSeries ?? [])} formatter={(v) => formatCurrency(v, "EUR", { compact: true })} height={260} />
           )}
         </Card>
 

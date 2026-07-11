@@ -32,7 +32,7 @@ interface FunnelStage {
 }
 
 export default function AnalyticsPage() {
-  const { data: a, isLoading } = useAnalyticsOverview();
+  const { data: a, isLoading, isError, refetch } = useAnalyticsOverview();
   const [range, setRange] = React.useState<string>("30d");
 
   // Build a deterministic conversion funnel from analytics signals
@@ -69,6 +69,12 @@ export default function AnalyticsPage() {
   const topByLtv = a?.topCustomers ?? [];
   const maxLtv = topByLtv[0]?.ltv ?? 1;
 
+  if (isError) return (
+    <div className="flex flex-col gap-6">
+      <PageHeader title="Analytics" description="Performance, conversion and revenue intelligence." />
+      <ErrorState message="Failed to load analytics. Check your connection or try again." onRetry={() => refetch()} />
+    </div>
+  );
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -118,7 +124,7 @@ export default function AnalyticsPage() {
           </div>
           {isLoading || !a ? <Skeleton className="h-64 w-full" /> : (
             <AreaTrend
-              data={a.revenueSeries}
+              data={(a?.revenueSeries ?? [])}
               dataKey="value"
               xKey="date"
               color="oklch(0.62 0.21 258)"
@@ -157,7 +163,7 @@ export default function AnalyticsPage() {
           </div>
           {isLoading || !a ? <Skeleton className="h-64 w-full" /> : (
             <AreaTrend
-              data={a.volumeSeries}
+              data={(a?.volumeSeries ?? [])}
               dataKey="value"
               xKey="date"
               color="oklch(0.70 0.17 158)"

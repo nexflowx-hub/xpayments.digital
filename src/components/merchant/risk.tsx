@@ -31,7 +31,7 @@ const severityConfig: Record<RiskAlert["severity"], { tone: string; dot: string;
 };
 
 export default function RiskPage() {
-  const { data: risk, isLoading } = useRiskProfile();
+  const { data: risk, isLoading, isError: rError, refetch: rRefetch } = useRiskProfile();
 
   const trust = risk ? trustConfig[risk.trustStatus] : trustConfig.standard;
   const TrustIcon = trust.icon;
@@ -41,6 +41,12 @@ export default function RiskPage() {
     : risk.score < 60 ? "text-amber-400"
     : "text-rose-400";
 
+  if (rError) return (
+    <div className="flex flex-col gap-6">
+      <PageHeader title="Risk Center" description="Monitor your risk profile, alerts and recommendations." />
+      <ErrorState message="Failed to load risk profile. The backend may be unreachable." onRetry={() => rRefetch()} />
+    </div>
+  );
   return (
     <div className="flex flex-col gap-6">
       <PageHeader

@@ -54,7 +54,7 @@ const movementTypeLabel: Record<WalletMovement["type"], string> = {
 };
 
 export default function WalletsPage() {
-  const { data: walletsRes, isLoading } = useWallets();
+  const { data: walletsRes, isLoading, isError: wError, refetch: wRefetch } = useWallets();
   const { data: movementsRes } = useWalletMovements();
   const depositM = useWalletDeposit();
   const payoutM = useWalletPayout();
@@ -152,6 +152,12 @@ export default function WalletsPage() {
     );
   }
 
+  if (wError) return (
+    <div className="flex flex-col gap-6">
+      <PageHeader title="Wallets" description="Multi-currency treasury across fiat, crypto and card balances." />
+      <ErrorState message="Failed to load wallets. The backend may be unreachable." onRetry={() => wRefetch()} />
+    </div>
+  );
   return (
     <div className="flex flex-col gap-6">
       <PageHeader

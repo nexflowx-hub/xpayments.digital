@@ -116,7 +116,7 @@ export default function AdminTreasuryPage() {
             <Skeleton className="h-64 w-full" />
           ) : (
             <BarTrend
-              data={t.cashFlowSeries}
+              data={t?.cashFlowSeries ?? []}
               dataKey={[
                 { key: "inflow", color: CHART_COLORS[1], name: "Inflow" },
                 { key: "outflow", color: CHART_COLORS[4], name: "Outflow" },
@@ -143,7 +143,7 @@ export default function AdminTreasuryPage() {
             <Skeleton className="h-64 w-full" />
           ) : (
             <AreaTrend
-              data={t.settlementSeries}
+              data={t?.settlementSeries ?? []}
               color={CHART_COLORS[2]}
               formatter={(v) => formatCurrency(v, "EUR", { compact: true })}
               height={260}

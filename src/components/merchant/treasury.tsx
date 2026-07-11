@@ -43,7 +43,7 @@ function walletTypeMeta(type: "fiat" | "crypto" | "card") {
 }
 
 export default function TreasuryPage() {
-  const { data: treasury, isLoading } = useTreasury();
+  const { data: treasury, isLoading, isError: tError, refetch: tRefetch } = useTreasury();
   const { data: wallets } = useWallets();
   const { data: movements } = useWalletMovements();
 
@@ -52,6 +52,12 @@ export default function TreasuryPage() {
     [treasury],
   );
 
+  if (tError) return (
+    <div className="flex flex-col gap-6">
+      <PageHeader title="Treasury" description="Unified liquidity, reserves and cashflow." />
+      <ErrorState message="Failed to load treasury data. The backend may be unreachable." onRetry={() => tRefetch()} />
+    </div>
+  );
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -128,7 +134,7 @@ export default function TreasuryPage() {
             <Skeleton className="h-64 w-full" />
           ) : (
             <BarTrend
-              data={treasury.cashFlowSeries}
+              data={treasury?.cashFlowSeries ?? []}
               dataKey={[
                 { key: "inflow", color: "oklch(0.70 0.17 158)", name: "Inflow" },
                 { key: "outflow", color: "oklch(0.68 0.20 20)", name: "Outflow" },
@@ -149,7 +155,7 @@ export default function TreasuryPage() {
             <Skeleton className="h-64 w-full" />
           ) : (
             <AreaTrend
-              data={treasury.settlementSeries}
+              data={treasury?.settlementSeries ?? []}
               color="oklch(0.66 0.20 300)"
               height={260}
               formatter={(v) => formatCurrency(v, "EUR", { compact: true })}

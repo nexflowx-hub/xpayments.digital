@@ -270,3 +270,22 @@ export const scaleIn: HTMLMotionProps<"div"> = {
 };
 
 export const MotionDiv = motion.div;
+
+// ---- ErrorState ----
+export function ErrorState({ message, onRetry }: { message?: string; onRetry?: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/60 py-12 text-center">
+      <div className="rounded-xl bg-rose-500/10 p-3">
+        <svg className="h-6 w-6 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+      <p className="text-sm font-medium text-foreground">{message || "Failed to load data"}</p>
+      {onRetry && (
+        <button onClick={onRetry} className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition hover:bg-primary/90">
+          Retry
+        </button>
+      )}
+    </div>
+  );
+}

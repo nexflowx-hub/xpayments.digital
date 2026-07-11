@@ -47,7 +47,7 @@ function Logo({ compact = false }: { compact?: boolean }) {
 }
 
 function WorkspaceSwitcher({ compact }: { compact?: boolean }) {
-  const { user } = useAuth();
+  const user = useAuth((s) => s.user);
   const t = useT();
   const [workspace, setWorkspace] = React.useState(user?.company ?? "Nimbus Labs");
   return (
@@ -163,7 +163,7 @@ function SidebarBody({
   onSelect: (id: string) => void;
   collapsed?: boolean;
 }) {
-  const { user } = useAuth();
+  const user = useAuth((s) => s.user);
   const t = useT();
   return (
     <div className="flex h-full flex-col">
@@ -218,8 +218,11 @@ function SidebarBody({
 
 function TopBar({ onMenu }: { onMenu: () => void }) {
   const { theme, setTheme } = useTheme();
-  const { user, logout } = useAuth();
-  const { setCommandOpen, setNotificationsOpen, toggleSidebar } = useUi();
+  const user = useAuth((s) => s.user);
+  const logout = useAuth((s) => s.logout);
+  const setCommandOpen = useUi((s) => s.setCommandOpen);
+  const setNotificationsOpen = useUi((s) => s.setNotificationsOpen);
+  const toggleSidebar = useUi((s) => s.toggleSidebar);
   const t = useT();
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => setMounted(true), []);
@@ -303,7 +306,8 @@ function CommandPalette({
   active: string;
   onSelect: (id: string) => void;
 }) {
-  const { commandOpen, setCommandOpen } = useUi();
+  const commandOpen = useUi((s) => s.commandOpen);
+  const setCommandOpen = useUi((s) => s.setCommandOpen);
   const t = useT();
   React.useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -349,7 +353,8 @@ function CommandPalette({
 }
 
 function NotificationsPanel() {
-  const { notificationsOpen, setNotificationsOpen } = useUi();
+  const notificationsOpen = useUi((s) => s.notificationsOpen);
+  const setNotificationsOpen = useUi((s) => s.setNotificationsOpen);
   const t = useT();
   const notifications = [
     { id: 1, title: "Large payout approved", desc: "€48,200.00 to Acme Ltd", time: "2m ago", type: "success" },

@@ -148,7 +148,8 @@ function ModeToggle({ mode, onChange }: { mode: AuthMode; onChange: (m: AuthMode
 
 export function AuthScreen() {
   const { appView, setAppView } = useUi();
-  const { login, register } = useAuth();
+  const login = useAuth((s) => s.login);
+  const register = useAuth((s) => s.register);
   const t = useT();
   const [mode, setMode] = React.useState<AuthMode>("login");
   const [showPwd, setShowPwd] = React.useState(false);

@@ -101,10 +101,10 @@ export const useAuth = create<AuthState>()(
           // If the server rejects it (401), the interceptor will forceLogout.
           if (next.isAuthenticated) {
             authApi.me()
-              .then((user) => {
-                if (user) {
-                  if (tokenStore.access) tokenStore.set(tokenStore.access, tokenStore.refresh ?? "", user);
-                  set({ user, isAuthenticated: true });
+              .then((meUser) => {
+                if (meUser && tokenStore.access) {
+                  tokenStore.set(tokenStore.access, tokenStore.refresh ?? "", meUser);
+                  set({ user: meUser as User, isAuthenticated: true });
                 }
               })
               .catch(() => {

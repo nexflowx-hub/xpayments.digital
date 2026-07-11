@@ -27,16 +27,24 @@ function SplashScreen() {
 }
 
 export default function Home() {
-  const { isAuthenticated, user, hydrate } = useAuth();
-  const { appView, setAppView, activeMerchantView, activeAdminView } = useUi();
+  // Use selectors to avoid re-rendering on unrelated store changes
+  const isAuthenticated = useAuth((s) => s.isAuthenticated);
+  const user = useAuth((s) => s.user);
+  const hydrate = useAuth((s) => s.hydrate);
+  const appView = useUi((s) => s.appView);
+  const setAppView = useUi((s) => s.setAppView);
+  const activeMerchantView = useUi((s) => s.activeMerchantView);
+  const activeAdminView = useUi((s) => s.activeAdminView);
   const detectLocale = useI18n((s) => s.detect);
   const [mounted, setMounted] = React.useState(false);
 
+  // Hydrate auth + detect locale on mount only (empty deps)
   React.useEffect(() => {
     hydrate();
     detectLocale();
     setMounted(true);
-  }, [hydrate, detectLocale]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Reset to landing when signed out
   React.useEffect(() => {
@@ -47,10 +55,8 @@ export default function Home() {
 
   if (!mounted) return <SplashScreen />;
 
-  // Authenticated → dashboard by role
   // Guard: if unauthenticated but appView is merchant/admin, show splash
-  // to avoid rendering the shell with a null user (which crashes TopBar).
-  if (mounted && !isAuthenticated && (appView === "merchant" || appView === "admin")) {
+  if (!isAuthenticated && (appView === "merchant" || appView === "admin")) {
     return <SplashScreen />;
   }
 

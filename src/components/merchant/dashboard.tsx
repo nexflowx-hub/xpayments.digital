@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { useAnalyticsOverview, useRiskProfile, useWallets, useTransactions } from "@/hooks/queries";
 import {
-  StatCard, PageHeader, SectionCard, GlowCard, AnimatedCounter, fadeUp,
+  StatCard, PageHeader, SectionCard, GlowCard, AnimatedCounter, fadeUp, ErrorState,
 } from "@/components/shared";
 import { StatusBadge, CurrencyBadge, MethodBadge, Sparkline } from "@/components/shared/badges";
 import { AreaTrend, DonutChart, BarTrend, CHART_COLORS } from "@/components/shared/charts";

@@ -7,7 +7,7 @@ import {
   RefreshCcw, Lightbulb, Bell, TrendingDown, TrendingUp, Lock,
 } from "lucide-react";
 import { useRiskProfile } from "@/hooks/queries";
-import { PageHeader, StatCard } from "@/components/shared";
+import { PageHeader, StatCard, ErrorState } from "@/components/shared";
 import { RiskGauge } from "@/components/shared/badges";
 import { AreaTrend, LineTrend } from "@/components/shared/charts";
 import { Card } from "@/components/ui/card";

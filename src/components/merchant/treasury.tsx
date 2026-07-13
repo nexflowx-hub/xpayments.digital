@@ -8,7 +8,7 @@ import {
   CreditCard, Coins,
 } from "lucide-react";
 import { useTreasury, useWallets, useWalletMovements } from "@/hooks/queries";
-import { PageHeader, StatCard, fadeUp } from "@/components/shared";
+import { PageHeader, StatCard, fadeUp, ErrorState } from "@/components/shared";
 import { AreaTrend, BarTrend } from "@/components/shared/charts";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

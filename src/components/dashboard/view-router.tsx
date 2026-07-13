@@ -22,6 +22,77 @@ function PageFallback() {
   );
 }
 
+/**
+ * Per-view error boundary — if a single page (e.g. Analytics) crashes,
+ * only that view shows an error card. The sidebar, topbar, and navigation
+ * remain fully functional. The user can click another nav item to navigate
+ * away, or hit "Retry" to re-mount the page.
+ */
+class ViewErrorBoundary extends React.Component<
+  { children: React.ReactNode; viewKey: string },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode; viewKey: string }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error("[ViewErrorBoundary] View crashed:", error?.message || error);
+  }
+
+  componentDidUpdate(prevProps: { viewKey: string }) {
+    // Reset error when the view changes (user navigates to another page)
+    if (prevProps.viewKey !== this.props.viewKey && this.state.hasError) {
+      this.setState({ hasError: false, error: null });
+    }
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-border/60 py-16 text-center">
+          <div className="rounded-xl bg-amber-500/10 p-3">
+            <svg
+              className="h-6 w-6 text-amber-400"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-foreground">
+              Verificar ligação à API
+            </p>
+            <p className="mt-1 max-w-xs text-xs text-muted-foreground">
+              Não foi possível carregar esta página. Pode continuar a navegar
+              no menu lateral ou tentar novamente.
+            </p>
+          </div>
+          <button
+            onClick={() => this.setState({ hasError: false, error: null })}
+            className="rounded-lg bg-primary px-4 py-2 text-xs font-medium text-primary-foreground transition hover:bg-primary/90"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // Lazy-load every page for code-splitting
 const lazy = (loader: () => Promise<{ default: React.ComponentType }>) =>
   dynamic(loader, { loading: () => <PageFallback />, ssr: false });
@@ -67,10 +138,18 @@ const adminPages: Record<string, React.ComponentType> = {
 
 export function MerchantViewRouter({ view }: { view: string }) {
   const Page = merchantPages[view] ?? merchantPages.dashboard;
-  return <Page />;
+  return (
+    <ViewErrorBoundary viewKey={view}>
+      <Page />
+    </ViewErrorBoundary>
+  );
 }
 
 export function AdminViewRouter({ view }: { view: string }) {
   const Page = adminPages[view] ?? adminPages["admin-dashboard"];
-  return <Page />;
+  return (
+    <ViewErrorBoundary viewKey={view}>
+      <Page />
+    </ViewErrorBoundary>
+  );
 }

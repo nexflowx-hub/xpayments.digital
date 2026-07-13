@@ -10,7 +10,7 @@ import {
 import {
   useWallets, useWalletMovements, useWalletDeposit, useWalletPayout, useWalletSwap,
 } from "@/hooks/queries";
-import { StatCard, PageHeader, fadeUp } from "@/components/shared";
+import { StatCard, PageHeader, fadeUp, ErrorState } from "@/components/shared";
 import { StatusBadge, Sparkline } from "@/components/shared/badges";
 import { DonutChart } from "@/components/shared/charts";
 import { Card } from "@/components/ui/card";

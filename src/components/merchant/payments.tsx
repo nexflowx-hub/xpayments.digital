@@ -6,7 +6,7 @@ import {
   Clock, User, Globe, Server, Hash, X, Filter, RefreshCw,
 } from "lucide-react";
 import { useTransactions } from "@/hooks/queries";
-import { PageHeader } from "@/components/shared";
+import { PageHeader, ErrorState } from "@/components/shared";
 import { StatusBadge, MethodBadge, JsonViewer } from "@/components/shared/badges";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

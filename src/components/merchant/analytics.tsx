@@ -7,7 +7,7 @@ import {
   CalendarRange, ArrowUpRight, ArrowDownRight, Globe, BarChart3,
 } from "lucide-react";
 import { useAnalyticsOverview } from "@/hooks/queries";
-import { PageHeader, StatCard } from "@/components/shared";
+import { PageHeader, StatCard, ErrorState } from "@/components/shared";
 import { AreaTrend, BarTrend, DonutChart, CHART_COLORS } from "@/components/shared/charts";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";

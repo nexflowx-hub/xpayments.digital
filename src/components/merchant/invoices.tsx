@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useInvoices } from "@/hooks/queries";
 import { PageHeader, StatCard, EmptyState } from "@/components/shared";
+import { useT } from "@/lib/i18n";
 import { StatusBadge, CurrencyBadge } from "@/components/shared/badges";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -49,6 +50,7 @@ const FILTERS = ["all", "paid", "open", "overdue", "draft", "void"] as const;
 type Filter = (typeof FILTERS)[number];
 
 export default function InvoicesPage() {
+  const t = useT();
   const { data, isLoading } = useInvoices();
   const invoices = data ?? [];
 
@@ -114,7 +116,7 @@ export default function InvoicesPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Invoices"
+        title={t("nav.invoices")}
         description="Bill customers with branded invoices and track payment status."
         actions={
           <Dialog open={open} onOpenChange={setOpen}>

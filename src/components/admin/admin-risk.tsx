@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { useAdminMerchants, useAnalyticsOverview } from "@/hooks/queries";
 import { xpApi } from "@/lib/api/xpApi";
 import { StatCard, PageHeader, EmptyState } from "@/components/shared";
+import { useT } from "@/lib/i18n";
 import { StatusBadge, RiskGauge } from "@/components/shared/badges";
 import { DonutChart, CHART_COLORS } from "@/components/shared/charts";
 import { Card } from "@/components/ui/card";
@@ -87,6 +88,7 @@ function bucket(score: number): "low" | "medium" | "high" | "critical" {
 }
 
 export default function AdminRiskPage() {
+  const t = useT();
   const qc = useQueryClient();
   const { data: merchants, isLoading: mLoading } = useAdminMerchants();
   const { data: analytics, isLoading: aLoading } = useAnalyticsOverview();
@@ -139,7 +141,7 @@ export default function AdminRiskPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Platform Risk"
+        title={t("nav.adminRisk")}
         description="Aggregate merchant risk posture, exposure and active alerts."
         breadcrumbs={[{ label: "Admin" }, { label: "Risk" }]}
         actions={

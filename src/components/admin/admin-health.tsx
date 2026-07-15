@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useAdminHealth } from "@/hooks/queries";
 import { PageHeader, fadeUp } from "@/components/shared";
+import { useT } from "@/lib/i18n";
 import { Sparkline } from "@/components/shared/badges";
 import { AreaTrend } from "@/components/shared/charts";
 import { Card } from "@/components/ui/card";
@@ -101,6 +102,7 @@ function buildUptimeSeries() {
 }
 
 export default function AdminHealthPage() {
+  const t = useT();
   const { data: health, isLoading } = useAdminHealth();
   const uptimeSeries = React.useMemo(buildUptimeSeries, []);
 
@@ -116,7 +118,7 @@ export default function AdminHealthPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="System Health"
+        title={t("nav.adminHealth")}
         description="Real-time status, uptime and incident history for all platform services."
         actions={
           <>

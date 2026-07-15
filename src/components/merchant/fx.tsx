@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useWallets, useWalletMovements, useWalletSwap } from "@/hooks/queries";
 import { PageHeader } from "@/components/shared";
+import { useT } from "@/lib/i18n";
 import { Sparkline, StatusBadge } from "@/components/shared/badges";
 import { AreaTrend } from "@/components/shared/charts";
 import { Card } from "@/components/ui/card";
@@ -95,6 +96,7 @@ function fmtRate(v: number): string {
 }
 
 export default function FxPage() {
+  const t = useT();
   const { data: walletsRes } = useWallets();
   const { data: movementsRes } = useWalletMovements();
   const swapM = useWalletSwap();
@@ -142,8 +144,8 @@ export default function FxPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="FX"
-        description="Live mid-market rates, multi-currency conversion and recent swap activity."
+        title={t("nav.fx")}
+        description="Taxas em tempo real, conversão multi-moeda e atividade de swap recente."
         actions={
           <Badge variant="outline" className="gap-1.5 border-emerald-500/25 bg-emerald-500/12 text-emerald-400">
             <span className="relative flex h-1.5 w-1.5">

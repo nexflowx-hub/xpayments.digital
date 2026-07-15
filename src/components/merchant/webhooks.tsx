@@ -10,6 +10,7 @@ import {
 import { useWebhooks, useStores } from "@/hooks/queries";
 import { xpApi } from "@/lib/api/xpApi";
 import { PageHeader, EmptyState, fadeUp } from "@/components/shared";
+import { useT } from "@/lib/i18n";
 import { StatusBadge } from "@/components/shared/badges";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,7 @@ const WEBHOOK_EVENTS = [
 ] as const;
 
 export default function WebhooksPage() {
+  const t = useT();
   const { data, isLoading } = useWebhooks();
   const { data: stores } = useStores();
   const qc = useQueryClient();
@@ -120,7 +122,7 @@ export default function WebhooksPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Webhooks"
+        title={t("nav.webhooks")}
         description="Receive real-time event notifications at your endpoints."
         actions={
           <Button size="sm" className="gap-1.5" onClick={() => setCreateOpen(true)} disabled={storeList.length === 0}>

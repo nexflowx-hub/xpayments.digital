@@ -5,6 +5,7 @@ import {
   Terminal, Search, Download, Pause, Play, FileText, Filter,
 } from "lucide-react";
 import { PageHeader } from "@/components/shared";
+import { useT } from "@/lib/i18n";
 import { JsonViewer } from "@/components/shared/badges";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -102,6 +103,7 @@ const levelCfg: Record<LogLevel, { label: string; cls: string; dot: string }> = 
 const TIME_RANGES = ["Live", "Last 15m", "Last 1h", "Last 6h", "Last 24h"];
 
 export default function AdminLogsPage() {
+  const t = useT();
   const allLogs = React.useMemo(buildLogs, []);
   const [search, setSearch] = React.useState("");
   const [level, setLevel] = React.useState("all");
@@ -139,7 +141,7 @@ export default function AdminLogsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Logs"
+        title={t("nav.adminLogs")}
         description="Live platform log stream — search, filter and inspect raw events."
         actions={
           <>

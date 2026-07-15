@@ -8,6 +8,7 @@ import {
   Send, Loader2, Zap, ShieldCheck, Webhook, Scale, Gauge,
 } from "lucide-react";
 import { PageHeader, fadeUp } from "@/components/shared";
+import { useT } from "@/lib/i18n";
 import { StatusBadge } from "@/components/shared/badges";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -68,6 +69,7 @@ function priorityBadge(p: string) {
 }
 
 export default function SupportPage() {
+  const t = useT();
   const [subject, setSubject] = React.useState("");
   const [priority, setPriority] = React.useState("medium");
   const [message, setMessage] = React.useState("");
@@ -94,7 +96,7 @@ export default function SupportPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Support"
+        title={t("nav.support")}
         description="Get help, browse the knowledge base, and track your tickets."
         actions={
           <Button variant="outline" size="sm" className="gap-1.5" asChild>

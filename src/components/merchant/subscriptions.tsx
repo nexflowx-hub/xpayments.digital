@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useSubscriptions } from "@/hooks/queries";
 import { PageHeader, StatCard, EmptyState } from "@/components/shared";
+import { useT } from "@/lib/i18n";
 import { StatusBadge, CurrencyBadge } from "@/components/shared/badges";
 import { AreaTrend, DonutChart } from "@/components/shared/charts";
 import { Button } from "@/components/ui/button";
@@ -51,6 +52,7 @@ const STATUS_GROUPS: { key: Subscription["status"]; label: string }[] = [
 ];
 
 export default function SubscriptionsPage() {
+  const t = useT();
   const { data, isLoading } = useSubscriptions();
   const subs = data ?? [];
 
@@ -93,7 +95,7 @@ export default function SubscriptionsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Subscriptions"
+        title={t("nav.subscriptions")}
         description="Recurring revenue, plan distribution and churn at a glance."
       />
 

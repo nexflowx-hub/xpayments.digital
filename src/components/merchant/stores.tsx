@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useStores } from "@/hooks/queries";
 import { PageHeader, StatCard, EmptyState } from "@/components/shared";
+import { useT } from "@/lib/i18n";
 import { StatusBadge } from "@/components/shared/badges";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -43,6 +44,7 @@ import { toast } from "sonner";
 import type { CurrencyCode } from "@/types";
 
 export default function StoresPage() {
+  const t = useT();
   const { data, isLoading } = useStores();
   const stores = data ?? [];
 
@@ -82,7 +84,7 @@ export default function StoresPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Stores"
+        title={t("nav.stores")}
         description="Manage your storefronts across regions and currencies."
         actions={
           <Dialog open={open} onOpenChange={setOpen}>

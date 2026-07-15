@@ -10,6 +10,7 @@ import {
   Crown, Shield, Eye, Database, Mail, AlertTriangle, CheckCircle2, LogOut,
 } from "lucide-react";
 import { PageHeader } from "@/components/shared";
+import { useT } from "@/lib/i18n";
 import { StatusBadge } from "@/components/shared/badges";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -50,11 +51,12 @@ const TABS = [
 type TabId = (typeof TABS)[number]["id"];
 
 export default function SettingsPage() {
+  const t = useT();
   const [active, setActive] = React.useState<TabId>("company");
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Settings"
+        title={t("nav.settings")}
         description="Manage your merchant account, branding, security and team."
       />
       <Tabs value={active} onValueChange={(v) => setActive(v as TabId)} className="grid grid-cols-1 gap-6 lg:grid-cols-[220px_1fr]">

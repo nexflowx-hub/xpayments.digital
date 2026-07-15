@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { PageHeader, StatCard } from "@/components/shared";
+import { useT } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +52,7 @@ const envCfg: Record<Environment, { label: string; cls: string }> = {
 };
 
 export default function AdminFlagsPage() {
+  const t = useT();
   const [flags, setFlags] = React.useState<FeatureFlag[]>(INITIAL_FLAGS);
   const [search, setSearch] = React.useState("");
   const [envFilter, setEnvFilter] = React.useState("all");
@@ -87,7 +89,7 @@ export default function AdminFlagsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Feature Flags"
+        title={t("nav.adminFlags")}
         description="Progressive delivery, environment gating and rollout control."
         actions={
           <>

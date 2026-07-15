@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn, formatCurrency, formatPercent, timeAgo } from "@/lib/utils";
 import { CURRENCIES } from "@/config";
 import type { CurrencyCode, WalletMovement } from "@/types";
+import { useT } from "@/lib/i18n";
 
 const movementIcon: Record<WalletMovement["type"], React.ComponentType<{ className?: string }>> = {
   deposit: ArrowDownLeft,
@@ -43,6 +44,7 @@ function walletTypeMeta(type: "fiat" | "crypto" | "card") {
 }
 
 export default function TreasuryPage() {
+  const t = useT();
   const { data: treasury, isLoading, isError: tError, refetch: tRefetch } = useTreasury();
   const { data: wallets } = useWallets();
   const { data: movements } = useWalletMovements();
@@ -54,14 +56,14 @@ export default function TreasuryPage() {
 
   if (tError) return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Treasury" description="Unified liquidity, reserves and cashflow." />
+      <PageHeader title={t("nav.treasury")} description="Liquidez unificada, reservas e fluxo de caixa." />
       <ErrorState message="Failed to load treasury data. The backend may be unreachable." onRetry={() => tRefetch()} />
     </div>
   );
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Treasury"
+        title={t("nav.treasury")}
         description="Liquidity, reserves, settlement and cash flow across all wallets."
         actions={
           <>

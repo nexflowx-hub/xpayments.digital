@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useAnalyticsOverview } from "@/hooks/queries";
 import { PageHeader, StatCard, ErrorState } from "@/components/shared";
+import { useT } from "@/lib/i18n";
 import { AreaTrend, BarTrend, DonutChart, CHART_COLORS } from "@/components/shared/charts";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -32,6 +33,7 @@ interface FunnelStage {
 }
 
 export default function AnalyticsPage() {
+  const t = useT();
   const { data: a, isLoading, isError, refetch } = useAnalyticsOverview();
   const [range, setRange] = React.useState<string>("30d");
 
@@ -71,14 +73,14 @@ export default function AnalyticsPage() {
 
   if (isError) return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Analytics" description="Performance, conversion and revenue intelligence." />
+      <PageHeader title={t("nav.analytics")} description="Performance, conversion and revenue intelligence." />
       <ErrorState message="Failed to load analytics. Check your connection or try again." onRetry={() => refetch()} />
     </div>
   );
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Analytics"
+        title={t("nav.analytics")}
         description="Performance, conversion and revenue intelligence across your merchant account."
         actions={
           <Select value={range} onValueChange={setRange}>

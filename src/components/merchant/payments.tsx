@@ -33,6 +33,7 @@ import {
 import { CURRENCIES, PAYMENT_METHODS, COUNTRY_LIST } from "@/config";
 import type { DataTableFilters, Transaction } from "@/types";
 import { toast } from "sonner";
+import { useT } from "@/lib/i18n";
 
 const PAGE_SIZE = 10;
 const GATEWAYS = ["xpayments", "stripe-rail", "adyen", "checkout", "wise"];
@@ -81,6 +82,7 @@ function buildPageList(current: number, total: number): (number | "...")[] {
 }
 
 export default function PaymentsPage() {
+  const t = useT();
   const [filters, setFilters] = React.useState<DataTableFilters>({
     page: 1,
     limit: PAGE_SIZE,
@@ -109,15 +111,15 @@ export default function PaymentsPage() {
 
   if (isError) return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Payments" description="Every payment across every gateway, currency and channel." />
+      <PageHeader title={t("nav.payments")} description="Todos os pagamentos em todos os gateways, moedas e canais." />
       <ErrorState message="Failed to load transactions. The backend may be unreachable." onRetry={() => refetch()} />
     </div>
   );
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Payments"
-        description="Every payment across every gateway, currency and channel."
+        title={t("nav.payments")}
+        description="Todos os pagamentos em todos os gateways, moedas e canais."
         actions={
           <>
             <Button variant="outline" size="sm" className="gap-1.5" onClick={() => toast("Export started", { description: "CSV export queued — you'll get an email shortly." })}>

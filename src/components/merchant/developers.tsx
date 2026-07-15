@@ -3,514 +3,410 @@
 import * as React from "react";
 import { motion } from "framer-motion";
 import {
-  Code2, Terminal, Copy, Play, Loader2, BookOpen, KeyRound,
-  Bell, AlertTriangle, ListOrdered, ShieldCheck, Zap, Clock,
-  ExternalLink, FileCode2, ChevronRight,
+  Code2, Terminal, Copy, BookOpen, AlertTriangle, ShieldCheck, Zap,
+  ExternalLink, ChevronRight, FlaskConical, Phone, CheckCircle2, XCircle,
+  Clock, Ban,
 } from "lucide-react";
 import { PageHeader, fadeUp } from "@/components/shared";
-import { JsonViewer } from "@/components/shared/badges";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import {
-  Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
-} from "@/components/ui/select";
-import { sdkSnippets } from "@/lib/sdk-snippets";
-import { cn, timeAgo } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-const SNIPPET_LANGS: { id: "curl" | "node" | "python" | "php" | "go"; label: string }[] = [
-  { id: "curl", label: "cURL" },
-  { id: "node", label: "Node.js" },
-  { id: "python", label: "Python" },
-  { id: "php", label: "PHP" },
-  { id: "go", label: "Go" },
-];
-
-const KEYWORDS = new Set([
-  "import", "from", "const", "let", "var", "function", "return", "async",
-  "await", "new", "export", "default", "class", "if", "else", "for", "while",
-  "func", "package", "require", "echo", "print", "nil", "true", "false",
-  "null", "None", "True", "False", "def", "public", "private", "void",
-  "int", "string", "bool", "context", "os", "fmt",
-]);
-
-function highlightCode(code: string): React.ReactNode {
-  const tokens: { t: "comment" | "string" | "keyword" | "number" | "text"; v: string }[] = [];
-  let i = 0;
-  while (i < code.length) {
-    const c = code[i];
-    const two = code.slice(i, i + 2);
-    if (two === "//" || c === "#") {
-      let j = i;
-      while (j < code.length && code[j] !== "\n") j++;
-      tokens.push({ t: "comment", v: code.slice(i, j) });
-      i = j;
-      continue;
+// ---- Code block component with copy + basic syntax tinting ----
+function CodeBlock({ code, lang = "bash" }: { code: string; lang?: string }) {
+  const copy = () => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(code).then(() => toast.success("Copied to clipboard"));
     }
-    if (c === '"' || c === "'" || c === "`") {
-      const q = c;
-      let j = i + 1;
-      while (j < code.length && code[j] !== q) {
-        if (code[j] === "\\") j++;
-        j++;
-      }
-      j++;
-      tokens.push({ t: "string", v: code.slice(i, Math.min(j, code.length)) });
-      i = Math.min(j, code.length);
-      continue;
-    }
-    if (/\d/.test(c) && (i === 0 || !/[a-zA-Z_]/.test(code[i - 1]))) {
-      let j = i;
-      while (j < code.length && /[\d.]/.test(code[j])) j++;
-      tokens.push({ t: "number", v: code.slice(i, j) });
-      i = j;
-      continue;
-    }
-    if (/[a-zA-Z_$]/.test(c)) {
-      let j = i;
-      while (j < code.length && /[a-zA-Z0-9_$]/.test(code[j])) j++;
-      const w = code.slice(i, j);
-      tokens.push({ t: KEYWORDS.has(w) ? "keyword" : "text", v: w });
-      i = j;
-      continue;
-    }
-    tokens.push({ t: "text", v: c });
-    i++;
-  }
-  const colorMap: Record<string, string> = {
-    comment: "text-zinc-500 italic",
-    string: "text-emerald-300",
-    keyword: "text-sky-300",
-    number: "text-amber-300",
-    text: "text-zinc-300",
   };
-  return tokens.map((tk, idx) => (
-    <span key={idx} className={colorMap[tk.t]}>{tk.v}</span>
-  ));
-}
-
-function TerminalCard({ code }: { code: string }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-border/60 bg-[#0b0e14]/90 shadow-2xl">
-      <div className="flex items-center gap-2 border-b border-white/5 bg-white/[0.02] px-4 py-2.5">
-        <span className="h-3 w-3 rounded-full bg-rose-500/80" />
-        <span className="h-3 w-3 rounded-full bg-amber-400/80" />
-        <span className="h-3 w-3 rounded-full bg-emerald-500/80" />
-        <span className="ml-2 flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Terminal className="h-3.5 w-3.5" />
-          xpayments-shell
-        </span>
+    <div className="group relative overflow-hidden rounded-lg border border-border/60 bg-black/50">
+      <div className="flex items-center justify-between border-b border-border/40 px-4 py-2">
+        <div className="flex items-center gap-1.5">
+          <span className="h-2.5 w-2.5 rounded-full bg-rose-500/60" />
+          <span className="h-2.5 w-2.5 rounded-full bg-amber-500/60" />
+          <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/60" />
+          <span className="ml-2 text-[10px] font-medium text-muted-foreground">{lang}</span>
+        </div>
+        <Button variant="ghost" size="sm" className="h-6 gap-1 text-xs text-muted-foreground" onClick={copy}>
+          <Copy className="h-3 w-3" /> Copy
+        </Button>
       </div>
-      <pre className="scrollbar-thin max-h-[420px] overflow-auto px-5 py-4 font-mono text-[13px] leading-relaxed">
-        <code>{highlightCode(code)}</code>
+      <pre className="scrollbar-thin overflow-x-auto p-4 text-xs leading-relaxed text-zinc-200">
+        <code>{code}</code>
       </pre>
     </div>
   );
 }
 
-// ---- API Explorer ----
-const ENDPOINTS = [
-  { id: "POST /payments", label: "POST /payments", method: "POST", path: "/payments" },
-  { id: "GET /transactions", label: "GET /transactions", method: "GET", path: "/transactions" },
-  { id: "POST /wallets/swap", label: "POST /wallets/swap", method: "POST", path: "/wallets/swap" },
-  { id: "POST /payouts", label: "POST /payouts", method: "POST", path: "/payouts" },
-  { id: "GET /wallets", label: "GET /wallets", method: "GET", path: "/wallets" },
-  { id: "POST /webhooks", label: "POST /webhooks", method: "POST", path: "/webhooks" },
-];
-
-const PRESETS: Record<string, string> = {
-  "POST /payments": JSON.stringify(
-    {
-      amount: 4200,
-      currency: "EUR",
-      method: "pix",
-      customer: "cus_8af2c1",
-      description: "Pro Plan — Annual",
-      capture: true,
-    },
-    null,
-    2,
-  ),
-  "GET /transactions": JSON.stringify({ limit: 5, status: "succeeded" }, null, 2),
-  "POST /wallets/swap": JSON.stringify(
-    { from: "USD", to: "EUR", amount: 1500 },
-    null,
-    2,
-  ),
-  "POST /payouts": JSON.stringify(
-    { currency: "EUR", amount: 1800, beneficiary: "ben_92fa" },
-    null,
-    2,
-  ),
-  "GET /wallets": JSON.stringify({}, null, 2),
-  "POST /webhooks": JSON.stringify(
-    { url: "https://api.merchant.io/xp/events", events: ["payment.succeeded"] },
-    null,
-    2,
-  ),
-};
-
-function mockResponse(endpoint: string): unknown {
-  const id = "pay_" + Math.random().toString(36).slice(2, 10);
-  const now = new Date().toISOString();
-  switch (endpoint) {
-    case "POST /payments":
-      return {
-        id,
-        object: "payment",
-        amount: 4200,
-        currency: "EUR",
-        status: "succeeded",
-        method: "pix",
-        customer: "cus_8af2c1",
-        description: "Pro Plan — Annual",
-        reference: "REF" + Math.floor(100000 + Math.random() * 900000),
-        risk: { score: 12, decision: "approved" },
-        fee: 126,
-        net: 4074,
-        createdAt: now,
-      };
-    case "GET /transactions":
-      return {
-        object: "list",
-        url: "/v1/transactions",
-        has_more: true,
-        data: Array.from({ length: 3 }).map((_, i) => ({
-          id: "txn_" + Math.random().toString(36).slice(2, 9),
-          reference: "REF" + (100000 + i * 137),
-          amount: 2400 + i * 800,
-          currency: "EUR",
-          status: "succeeded",
-          method: "pix",
-          createdAt: now,
-        })),
-      };
-    case "POST /wallets/swap":
-      return {
-        id: "swp_" + Math.random().toString(36).slice(2, 9),
-        object: "swap",
-        from: "USD",
-        to: "EUR",
-        amount: 1500,
-        rate: 0.918,
-        received: 1377.0,
-        fee: 4.5,
-        status: "completed",
-        createdAt: now,
-      };
-    case "POST /payouts":
-      return {
-        id: "po_" + Math.random().toString(36).slice(2, 9),
-        object: "payout",
-        amount: 1800,
-        currency: "EUR",
-        beneficiary: "ben_92fa",
-        reference: "PO" + Math.floor(100000 + Math.random() * 900000),
-        status: "pending",
-        estimatedArrival: "2025-01-18T09:00:00Z",
-        createdAt: now,
-      };
-    case "GET /wallets":
-      return {
-        object: "list",
-        data: [
-          { id: "wlt_eur", currency: "EUR", balance: 842310.55, available: 821940.12 },
-          { id: "wlt_usd", currency: "USD", balance: 412980.22, available: 398410.04 },
-          { id: "wlt_brl", currency: "BRL", balance: 1298400.0, available: 1280000.0 },
-        ],
-      };
-    case "POST /webhooks":
-      return {
-        id: "wh_" + Math.random().toString(36).slice(2, 9),
-        object: "webhook",
-        url: "https://api.merchant.io/xp/events",
-        events: ["payment.succeeded"],
-        status: "active",
-        secret: "whsec_" + Math.random().toString(36).slice(2, 14),
-        createdAt: now,
-      };
-    default:
-      return { ok: true };
-  }
-}
-
-// ---- Documentation cards ----
-const DOC_CARDS = [
-  { icon: Zap, title: "Quickstart", desc: "Make your first payment in under 5 minutes.", href: "#" },
-  { icon: KeyRound, title: "Authentication", desc: "Bearer tokens, live & test keys, scopes.", href: "#" },
-  { icon: Bell, title: "Webhooks", desc: "Signatures, retries, idempotent delivery.", href: "#" },
-  { icon: AlertTriangle, title: "Errors", desc: "HTTP status codes & error code reference.", href: "#" },
-  { icon: ListOrdered, title: "Pagination", desc: "Cursor-based pagination for list endpoints.", href: "#" },
-  { icon: ShieldCheck, title: "Idempotency", desc: "Safe retries with Idempotency-Key headers.", href: "#" },
-];
-
-// ---- Mock API logs ----
-const API_LOGS = [
-  { time: "12:48:21", method: "POST", endpoint: "/v1/payments", status: 200, latency: 184 },
-  { time: "12:47:55", method: "GET", endpoint: "/v1/transactions", status: 200, latency: 92 },
-  { time: "12:47:12", method: "POST", endpoint: "/v1/wallets/swap", status: 201, latency: 240 },
-  { time: "12:46:03", method: "POST", endpoint: "/v1/payments", status: 402, latency: 156 },
-  { time: "12:45:38", method: "GET", endpoint: "/v1/wallets", status: 200, latency: 64 },
-  { time: "12:44:50", method: "POST", endpoint: "/v1/payouts", status: 200, latency: 318 },
-  { time: "12:43:22", method: "POST", endpoint: "/v1/webhooks", status: 201, latency: 78 },
-  { time: "12:42:09", method: "GET", endpoint: "/v1/transactions/txn_8af2c1", status: 404, latency: 41 },
-];
-
-function methodColor(m: string) {
-  return {
-    GET: "bg-sky-500/12 text-sky-300 border-sky-500/25",
-    POST: "bg-emerald-500/12 text-emerald-300 border-emerald-500/25",
-    PUT: "bg-amber-500/12 text-amber-300 border-amber-500/25",
-    DELETE: "bg-rose-500/12 text-rose-300 border-rose-500/25",
-  }[m] ?? "bg-muted text-muted-foreground border-border";
-}
-
-function statusColor(s: number) {
-  if (s >= 200 && s < 300) return "text-emerald-400";
-  if (s >= 400 && s < 500) return "text-amber-400";
-  return "text-rose-400";
-}
-
-export default function DevelopersPage() {
-  const [activeLang, setActiveLang] = React.useState<"curl" | "node" | "python" | "php" | "go">("node");
-  const [endpoint, setEndpoint] = React.useState("POST /payments");
-  const [body, setBody] = React.useState(PRESETS["POST /payments"]);
-  const [sending, setSending] = React.useState(false);
-  const [response, setResponse] = React.useState<unknown>(null);
-  const [respStatus, setRespStatus] = React.useState<number | null>(null);
-
-  React.useEffect(() => {
-    setBody(PRESETS[endpoint] ?? "{}");
-  }, [endpoint]);
-
-  const onCopy = (text: string, label = "Copied") => {
-    if (typeof navigator !== "undefined" && navigator.clipboard) {
-      navigator.clipboard.writeText(text).then(() => toast.success(label));
-    } else {
-      toast.success(label);
-    }
-  };
-
-  const sendRequest = () => {
-    setSending(true);
-    setResponse(null);
-    setRespStatus(null);
-    setTimeout(() => {
-      // Validate JSON; if invalid, return 400
-      try {
-        JSON.parse(body);
-      } catch {
-        setResponse({ error: { type: "invalid_request_error", message: "Request body is not valid JSON." } });
-        setRespStatus(400);
-        setSending(false);
-        return;
-      }
-      setResponse(mockResponse(endpoint));
-      setRespStatus(endpoint.startsWith("POST") && endpoint.includes("payments") ? 201 : 200);
-      setSending(false);
-    }, 600);
-  };
-
+// ---- Section wrapper ----
+function DocSection({ id, icon: Icon, title, children }: { id: string; icon: React.ComponentType<{ className?: string }>; title: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-6">
+    <motion.div id={id} initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="scroll-mt-20">
+      <div className="mb-3 flex items-center gap-2">
+        <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary/10 text-primary">
+          <Icon className="h-4 w-4" />
+        </div>
+        <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+      </div>
+      <div className="space-y-4">{children}</div>
+    </motion.div>
+  );
+}
+
+// ---- Param table ----
+function ParamTable({ rows }: { rows: { name: string; type: string; required: boolean; desc: string }[] }) {
+  return (
+    <div className="overflow-x-auto rounded-lg border border-border/60">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-border/60 bg-muted/30 text-left text-xs text-muted-foreground">
+            <th className="px-4 py-2 font-medium">Parâmetro</th>
+            <th className="px-4 py-2 font-medium">Tipo</th>
+            <th className="px-4 py-2 font-medium">Obrigatório</th>
+            <th className="px-4 py-2 font-medium">Descrição</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.name} className="border-b border-border/30">
+              <td className="px-4 py-2.5 font-mono text-xs text-primary">{r.name}</td>
+              <td className="px-4 py-2.5 text-xs text-muted-foreground">{r.type}</td>
+              <td className="px-4 py-2.5">
+                {r.required ? (
+                  <Badge variant="outline" className="border-rose-500/25 bg-rose-500/10 text-rose-400 text-[10px]">Obrigatório</Badge>
+                ) : (
+                  <Badge variant="outline" className="border-border/60 bg-muted/30 text-muted-foreground text-[10px]">Opcional</Badge>
+                )}
+              </td>
+              <td className="px-4 py-2.5 text-xs text-foreground">{r.desc}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ---- Sandbox magic numbers ----
+const SANDBOX_NUMBERS = [
+  { phone: "+351 911 111 112", scenario: "Sucesso", result: "Transação transita para succeeded após ~30s.", icon: CheckCircle2, color: "text-emerald-400" },
+  { phone: "+351 911 111 113", scenario: "Indisponibilidade", result: "Erro: Método não disponível no momento.", icon: Ban, color: "text-amber-400" },
+  { phone: "+351 911 111 114", scenario: "Recusa do Provedor", result: "Erro: Pagamento recusado pelo provedor.", icon: XCircle, color: "text-rose-400" },
+  { phone: "+351 911 111 115", scenario: "Expiração", result: "Erro: Tentativa de pagamento expirada por tempo limite.", icon: Clock, color: "text-amber-400" },
+  { phone: "+351 911 111 116", scenario: "Recusa do Cliente", result: "Erro: Pagamento rejeitado manualmente pelo cliente na app.", icon: XCircle, color: "text-rose-400" },
+];
+
+// ---- Code snippets ----
+const SNIPPET_S2S_MBWAY = `curl -X POST https://api.xpayments.digital/api/v1/payments/charge \\
+  -H "Content-Type: application/json" \\
+  -H "x-api-key: sk_test_xpayments_v3" \\
+  -d '{
+    "amount": 1400,
+    "currency": "EUR",
+    "payment_method_types": ["mb_way"],
+    "metadata": { "order_id": "XPAY-TEST-FULL-FLOW-06" },
+    "customer": { "name": "Sandbox Tester", "phone": "+351911111112" }
+  }'`;
+
+const SNIPPET_S2S_MULTIBANCO = `curl -X POST https://api.xpayments.digital/api/v1/payments/charge \\
+  -H "Content-Type: application/json" \\
+  -H "x-api-key: sk_test_xpayments_v3" \\
+  -d '{
+    "amount": 3450,
+    "currency": "EUR",
+    "payment_method_types": ["multibanco"],
+    "metadata": { "order_id": "XPAY-TEST-MB-16" },
+    "customer": { "email": "dev@xpayments.digital" }
+  }'`;
+
+const SNIPPET_CHECKOUT = `curl -X POST https://api.xpayments.digital/api/v1/checkout/session \\
+  -H "Content-Type: application/json" \\
+  -H "x-api-key: sk_test_xpayments_v3" \\
+  -d '{
+    "amount": 2510,
+    "currency": "EUR",
+    "metadata": { "order_id": "CHECKOUT-TEST-12" },
+    "customer": { "email": "test@xpayments.digital" }
+  }'`;
+
+const WEBHOOK_EXAMPLE = `{
+  "event": "payment_intent.succeeded",
+  "transaction_id": "e345b9d0-bbde-4696-9850-d74e8b49a7e1",
+  "reference": "XPAY-TEST-MBW-02",
+  "amount": 15.00,
+  "currency": "EUR",
+  "status": "succeeded",
+  "method": "mb_way",
+  "timestamp": "2026-07-15T09:05:54.835Z"
+}`;
+
+// ---- Main component ----
+export default function DevelopersPage() {
+  return (
+    <div className="flex flex-col gap-8">
       <PageHeader
-        title="Developers"
-        description="SDKs, API explorer, and live request logs."
-        actions={
-          <Button variant="outline" size="sm" className="gap-1.5" asChild>
-            <a href="#" className="flex items-center gap-1.5">
-              API reference <ExternalLink className="h-3.5 w-3.5" />
-            </a>
-          </Button>
-        }
+        title="Documentação API"
+        description="Documentação oficial da XPay API — integração S2S, Checkout Session, Webhooks e Sandbox."
       />
 
-      <motion.div {...fadeUp} className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* SDK & Code examples */}
-        <Card className="lg:col-span-2 border-border/60 bg-card/60 p-5 backdrop-blur-xl">
-          <div className="mb-4 flex items-center justify-between">
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="flex w-full flex-wrap gap-1">
+          <TabsTrigger value="overview" className="gap-1.5"><BookOpen className="h-3.5 w-3.5" /> Visão Geral</TabsTrigger>
+          <TabsTrigger value="auth" className="gap-1.5"><ShieldCheck className="h-3.5 w-3.5" /> Autenticação</TabsTrigger>
+          <TabsTrigger value="s2s" className="gap-1.5"><Code2 className="h-3.5 w-3.5" /> Pagamentos S2S</TabsTrigger>
+          <TabsTrigger value="checkout" className="gap-1.5"><ExternalLink className="h-3.5 w-3.5" /> Checkout</TabsTrigger>
+          <TabsTrigger value="webhooks" className="gap-1.5"><Zap className="h-3.5 w-3.5" /> Webhooks</TabsTrigger>
+          <TabsTrigger value="sandbox" className="gap-1.5"><FlaskConical className="h-3.5 w-3.5" /> Sandbox</TabsTrigger>
+        </TabsList>
+
+        {/* ===== Overview ===== */}
+        <TabsContent value="overview" className="mt-6 space-y-6">
+          <DocSection id="overview" icon={BookOpen} title="Visão Geral">
+            <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                Bem-vindo à documentação oficial da <strong className="text-foreground">XPay API</strong>. A nossa plataforma
+                foi desenvolvida para ajudar o seu negócio a processar pagamentos de forma segura, escalável e intuitiva.
+              </p>
+              <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                A XPay oferece duas modalidades principais de integração:
+              </p>
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="rounded-lg border border-border/60 bg-background/40 p-4">
+                  <div className="mb-1.5 flex items-center gap-2">
+                    <Code2 className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-semibold">API Merchant S2S</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Server-to-Server: o seu backend comunica diretamente com a XPay API. Ideal para checkout 100% customizado.
+                  </p>
+                </div>
+                <div className="rounded-lg border border-border/60 bg-background/40 p-4">
+                  <div className="mb-1.5 flex items-center gap-2">
+                    <ExternalLink className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-semibold">Checkout Session</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Redirecionamento seguro para uma interface de pagamento alojada e gerida pela XPay.
+                  </p>
+                </div>
+              </div>
+            </Card>
+            <Card className="border-border/60 bg-card/60 p-4 backdrop-blur-xl">
+              <div className="flex items-center gap-3">
+                <Terminal className="h-4 w-4 text-primary" />
+                <div>
+                  <p className="text-xs font-medium text-foreground">Base URL</p>
+                  <code className="text-sm text-primary">https://api.xpayments.digital/api/v1</code>
+                </div>
+              </div>
+            </Card>
+          </DocSection>
+        </TabsContent>
+
+        {/* ===== Auth ===== */}
+        <TabsContent value="auth" className="mt-6 space-y-6">
+          <DocSection id="auth" icon={ShieldCheck} title="Autenticação">
+            <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+              <p className="text-sm text-muted-foreground">
+                Todas as requisições à XPay API devem ser autenticadas utilizando a sua chave de API
+                (<code className="text-primary">x-api-key</code>) no cabeçalho (header).
+              </p>
+              <div className="mt-4">
+                <CodeBlock code={`x-api-key: A_SUA_CHAVE_AQUI`} lang="header" />
+              </div>
+            </Card>
+
+            {/* Warning */}
+            <div className="flex items-start gap-3 rounded-lg border border-rose-500/25 bg-rose-500/8 px-4 py-3">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-400" />
+              <div>
+                <p className="text-sm font-medium text-rose-300">Aviso de Segurança</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Nunca exponha a sua chave secreta no lado do cliente (frontend, aplicações mobile ou código
+                  JavaScript visível). Mantenha-a sempre segura no seu ambiente de servidor.
+                </p>
+              </div>
+            </div>
+
+            {/* Info card */}
+            <div className="flex items-start gap-3 rounded-lg border border-sky-500/25 bg-sky-500/8 px-4 py-3">
+              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-sky-400" />
+              <div>
+                <p className="text-sm font-medium text-sky-300">Chave de Testes Genérica</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Para testar a API no ambiente Sandbox, utilize sempre a nossa chave genérica:{" "}
+                  <code className="rounded bg-black/40 px-1.5 py-0.5 font-mono text-xs text-amber-300">sk_test_xpayments_v3</code>
+                </p>
+              </div>
+            </div>
+          </DocSection>
+        </TabsContent>
+
+        {/* ===== S2S ===== */}
+        <TabsContent value="s2s" className="mt-6 space-y-6">
+          <DocSection id="s2s" icon={Code2} title="Pagamentos S2S (Charge)">
+            <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+              <p className="text-sm text-muted-foreground">
+                Utilize este endpoint para iniciar transações diretamente do seu servidor.
+              </p>
+              <div className="mt-3 flex items-center gap-2">
+                <Badge variant="outline" className="border-emerald-500/25 bg-emerald-500/10 text-emerald-400">POST</Badge>
+                <code className="text-sm text-primary">/payments/charge</code>
+              </div>
+            </Card>
+
+            <ParamTable rows={[
+              { name: "amount", type: "Integer", required: true, desc: "Valor total em cêntimos (ex: 1500 = 15.00€)" },
+              { name: "currency", type: "String", required: true, desc: "Moeda da transação (ex: \"EUR\")" },
+              { name: "payment_method_types", type: "Array", required: true, desc: "Métodos aceites: [\"mb_way\"] ou [\"multibanco\"]" },
+              { name: "metadata", type: "Object", required: false, desc: "Dados customizados para referência (ex: {\"order_id\": \"123\"})" },
+              { name: "customer", type: "Object", required: true, desc: "Objeto com name, phone (obrigatório para MB WAY) ou email" },
+            ]} />
+
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold">Exemplos</h3>
+              <Tabs defaultValue="mbway">
+                <TabsList>
+                  <TabsTrigger value="mbway" className="gap-1.5 text-xs"><Phone className="h-3 w-3" /> MB WAY</TabsTrigger>
+                  <TabsTrigger value="multibanco" className="gap-1.5 text-xs"><Code2 className="h-3 w-3" /> Multibanco</TabsTrigger>
+                </TabsList>
+                <TabsContent value="mbway" className="mt-3">
+                  <CodeBlock code={SNIPPET_S2S_MBWAY} lang="bash" />
+                </TabsContent>
+                <TabsContent value="multibanco" className="mt-3">
+                  <CodeBlock code={SNIPPET_S2S_MULTIBANCO} lang="bash" />
+                </TabsContent>
+              </Tabs>
+            </div>
+          </DocSection>
+        </TabsContent>
+
+        {/* ===== Checkout ===== */}
+        <TabsContent value="checkout" className="mt-6 space-y-6">
+          <DocSection id="checkout" icon={ExternalLink} title="Checkout Session">
+            <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+              <p className="text-sm text-muted-foreground">
+                Ideal se prefere que a XPay faça a gestão e a recolha sensível dos dados de pagamento
+                através de uma página segura.
+              </p>
+              <div className="mt-3 flex items-center gap-2">
+                <Badge variant="outline" className="border-emerald-500/25 bg-emerald-500/10 text-emerald-400">POST</Badge>
+                <code className="text-sm text-primary">/checkout/session</code>
+              </div>
+            </Card>
+            <CodeBlock code={SNIPPET_CHECKOUT} lang="bash" />
+          </DocSection>
+        </TabsContent>
+
+        {/* ===== Webhooks ===== */}
+        <TabsContent value="webhooks" className="mt-6 space-y-6">
+          <DocSection id="webhooks" icon={Zap} title="Webhooks (Notificações)">
+            <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+              <p className="text-sm text-muted-foreground">
+                Como os pagamentos são assíncronos, a XPay envia notificações via POST para o URL
+                configurado pelo Merchant.
+              </p>
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center gap-2 rounded-lg border border-emerald-500/25 bg-emerald-500/8 px-3 py-2">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                  <code className="text-xs font-medium text-foreground">payment_intent.succeeded</code>
+                  <span className="text-xs text-muted-foreground">— Pagamento processado com sucesso.</span>
+                </div>
+                <div className="flex items-center gap-2 rounded-lg border border-rose-500/25 bg-rose-500/8 px-3 py-2">
+                  <XCircle className="h-4 w-4 text-rose-400" />
+                  <code className="text-xs font-medium text-foreground">payment_intent.payment_failed</code>
+                  <span className="text-xs text-muted-foreground">— Pagamento falhou, expirou ou foi recusado.</span>
+                </div>
+              </div>
+            </Card>
             <div>
-              <h3 className="flex items-center gap-2 text-sm font-semibold">
-                <Code2 className="h-4 w-4 text-primary" />
-                SDK & code examples
+              <p className="mb-2 text-xs font-medium text-muted-foreground">Exemplo de payload:</p>
+              <CodeBlock code={WEBHOOK_EXAMPLE} lang="json" />
+            </div>
+          </DocSection>
+        </TabsContent>
+
+        {/* ===== Sandbox ===== */}
+        <TabsContent value="sandbox" className="mt-6 space-y-6">
+          <DocSection id="sandbox" icon={FlaskConical} title="Ambiente de Testes (Sandbox)">
+            {/* Highlighted sandbox card */}
+            <div className="relative overflow-hidden rounded-xl border-2 border-primary/30 bg-gradient-to-br from-primary/5 to-transparent p-6">
+              <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/15 blur-3xl" />
+              <div className="relative z-10">
+                <div className="mb-3 flex items-center gap-2">
+                  <FlaskConical className="h-5 w-5 text-primary" />
+                  <h3 className="text-base font-semibold">Chave de Testes Genérica</h3>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Para facilitar a sua integração, utilize a chave genérica{" "}
+                  <code className="rounded bg-black/40 px-2 py-0.5 font-mono text-sm text-amber-300">sk_test_xpayments_v3</code>
+                  {" "}e os números "mágicos" de MB WAY para simular todos os cenários possíveis sem custos.
+                </p>
+              </div>
+            </div>
+
+            {/* Magic numbers table */}
+            <div>
+              <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+                <Phone className="h-4 w-4 text-primary" />
+                Números Mágicos MB WAY
               </h3>
-              <p className="text-xs text-muted-foreground">Create a 42 EUR Pix payment in your language.</p>
+              <div className="overflow-x-auto rounded-lg border border-border/60">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border/60 bg-muted/30 text-left text-xs text-muted-foreground">
+                      <th className="px-4 py-2 font-medium">Número de Telefone</th>
+                      <th className="px-4 py-2 font-medium">Cenário Simulado</th>
+                      <th className="px-4 py-2 font-medium">Resultado Esperado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {SANDBOX_NUMBERS.map((n) => (
+                      <tr key={n.phone} className="border-b border-border/30 transition hover:bg-muted/20">
+                        <td className="px-4 py-3">
+                          <span className="flex items-center gap-2">
+                            <n.icon className={cn("h-3.5 w-3.5", n.color)} />
+                            <code className="font-mono text-xs text-foreground">{n.phone}</code>
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge variant="outline" className="text-[10px]">{n.scenario}</Badge>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-muted-foreground">{n.result}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              onClick={() => onCopy(sdkSnippets[activeLang], "Snippet copied")}
-            >
-              <Copy className="h-3.5 w-3.5" /> Copy
-            </Button>
-          </div>
-          <Tabs value={activeLang} onValueChange={(v) => setActiveLang(v as typeof activeLang)}>
-            <TabsList className="mb-3 flex-wrap">
-              {SNIPPET_LANGS.map((l) => (
-                <TabsTrigger key={l.id} value={l.id} className="gap-1.5">
-                  {l.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-            {SNIPPET_LANGS.map((l) => (
-              <TabsContent key={l.id} value={l.id}>
-                <TerminalCard code={sdkSnippets[l.id]} />
-              </TabsContent>
-            ))}
-          </Tabs>
-        </Card>
+          </DocSection>
+        </TabsContent>
+      </Tabs>
 
-        {/* API Explorer */}
-        <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
-          <div className="mb-4">
-            <h3 className="flex items-center gap-2 text-sm font-semibold">
-              <Play className="h-4 w-4 text-primary" />
-              API Explorer
-            </h3>
-            <p className="text-xs text-muted-foreground">Send a sandbox request and inspect the response.</p>
-          </div>
-
-          <div className="flex flex-col gap-3">
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Endpoint</label>
-              <Select value={endpoint} onValueChange={setEndpoint}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ENDPOINTS.map((e) => (
-                    <SelectItem key={e.id} value={e.id}>
-                      <span className={cn("mr-1 inline-block rounded px-1.5 py-0.5 text-[10px] font-semibold", methodColor(e.method))}>
-                        {e.method}
-                      </span>
-                      <span className="font-mono">{e.path}</span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+      {/* Support footer */}
+      <motion.div {...fadeUp} className="mt-4">
+        <Card className="border-border/60 bg-card/60 p-6 backdrop-blur-xl">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <h3 className="text-sm font-semibold">Suporte Técnico</h3>
+            <p className="max-w-md text-xs text-muted-foreground">
+              Precisa de ajuda com a sua integração? A nossa equipa técnica está pronta para o apoiar.
+              Contacte-nos através do nosso portal de suporte oficial.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => window.open("/support", "_self")}>
+                <ExternalLink className="h-3.5 w-3.5" /> Portal de Suporte
+              </Button>
+              <Button variant="outline" size="sm" className="gap-1.5" onClick={() => window.open("https://t.me/XPayments_Manager", "_blank")}>
+                <ChevronRight className="h-3.5 w-3.5" /> Telegram Manager
+              </Button>
             </div>
-
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Request body</label>
-              <Textarea
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                spellCheck={false}
-                className="scrollbar-thin h-32 resize-none bg-[#0b0e14]/60 font-mono text-xs text-zinc-200"
-              />
-            </div>
-
-            <Button onClick={sendRequest} disabled={sending} className="gap-1.5">
-              {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
-              {sending ? "Sending…" : "Send request"}
-            </Button>
-
-            {response && (
-              <motion.div
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex flex-col gap-2"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-muted-foreground">Response</span>
-                  <Badge
-                    variant="outline"
-                    className={cn(
-                      "gap-1 font-mono",
-                      respStatus && respStatus < 300
-                        ? "border-emerald-500/25 bg-emerald-500/12 text-emerald-400"
-                        : "border-rose-500/25 bg-rose-500/12 text-rose-400",
-                    )}
-                  >
-                    {respStatus} {respStatus && respStatus < 300 ? "OK" : "Error"}
-                  </Badge>
-                </div>
-                <JsonViewer data={response} className="max-h-72 text-[11px]" />
-              </motion.div>
-            )}
           </div>
         </Card>
       </motion.div>
-
-      {/* Documentation links */}
-      <motion.div {...fadeUp}>
-        <div className="mb-3 flex items-center gap-2">
-          <BookOpen className="h-4 w-4 text-primary" />
-          <h3 className="text-sm font-semibold">Documentation</h3>
-        </div>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {DOC_CARDS.map((d) => (
-            <a
-              key={d.title}
-              href={d.href}
-              className="group flex items-start gap-3 rounded-xl border border-border/60 bg-card/60 p-4 backdrop-blur-xl transition hover:border-primary/40 hover:bg-card/80"
-            >
-              <div className="rounded-lg bg-primary/10 p-2 text-primary">
-                <d.icon className="h-4 w-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium">{d.title}</p>
-                  <ChevronRight className="h-3.5 w-3.5 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" />
-                </div>
-                <p className="mt-0.5 text-xs text-muted-foreground">{d.desc}</p>
-              </div>
-            </a>
-          ))}
-        </div>
-      </motion.div>
-
-      {/* Recent API logs */}
-      <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h3 className="flex items-center gap-2 text-sm font-semibold">
-              <FileCode2 className="h-4 w-4 text-primary" />
-              Recent API requests
-            </h3>
-            <p className="text-xs text-muted-foreground">Live log of the last 8 calls against your keys.</p>
-          </div>
-          <Button variant="ghost" size="sm" className="text-xs">Open logs</Button>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border/60 text-left text-xs text-muted-foreground">
-                <th className="pb-2 font-medium">Time</th>
-                <th className="pb-2 font-medium">Method</th>
-                <th className="pb-2 font-medium">Endpoint</th>
-                <th className="pb-2 font-medium">Status</th>
-                <th className="pb-2 text-right font-medium">Latency</th>
-              </tr>
-            </thead>
-            <tbody>
-              {API_LOGS.map((row, i) => (
-                <tr key={i} className="border-b border-border/30 transition hover:bg-muted/30">
-                  <td className="py-2.5 font-mono text-xs text-muted-foreground">
-                    <span className="inline-flex items-center gap-1.5">
-                      <Clock className="h-3 w-3" />{row.time}
-                    </span>
-                  </td>
-                  <td className="py-2.5">
-                    <span className={cn("rounded border px-1.5 py-0.5 text-[10px] font-semibold", methodColor(row.method))}>
-                      {row.method}
-                    </span>
-                  </td>
-                  <td className="py-2.5 font-mono text-xs">{row.endpoint}</td>
-                  <td className={cn("py-2.5 font-mono text-xs font-semibold", statusColor(row.status))}>{row.status}</td>
-                  <td className="py-2.5 text-right font-mono text-xs text-muted-foreground">
-                    {row.latency} ms
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
     </div>
   );
 }

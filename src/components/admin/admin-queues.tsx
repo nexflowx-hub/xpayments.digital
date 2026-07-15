@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useAdminHealth } from "@/hooks/queries";
 import { PageHeader, StatCard, fadeUp } from "@/components/shared";
+import { useT } from "@/lib/i18n";
 import { Sparkline } from "@/components/shared/badges";
 import { BarTrend } from "@/components/shared/charts";
 import { Card } from "@/components/ui/card";
@@ -29,6 +30,7 @@ const queueColor: Record<string, string> = {
 };
 
 export default function AdminQueuesPage() {
+  const t = useT();
   const { data: health, isLoading } = useAdminHealth();
   const queues = health?.queues ?? [];
 
@@ -49,7 +51,7 @@ export default function AdminQueuesPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Queues"
+        title={t("nav.adminQueues")}
         description="Message broker depth, consumer throughput and backlog monitoring."
         actions={
           <>

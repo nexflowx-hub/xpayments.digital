@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useRiskProfile } from "@/hooks/queries";
 import { PageHeader, StatCard, ErrorState } from "@/components/shared";
+import { useT } from "@/lib/i18n";
 import { RiskGauge } from "@/components/shared/badges";
 import { AreaTrend, LineTrend } from "@/components/shared/charts";
 import { Card } from "@/components/ui/card";
@@ -31,6 +32,7 @@ const severityConfig: Record<RiskAlert["severity"], { tone: string; dot: string;
 };
 
 export default function RiskPage() {
+  const t = useT();
   const { data: risk, isLoading, isError: rError, refetch: rRefetch } = useRiskProfile();
 
   const trust = risk ? trustConfig[risk.trustStatus] : trustConfig.standard;
@@ -43,14 +45,14 @@ export default function RiskPage() {
 
   if (rError) return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Risk Center" description="Monitor your risk profile, alerts and recommendations." />
+      <PageHeader title={t("nav.risk")} description="Monitore o seu perfil de risco, alertas e recomendações." />
       <ErrorState message="Failed to load risk profile. The backend may be unreachable." onRetry={() => rRefetch()} />
     </div>
   );
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Risk Center"
+        title={t("nav.risk")}
         description="Real-time fraud monitoring, alerts and trust posture for your merchant account."
         actions={
           <Badge variant="outline" className="gap-1.5 border-emerald-500/25 bg-emerald-500/12 text-emerald-400">

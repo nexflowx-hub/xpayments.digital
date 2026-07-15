@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { usePaymentLinks } from "@/hooks/queries";
 import { PageHeader, StatCard, EmptyState } from "@/components/shared";
+import { useT } from "@/lib/i18n";
 import { StatusBadge, CurrencyBadge } from "@/components/shared/badges";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -52,6 +53,7 @@ import { toast } from "sonner";
 import type { CurrencyCode } from "@/types";
 
 export default function PaymentLinksPage() {
+  const t = useT();
   const { data, isLoading } = usePaymentLinks();
   const links = data ?? [];
 
@@ -102,7 +104,7 @@ export default function PaymentLinksPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Payment Links"
+        title={t("nav.paymentLinks")}
         description="No-code checkout links you can share anywhere."
         actions={
           <Dialog open={open} onOpenChange={setOpen}>

@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useAdminKyc } from "@/hooks/queries";
 import { PageHeader, StatCard, fadeUp } from "@/components/shared";
+import { useT } from "@/lib/i18n";
 import { DonutChart } from "@/components/shared/charts";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -67,6 +68,7 @@ const actionColor: Record<string, string> = {
 };
 
 export default function AdminCompliancePage() {
+  const t = useT();
   const { data: kycResp, isLoading } = useAdminKyc();
   const kyc = kycResp ?? [];
 
@@ -87,7 +89,7 @@ export default function AdminCompliancePage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Compliance"
+        title={t("nav.adminCompliance")}
         description="KYC, AML/sanctions screening, audit trail and certification posture."
         actions={
           <>

@@ -19,8 +19,10 @@ import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatNumber, formatPercent, timeAgo, cn } from "@/lib/utils";
 import { CURRENCIES } from "@/config";
 import type { AnalyticsOverview, RiskProfile, Wallet, Transaction } from "@/types";
+import { useT } from "@/lib/i18n";
 
 export default function MerchantOverview() {
+  const t = useT();
   const { data: analytics, isLoading: aLoading, isError: aError, refetch: aRefetch } = useAnalyticsOverview();
   const { data: risk } = useRiskProfile();
   const { data: wallets } = useWallets();
@@ -35,7 +37,7 @@ export default function MerchantOverview() {
 
   if (aError) return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Dashboard" description="Real-time view of your payments, revenue and risk." />
+      <PageHeader title={t("nav.dashboard")} description="Visão geral em tempo real dos seus pagamentos, receita e risco." />
       <ErrorState message="Failed to load analytics data. The backend may be unreachable." onRetry={() => aRefetch()} />
     </div>
   );
@@ -53,8 +55,8 @@ export default function MerchantOverview() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Dashboard"
-        description="Real-time view of your payments, revenue and risk."
+        title={t("nav.dashboard")}
+        description="Visão geral em tempo real dos seus pagamentos, receita e risco."
         actions={
           <>
             <Button variant="outline" size="sm">Export</Button>

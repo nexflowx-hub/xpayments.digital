@@ -11,6 +11,7 @@ import {
   useWallets, useWalletMovements, useWalletDeposit, useWalletPayout, useWalletSwap,
 } from "@/hooks/queries";
 import { StatCard, PageHeader, fadeUp, ErrorState } from "@/components/shared";
+import { useT } from "@/lib/i18n";
 import { StatusBadge, Sparkline } from "@/components/shared/badges";
 import { DonutChart } from "@/components/shared/charts";
 import { Card } from "@/components/ui/card";
@@ -54,6 +55,7 @@ const movementTypeLabel: Record<WalletMovement["type"], string> = {
 };
 
 export default function WalletsPage() {
+  const t = useT();
   const { data: walletsRes, isLoading, isError: wError, refetch: wRefetch } = useWallets();
   const { data: movementsRes } = useWalletMovements();
   const depositM = useWalletDeposit();
@@ -154,15 +156,15 @@ export default function WalletsPage() {
 
   if (wError) return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Wallets" description="Multi-currency treasury across fiat, crypto and card balances." />
+      <PageHeader title={t("nav.wallets")} description="Tesouraria multi-moeda em fiat, cripto e cartões." />
       <ErrorState message="Failed to load wallets. The backend may be unreachable." onRetry={() => wRefetch()} />
     </div>
   );
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Wallets"
-        description="Multi-currency treasury across fiat, crypto and card balances."
+        title={t("nav.wallets")}
+        description="Tesouraria multi-moeda em fiat, cripto e cartões."
         actions={
           <>
             <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setDepositOpen(true)}>

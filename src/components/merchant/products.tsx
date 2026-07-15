@@ -18,6 +18,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useProducts } from "@/hooks/queries";
 import { xpApi } from "@/lib/api/xpApi";
 import { PageHeader, StatCard, EmptyState } from "@/components/shared";
+import { useT } from "@/lib/i18n";
 import { StatusBadge, CurrencyBadge } from "@/components/shared/badges";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -67,6 +68,7 @@ import { toast } from "sonner";
 import type { CurrencyCode, Product } from "@/types";
 
 export default function ProductsPage() {
+  const t = useT();
   const { data, isLoading } = useProducts();
   const qc = useQueryClient();
   const products = data ?? [];
@@ -142,7 +144,7 @@ export default function ProductsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Products"
+        title={t("nav.products")}
         description="Catalog of products available across your stores."
         actions={
           <Dialog open={open} onOpenChange={setOpen}>

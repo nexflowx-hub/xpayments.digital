@@ -26,6 +26,7 @@ import {
   formatCurrency, formatNumber, timeAgo, initials, cn,
 } from "@/lib/utils";
 import type { Customer } from "@/types";
+import { useT } from "@/lib/i18n";
 
 const segmentConfig: Record<Customer["segment"], { label: string; className: string }> = {
   vip:     { label: "VIP",     className: "border-emerald-500/25 bg-emerald-500/12 text-emerald-400" },
@@ -52,6 +53,7 @@ function ltvSpark(seed: number): number[] {
 }
 
 export default function CustomersPage() {
+  const t = useT();
   const { data: customersRes, isLoading } = useCustomers();
   const { data: txPage } = useTransactions({ page: 1, pageSize: 200, sortBy: "createdAt", sortDir: "desc" });
 
@@ -99,7 +101,7 @@ export default function CustomersPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Customers"
+        title={t("nav.customers")}
         description="Lifetime value, segment and behaviour across your customer base."
         actions={<Button variant="outline" size="sm" className="gap-1.5"><Search className="h-3.5 w-3.5" /> Export</Button>}
       />

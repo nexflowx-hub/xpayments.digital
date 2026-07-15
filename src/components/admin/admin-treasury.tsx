@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useAdminTreasury } from "@/hooks/queries";
 import { StatCard, PageHeader, SectionCard, EmptyState } from "@/components/shared";
+import { useT } from "@/lib/i18n";
 import { CurrencyBadge } from "@/components/shared/badges";
 import { AreaTrend, BarTrend, CHART_COLORS } from "@/components/shared/charts";
 import { Card } from "@/components/ui/card";
@@ -30,15 +31,16 @@ const pendingPayoutsFeed = [
 ];
 
 export default function AdminTreasuryPage() {
-  const { data: t, isLoading } = useAdminTreasury();
+  const t = useT();
+  const { data: treasuryData, isLoading } = useAdminTreasury();
 
-  const totalBalances = (t?.balances ?? []).reduce((s, b) => s + b.amount, 0) || 1;
-  const reservePct = t ? (t.reserve / t.totalLiquidity) * 100 : 0;
+  const totalBalances = (treasuryData?.balances ?? []).reduce((s, b) => s + b.amount, 0) || 1;
+  const reservePct = t ? (treasuryData.reserve / treasuryData.totalLiquidity) * 100 : 0;
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Treasury"
+        title={t("nav.adminTreasury")}
         description="Platform-wide liquidity, reserves and cash flow."
         breadcrumbs={[{ label: "Admin" }, { label: "Treasury" }]}
         actions={
@@ -62,7 +64,7 @@ export default function AdminTreasuryPage() {
           <>
             <StatCard
               label="Total liquidity"
-              value={t?.totalLiquidity ?? 0}
+              value={treasuryData?.totalLiquidity ?? 0}
               change={t?.liquidityChange}
               icon={Landmark}
               accent="blue"
@@ -70,21 +72,21 @@ export default function AdminTreasuryPage() {
             />
             <StatCard
               label="Reserve"
-              value={t?.reserve ?? 0}
+              value={treasuryData?.reserve ?? 0}
               icon={PiggyBank}
               accent="violet"
               format={(n) => formatCurrency(n, "EUR", { compact: true })}
             />
             <StatCard
               label="Pending payouts"
-              value={t?.pendingPayouts ?? 0}
+              value={treasuryData?.pendingPayouts ?? 0}
               icon={Banknote}
               accent="amber"
               format={(n) => formatCurrency(n, "EUR", { compact: true })}
             />
             <StatCard
               label="Net flow (30d)"
-              value={t?.netFlow ?? 0}
+              value={treasuryData?.netFlow ?? 0}
               icon={TrendingUp}
               accent="green"
               format={(n) => formatCurrency(n, "EUR", { compact: true })}
@@ -112,11 +114,11 @@ export default function AdminTreasuryPage() {
               </span>
             </div>
           </div>
-          {isLoading || !t ? (
+          {isLoading || !treasuryData ? (
             <Skeleton className="h-64 w-full" />
           ) : (
             <BarTrend
-              data={t?.cashFlowSeries ?? []}
+              data={treasuryData?.cashFlowSeries ?? []}
               dataKey={[
                 { key: "inflow", color: CHART_COLORS[1], name: "Inflow" },
                 { key: "outflow", color: CHART_COLORS[4], name: "Outflow" },
@@ -139,11 +141,11 @@ export default function AdminTreasuryPage() {
               <ArrowUpRight className="h-3 w-3" /> 6.4%
             </Badge>
           </div>
-          {isLoading || !t ? (
+          {isLoading || !treasuryData ? (
             <Skeleton className="h-64 w-full" />
           ) : (
             <AreaTrend
-              data={t?.settlementSeries ?? []}
+              data={treasuryData?.settlementSeries ?? []}
               color={CHART_COLORS[2]}
               formatter={(v) => formatCurrency(v, "EUR", { compact: true })}
               height={260}
@@ -162,7 +164,7 @@ export default function AdminTreasuryPage() {
             </div>
             <Wallet className="h-4 w-4 text-muted-foreground" />
           </div>
-          {isLoading || !t ? (
+          {isLoading || !treasuryData ? (
             <div className="flex flex-col gap-2">
               {Array.from({ length: 5 }).map((_, i) => (
                 <Skeleton key={i} className="h-10" />
@@ -179,7 +181,7 @@ export default function AdminTreasuryPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(t?.balances ?? []).map((b) => {
+                {(treasuryData?.balances ?? []).map((b) => {
                   const share = (b.amount / totalBalances) * 100;
                   const c = CURRENCIES.find((x) => x.code === b.currency);
                   return (
@@ -234,14 +236,14 @@ export default function AdminTreasuryPage() {
             <PiggyBank className="h-4 w-4 text-violet-400" />
             <h3 className="text-sm font-semibold">Reserve utilization</h3>
           </div>
-          {isLoading || !t ? (
+          {isLoading || !treasuryData ? (
             <Skeleton className="h-48 w-full" />
           ) : (
             <div className="flex flex-col gap-4">
               <div>
                 <p className="text-xs text-muted-foreground">Reserved</p>
                 <p className="mt-1 text-2xl font-semibold tabular-nums">
-                  {formatCurrency(t.reserve, "EUR", { compact: true })}
+                  {formatCurrency(treasuryData.reserve, "EUR", { compact: true })}
                 </p>
                 <p className="text-[10px] text-muted-foreground">
                   {formatPercent(reservePct)} of total liquidity
@@ -275,13 +277,13 @@ export default function AdminTreasuryPage() {
                 <div>
                   <p className="text-[10px] text-muted-foreground">Available</p>
                   <p className="font-mono text-sm font-semibold">
-                    {formatCurrency(t.totalLiquidity - t.reserve, "EUR", { compact: true })}
+                    {formatCurrency(treasuryData.totalLiquidity - treasuryData.reserve, "EUR", { compact: true })}
                   </p>
                 </div>
                 <div>
                   <p className="text-[10px] text-muted-foreground">Deployed</p>
                   <p className="font-mono text-sm font-semibold text-violet-400">
-                    {formatCurrency(t.reserve, "EUR", { compact: true })}
+                    {formatCurrency(treasuryData.reserve, "EUR", { compact: true })}
                   </p>
                 </div>
               </div>

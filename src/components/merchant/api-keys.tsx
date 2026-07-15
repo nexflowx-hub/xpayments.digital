@@ -9,6 +9,7 @@ import {
 import { useApiKeys, useStores } from "@/hooks/queries";
 import { xpApi } from "@/lib/api/xpApi";
 import { PageHeader, EmptyState, fadeUp } from "@/components/shared";
+import { useT } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +40,7 @@ const SCOPE_LABELS: Record<string, string> = {
 type EnvFilter = "all" | "live" | "test";
 
 export default function ApiKeysPage() {
+  const t = useT();
   const { data, isLoading } = useApiKeys();
   const { data: stores } = useStores();
   const qc = useQueryClient();
@@ -115,7 +117,7 @@ export default function ApiKeysPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="API Keys"
+        title={t("nav.apiKeys")}
         description="Manage credentials used to authenticate API requests."
         actions={
           <Button size="sm" className="gap-1.5" onClick={() => setCreateOpen(true)} disabled={storeList.length === 0}>

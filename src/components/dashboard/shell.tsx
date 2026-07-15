@@ -27,6 +27,7 @@ import {
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { LanguageSwitcher } from "@/components/shared/language-switcher";
 import { XSymbol } from "@/components/shared/x-symbol";
+import { XpIAChat } from "@/components/shared/xpia-chat";
 import { toast } from "sonner";
 import { APP_NAME } from "@/config";
 
@@ -253,6 +254,9 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" /> {t("common.live")}
           </span>
         </Button>
+        <Button variant="ghost" size="icon" onClick={() => setXpiaOpen(true)} aria-label="XpIA Assistant" title="Chat with XpIA">
+          <Sparkles className="h-[18px] w-[18px] text-primary" />
+        </Button>
         <LanguageSwitcher />
         <Button variant="ghost" size="icon" onClick={() => setNotificationsOpen(true)} aria-label={t("shell.notifications")}>
           <Bell className="h-[18px] w-[18px]" />
@@ -415,6 +419,7 @@ export function DashboardShell({
   const { activeMerchantView, activeAdminView, setMerchantView, setAdminView } = useUi();
   const active = mode === "merchant" ? activeMerchantView : activeAdminView;
   const select = mode === "merchant" ? setMerchantView : setAdminView;
+  const [xpiaOpen, setXpiaOpen] = React.useState(false);
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -461,6 +466,7 @@ export function DashboardShell({
 
       <CommandPalette items={sections} active={active} onSelect={select} />
       <NotificationsPanel />
+      <XpIAChat open={xpiaOpen} onClose={() => setXpiaOpen(false)} />
     </div>
   );
 }

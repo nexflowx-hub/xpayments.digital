@@ -200,6 +200,8 @@ export const webhooks = {
   list: () => requestData<Webhook[]>({ url: "webhooks", method: "GET" }),
   create: (data: { url: string; events: string[]; storeId: string }) =>
     requestData<Webhook>({ url: "webhooks", method: "POST", data }),
+  update: (id: string, url: string, events: string[]) =>
+    requestData<Webhook>({ url: `webhooks/${id}`, method: "PUT", data: { url, events } }),
   remove: (id: string) =>
     requestData<{ ok: boolean }>({ url: `webhooks/${id}`, method: "DELETE" }),
 };

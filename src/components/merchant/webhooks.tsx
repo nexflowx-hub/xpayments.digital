@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Webhook, Plus, Trash2, Loader2, Eye, EyeOff, Copy, Bell, CheckCircle2,
-  XCircle, Store,
+  XCircle, Store, Pencil,
 } from "lucide-react";
 import { useWebhooks, useStores } from "@/hooks/queries";
 import { xpApi } from "@/lib/api/xpApi";
@@ -52,6 +52,10 @@ export default function WebhooksPage() {
   const [url, setUrl] = React.useState("");
   const [storeId, setStoreId] = React.useState("");
   const [events, setEvents] = React.useState<string[]>(["payment.succeeded", "payment.failed"]);
+  const [editOpen, setEditOpen] = React.useState(false);
+  const [editId, setEditId] = React.useState("");
+  const [editUrl, setEditUrl] = React.useState("");
+  const [editEvents, setEditEvents] = React.useState<string[]>([]);
 
   const storeList = stores ?? [];
 
@@ -76,6 +80,27 @@ export default function WebhooksPage() {
     },
     onError: () => toast.error("Could not remove webhook"),
   });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, url, events }: { id: string; url: string; events: string[] }) =>
+      xpApi.webhooks.update(id, url, events),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["webhooks"] });
+      setEditOpen(false);
+      toast.success("Webhook endpoint updated");
+    },
+    onError: () => toast.error("Could not update webhook"),
+  });
+
+  const openEdit = (w: WebhookType) => {
+    setEditId(w.id);
+    setEditUrl(w.url);
+    setEditEvents(w.events ?? []);
+    setEditOpen(true);
+  };
+
+  const toggleEditEvent = (e: string) =>
+    setEditEvents((prev) => (prev.includes(e) ? prev.filter((x) => x !== e) : [...prev, e]));
 
   const webhooks = data ?? [];
 
@@ -141,6 +166,7 @@ export default function WebhooksPage() {
                 onRemove={() => removeMutation.mutate(w.id)}
                 removing={removeMutation.isPending}
                 onCopySecret={(s) => copyToClipboard(s, "Signing secret copied")}
+                onEdit={() => openEdit(w)}
               />
             </motion.div>
           ))}
@@ -253,6 +279,63 @@ export default function WebhooksPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Edit dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit webhook endpoint</DialogTitle>
+            <DialogDescription>Update the URL and events for this webhook.</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4 py-2">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="edit-url">Endpoint URL</Label>
+              <Input
+                id="edit-url"
+                placeholder="https://api.merchant.io/xp/events"
+                value={editUrl}
+                onChange={(e) => setEditUrl(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label>Events</Label>
+              <div className="flex flex-col gap-1.5">
+                {WEBHOOK_EVENTS.map((e) => (
+                  <label
+                    key={e.id}
+                    className={cn(
+                      "flex cursor-pointer items-start gap-2.5 rounded-lg border px-3 py-2 transition",
+                      editEvents.includes(e.id)
+                        ? "border-primary/40 bg-primary/10"
+                        : "border-border/60 bg-muted/30 hover:bg-muted/40",
+                    )}
+                  >
+                    <Checkbox
+                      checked={editEvents.includes(e.id)}
+                      onCheckedChange={() => toggleEditEvent(e.id)}
+                      className="mt-0.5"
+                    />
+                    <div>
+                      <code className="font-mono text-xs font-medium">{e.label}</code>
+                      <p className="text-[11px] text-muted-foreground">{e.desc}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+            <Button
+              onClick={() => updateMutation.mutate({ id: editId, url: editUrl, events: editEvents })}
+              disabled={!editUrl.trim() || editEvents.length === 0 || !editUrl.startsWith("https://") || updateMutation.isPending}
+              className="gap-1.5"
+            >
+              {updateMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+              Save changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -264,6 +347,7 @@ function WebhookCard({
   onRemove,
   removing,
   onCopySecret,
+  onEdit,
 }: {
   webhook: WebhookType;
   storeName: string;
@@ -271,6 +355,7 @@ function WebhookCard({
   onRemove: () => void;
   removing: boolean;
   onCopySecret: (s: string) => void;
+  onEdit: () => void;
 }) {
   const [revealSecret, setRevealSecret] = React.useState(false);
   const successColor =
@@ -364,6 +449,9 @@ function WebhookCard({
               <><XCircle className="h-3 w-3 text-muted-foreground" /> Disabled</>
             )}
           </div>
+          <Button variant="ghost" size="sm" className="gap-1 text-primary hover:bg-primary/10" onClick={onEdit}>
+            <Pencil className="h-3.5 w-3.5" /> Edit
+          </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="ghost" size="sm" className="gap-1 text-rose-400 hover:bg-rose-500/10 hover:text-rose-300">

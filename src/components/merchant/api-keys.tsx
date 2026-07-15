@@ -46,6 +46,15 @@ export default function ApiKeysPage() {
   const [createOpen, setCreateOpen] = React.useState(false);
   const [revealedKey, setRevealedKey] = React.useState<{ fullKey: string; name: string; environment: string; scopes: string[] } | null>(null);
   const [confirmSaved, setConfirmSaved] = React.useState(false);
+  const [revealedKeyIds, setRevealedKeyIds] = React.useState<Set<string>>(new Set());
+
+  const toggleReveal = (id: string) =>
+    setRevealedKeyIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   // Create form state
   const [name, setName] = React.useState("");
@@ -191,9 +200,34 @@ export default function ApiKeysPage() {
                     </td>
                     <td className="py-3 font-medium">{k.name}</td>
                     <td className="py-3">
-                      <span className="font-mono text-xs text-muted-foreground">
-                        {k.keyPreview ?? `${k.prefix}••••${k.lastFour}`}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono text-xs text-muted-foreground">
+                          {revealedKeyIds.has(k.id) && k.fullKey
+                            ? k.fullKey
+                            : k.keyPreview ?? `${k.prefix}••••${k.lastFour}`}
+                        </span>
+                        {k.fullKey && (
+                          <button
+                            onClick={() => toggleReveal(k.id)}
+                            className="text-muted-foreground transition hover:text-foreground"
+                            title={revealedKeyIds.has(k.id) ? "Hide" : "Reveal"}
+                          >
+                            {revealedKeyIds.has(k.id) ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                          </button>
+                        )}
+                        <button
+                          onClick={() => copyToClipboard(
+                            revealedKeyIds.has(k.id) && k.fullKey
+                              ? k.fullKey
+                              : k.keyPreview ?? `${k.prefix}••••${k.lastFour}`,
+                            "Key copied"
+                          )}
+                          className="text-muted-foreground transition hover:text-foreground"
+                          title="Copy"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </button>
+                      </div>
                     </td>
                     <td className="py-3">
                       <Badge

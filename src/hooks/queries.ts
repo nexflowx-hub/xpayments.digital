@@ -2,25 +2,44 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { xpApi } from "@/lib/api/xpApi";
-import type { DataTableFilters, CurrencyCode } from "@/types";
+import type { DataTableFilters, CurrencyCode, Wallet, WalletsResponse } from "@/types";
 
-// ---- Analytics / Risk / Treasury ----
+// ---- Analytics ----
 export function useAnalyticsOverview() {
   return useQuery({ queryKey: ["analytics", "overview"], queryFn: () => xpApi.analytics.overview() });
 }
+
+// ---- Risk ----
 export function useRiskProfile() {
   return useQuery({ queryKey: ["risk", "profile"], queryFn: () => xpApi.risk.profile() });
 }
+
+// ---- Treasury ----
 export function useTreasury() {
   return useQuery({ queryKey: ["treasury", "overview"], queryFn: () => xpApi.treasury.overview() });
 }
 
-// ---- Wallets ---- (list endpoints return T[] directly after envelope unwrap)
+// ---- Wallets (v3.1: returns { wallets, summary }) ----
 export function useWallets() {
-  return useQuery({ queryKey: ["wallets"], queryFn: () => xpApi.wallets.list(), select: (d) => d ?? [] });
+  return useQuery({
+    queryKey: ["wallets"],
+    queryFn: () => xpApi.wallets.list(),
+    select: (data: WalletsResponse | null): Wallet[] => data?.wallets ?? [],
+  });
+}
+export function useWalletsSummary() {
+  return useQuery({
+    queryKey: ["wallets"],
+    queryFn: () => xpApi.wallets.list(),
+    select: (data: WalletsResponse | null) => data?.summary ?? null,
+  });
 }
 export function useWalletMovements(walletId?: string) {
-  return useQuery({ queryKey: ["wallets", "movements", walletId], queryFn: () => xpApi.wallets.movements(walletId), select: (d) => d ?? [] });
+  return useQuery({
+    queryKey: ["wallets", "movements", walletId],
+    queryFn: () => xpApi.wallets.movements(walletId),
+    select: (d) => d ?? [],
+  });
 }
 export function useWalletSwap() {
   const qc = useQueryClient();
@@ -47,9 +66,12 @@ export function useWalletPayout() {
   });
 }
 
-// ---- Transactions ---- (returns Paginated<T> with its own .data field)
+// ---- Transactions (v3.1: uses limit, meta.pagination) ----
 export function useTransactions(filters: DataTableFilters) {
   return useQuery({ queryKey: ["transactions", filters], queryFn: () => xpApi.transactions.list(filters) });
+}
+export function useTransactionStats() {
+  return useQuery({ queryKey: ["transactions", "stats"], queryFn: () => xpApi.transactions.stats() });
 }
 
 // ---- Customers ----
@@ -57,7 +79,7 @@ export function useCustomers() {
   return useQuery({ queryKey: ["customers"], queryFn: () => xpApi.customers.list(), select: (d) => d ?? [] });
 }
 
-// ---- Products / Stores / Links / Invoices / Subscriptions ----
+// ---- Commerce ----
 export function useProducts() {
   return useQuery({ queryKey: ["products"], queryFn: () => xpApi.products.list(), select: (d) => d ?? [] });
 }

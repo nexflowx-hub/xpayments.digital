@@ -208,7 +208,7 @@ export default function TreasuryPage() {
                         positive ? "text-emerald-400" : "text-rose-400",
                       )}>
                         {positive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                        {Math.abs(b.changePct).toFixed(1)}%
+                        {Math.abs(b.changePct ?? 0).toFixed(1)}%
                       </span>
                     </td>
                     <td className="py-3">
@@ -242,7 +242,7 @@ export default function TreasuryPage() {
           </div>
           <div className="flex flex-col gap-1">
             {(movements ?? []).slice(0, 8).map((m) => {
-              const Icon = movementIcon[m.type];
+              const Icon = movementIcon[m.type ?? "payment"];
               const isIn = m.direction === "in";
               return (
                 <div

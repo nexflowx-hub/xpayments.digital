@@ -45,63 +45,86 @@ export interface RegisterPayload {
 }
 
 /**
- * Raw envelope returned by the Master Backend on POST auth/login and
- * auth/register. The client maps this into `AuthSession` (see xpApi.auth).
+ * Raw envelope returned by the backend on POST auth/login.
+ * API Contract v3.1 shape:
+ * { success: true, data: { token: "JWT", merchant: { id, name, email } } }
  */
 export interface AuthEnvelope {
   success: boolean;
   data: {
-    merchantId: string;
-    name: string;
-    tier: string;
     token: string;
-    role: string;
+    merchant: {
+      id: string;
+      name: string;
+      email: string;
+    };
   };
-  error?: string;
+  error?: {
+    code: string;
+    message: string;
+  };
 }
 
 /** Shape returned by auth/login and auth/register (after envelope mapping) */
 export type AuthResponse = AuthSession;
 
 /**
- * Standard API response envelope used by ALL non-auth endpoints.
- * The backend MUST return this shape for every request:
- *   { success: true,  data: T, message?: string }
- *   { success: false, data: null, message: "error description" }
- * The client (`requestData<T>()`) unwraps `.data` automatically.
+ * Standard API response envelope (API Contract v3.1).
+ * Success: { success: true, data: T, meta?: {} }
+ * Error:   { success: false, error: { code: "ERROR_CODE", message: "..." } }
  */
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
+  meta?: Record<string, unknown>;
+  error?: {
+    code: string;
+    message: string;
+  };
+  // Legacy field (backwards compat)
   message?: string;
 }
 
-// ---- Wallets ----
+// ---- Wallets (API Contract v3.1) ----
 export type CurrencyCode = "EUR" | "USD" | "BRL" | "USDT" | "GBP" | "BTC";
 
 export interface Wallet {
-  id: string;
   currency: CurrencyCode;
-  label: string;
   balance: number;
   available: number;
   reserved: number;
   type: "fiat" | "crypto" | "card";
+  // Optional fields for UI (may not come from API)
+  id?: string;
+  label?: string;
   cardLast4?: string;
-  changePct: number;
-  color: string;
+  changePct?: number;
+  color?: string;
+}
+
+export interface WalletSummary {
+  totalBalance: number;
+  totalAvailable: number;
+  totalReserved: number;
+  currencies: number;
+}
+
+export interface WalletsResponse {
+  wallets: Wallet[];
+  summary: WalletSummary;
 }
 
 export interface WalletMovement {
   id: string;
-  walletId: string;
   currency: CurrencyCode;
-  type: "deposit" | "withdraw" | "swap" | "payment" | "fee" | "payout";
-  direction: "in" | "out";
   amount: number;
-  status: "completed" | "pending" | "failed";
+  direction: "in" | "out";
+  status: string;
   createdAt: string;
-  reference: string;
+  // Optional fields for UI
+  walletId?: string;
+  type?: "deposit" | "withdraw" | "swap" | "payment" | "fee" | "payout";
+  reference?: string;
 }
 
 // ---- Transactions / Payments ----
@@ -152,24 +175,39 @@ export interface TxEvent {
   detail?: string;
 }
 
-// ---- Analytics ----
+// ---- Analytics (API Contract v3.1: GET /analytics/overview) ----
 export interface AnalyticsOverview {
-  revenue: number;
-  revenueChange: number;
-  volume: number;
-  volumeChange: number;
-  conversion: number;
-  conversionChange: number;
-  approvalRate: number;
-  approvalChange: number;
-  riskScore: number;
-  riskChange: number;
-  revenueSeries: { date: string; value: number }[];
-  volumeSeries: { date: string; value: number }[];
-  paymentMethods: { method: PaymentMethod; share: number; volume: number }[];
-  currencies: { currency: CurrencyCode; share: number; volume: number }[];
-  topCustomers: { name: string; ltv: number; orders: number }[];
-  realtime: { id: string; label: string; amount: number; currency: CurrencyCode; ago: string }[];
+  wallet: {
+    totalBalance: number;
+    availableBalance: number;
+    currencies: number;
+  };
+  transactions: {
+    today: number;
+    month: number;
+    total: number;
+    successRate: number;
+    volumeToday: number;
+    volumeMonth: number;
+  };
+  recentTransactions: Transaction[];
+  // Legacy fields (optional — kept for backwards compat with older components)
+  revenue?: number;
+  revenueChange?: number;
+  volume?: number;
+  volumeChange?: number;
+  conversion?: number;
+  conversionChange?: number;
+  approvalRate?: number;
+  approvalChange?: number;
+  riskScore?: number;
+  riskChange?: number;
+  revenueSeries?: { date: string; value: number }[];
+  volumeSeries?: { date: string; value: number }[];
+  paymentMethods?: { method: PaymentMethod; share: number; volume: number }[];
+  currencies?: { currency: CurrencyCode; share: number; volume: number }[];
+  topCustomers?: { name: string; ltv: number; orders: number }[];
+  realtime?: { id: string; label: string; amount: number; currency: CurrencyCode; ago: string }[];
 }
 
 // ---- Risk ----
@@ -345,9 +383,16 @@ export interface SystemHealth {
 // ---- Generic API ----
 export interface Paginated<T> {
   data: T[];
-  total: number;
-  page: number;
-  pageSize: number;
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
+  // Legacy fields (backwards compat)
+  total?: number;
+  page?: number;
+  pageSize?: number;
 }
 
 export interface ApiError {
@@ -367,7 +412,9 @@ export interface DataTableFilters {
   from?: string;
   to?: string;
   page?: number;
-  pageSize?: number;
+  limit?: number;  // v3.1 uses 'limit' instead of 'pageSize'
+  pageSize?: number; // legacy
   sortBy?: string;
   sortDir?: "asc" | "desc";
+  reference?: string; // v3.1 uses 'reference' for search
 }

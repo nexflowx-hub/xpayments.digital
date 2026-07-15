@@ -265,7 +265,7 @@ function WebhookCard({
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Success rate</p>
               <div className="mt-1 flex items-center gap-2">
                 <span className={cn("font-mono text-sm font-semibold", successColor)}>
-                  {webhook.successRate.toFixed(1)}%
+                  {(webhook.successRate ?? 0).toFixed(1)}%
                 </span>
               </div>
               <Progress

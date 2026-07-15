@@ -207,30 +207,29 @@ export async function request<T>(config: AxiosRequestConfig): Promise<T> {
 }
 
 /**
- * Envelope-unwrapping request. Assumes the backend returns:
- *   { success: true,  data: T, message?: string }
- *   { success: false, data: null, message: "..." }
+ * Envelope-unwrapping request. Assumes the backend returns (API Contract v3.1):
+ *   { success: true,  data: T, meta?: {} }
+ *   { success: false, error: { code: "ERROR_CODE", message: "..." } }
  *
- * Returns `envelope.data` directly. If `success === false`, throws an `ApiError`.
- * If `envelope.data` is null/undefined, returns null — callers MUST guard with
- * `?? []` or optional chaining.
+ * Returns `envelope.data` directly. If `success === false`, throws an `ApiError`
+ * with the error code and message. If `envelope.data` is null/undefined,
+ * returns null — callers MUST guard with `?? []` or optional chaining.
  */
 export async function requestData<T>(config: AxiosRequestConfig): Promise<T> {
   const res = await api(config);
   const envelope = res.data as ApiResponse<T>;
 
-  // Handle both envelope and non-envelope responses (backwards compatible)
+  // Handle envelope responses
   if (envelope && typeof envelope === "object" && "success" in envelope) {
     if (!envelope.success) {
-      throw {
-        message: envelope.message || "Request failed.",
-        status: res.status,
-      } as ApiError;
+      const errMsg = envelope.error?.message || envelope.message || "Request failed.";
+      const errCode = envelope.error?.code;
+      throw { message: errMsg, code: errCode, status: res.status } as ApiError;
     }
     return envelope.data as T;
   }
 
-  // No envelope — return raw data (backwards compatible with non-standard endpoints)
+  // No envelope — return raw data (backwards compatible)
   return res.data as T;
 }
 

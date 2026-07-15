@@ -83,7 +83,7 @@ function buildPageList(current: number, total: number): (number | "...")[] {
 export default function PaymentsPage() {
   const [filters, setFilters] = React.useState<DataTableFilters>({
     page: 1,
-    pageSize: PAGE_SIZE,
+    limit: PAGE_SIZE,
     sortBy: "createdAt",
     sortDir: "desc",
   });
@@ -91,9 +91,9 @@ export default function PaymentsPage() {
   const [selected, setSelected] = React.useState<Transaction | null>(null);
 
   const rows = data?.data ?? [];
-  const total = data?.total ?? 0;
-  const page = filters.page ?? 1;
-  const pageSize = filters.pageSize ?? PAGE_SIZE;
+  const total = data?.meta?.total ?? data?.total ?? 0;
+  const page = filters.page ?? data?.meta?.page ?? 1;
+  const pageSize = filters.limit ?? filters.pageSize ?? data?.meta?.limit ?? PAGE_SIZE;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const showingFrom = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const showingTo = Math.min(page * pageSize, total);
@@ -179,7 +179,7 @@ export default function PaymentsPage() {
             </Select>
             {(filters.search || filters.status || filters.currency || filters.method || filters.country || filters.gateway) && (
               <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground"
-                onClick={() => setFilters({ page: 1, pageSize: PAGE_SIZE, sortBy: "createdAt", sortDir: "desc" })}>
+                onClick={() => setFilters({ page: 1, limit: PAGE_SIZE, sortBy: "createdAt", sortDir: "desc" })}>
                 <X className="h-3.5 w-3.5" /> Clear
               </Button>
             )}

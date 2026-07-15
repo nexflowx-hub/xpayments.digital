@@ -205,7 +205,7 @@ export default function AdminTreasuryPage() {
                           ) : (
                             <ArrowDownRight className="h-3 w-3" />
                           )}
-                          {Math.abs(b.changePct).toFixed(1)}%
+                          {Math.abs(b.changePct ?? 0).toFixed(1)}%
                         </span>
                       </TableCell>
                       <TableCell>

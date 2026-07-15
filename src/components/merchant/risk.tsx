@@ -168,7 +168,7 @@ export default function RiskPage() {
           <div className="flex items-center gap-2">
             <Bell className="h-4 w-4 text-amber-400" />
             <h3 className="text-sm font-semibold">Active alerts</h3>
-            <Badge variant="outline" className="ml-1.5">{risk?.alerts.length ?? 0} open</Badge>
+            <Badge variant="outline" className="ml-1.5">{(risk?.alerts ?? []).length ?? 0} open</Badge>
           </div>
           <Badge variant="outline" className="gap-1 border-amber-500/25 bg-amber-500/12 text-amber-400">
             <span className="relative flex h-1.5 w-1.5">

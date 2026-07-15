@@ -295,9 +295,9 @@ function KycReviewCard({
         <StatusBadge status={review.status} />
       </div>
 
-      {review.riskFlags.length > 0 ? (
+      {(review.riskFlags ?? []).length > 0 ? (
         <div className="mt-3 flex flex-wrap gap-1.5">
-          {review.riskFlags.map((flag) => (
+          {(review.riskFlags ?? []).map((flag) => (
             <Badge
               key={flag}
               variant="outline"
@@ -317,9 +317,9 @@ function KycReviewCard({
 
       <div className="mt-4 flex flex-col gap-1.5">
         <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-          Documents ({review.documents.length})
+          Documents ({(review.documents ?? []).length})
         </p>
-        {review.documents.map((d) => {
+        {(review.documents ?? []).map((d) => {
           const meta = docTypeMeta[d.type];
           const Icon = meta.icon;
           return (

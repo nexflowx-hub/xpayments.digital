@@ -4,7 +4,6 @@ import type {
   AnalyticsOverview,
   ApiKey,
   AuthEnvelope,
-  AuthResponse,
   AuthSession,
   Customer,
   Invoice,
@@ -22,24 +21,26 @@ import type {
   User,
   Wallet,
   WalletMovement,
+  WalletsResponse,
   Webhook,
   DataTableFilters,
   CurrencyCode,
-  UserRole,
 } from "@/types";
 
 /**
- * XPayments API surface — real REST only.
+ * XPayments API surface — aligned with API Contract v3.1.
  *
- * Routes are RELATIVE (no leading slash) and match BACKEND.md §5.4 exactly:
- *   - Merchant-scoped resources are TOP-LEVEL (the JWT identifies the merchant;
- *     no /merchants/ prefix in the URL).
- *   - Admin resources live under admin/...
- *   - Auth lives under auth/...
+ * Base URL: https://api.xpayments.digital/api/v1 (NEXT_PUBLIC_API_URL)
+ * Routes are RELATIVE (no leading slash).
  *
- * ALL non-auth endpoints use `requestData<T>()` which unwraps the standard
- * `{ success, data, message? }` envelope and returns `.data` directly.
- * Components receive clean domain objects, never the envelope wrapper.
+ * Envelope:
+ *   Success: { success: true, data: T, meta?: {} }
+ *   Error:   { success: false, error: { code, message } }
+ *
+ * Auth envelope (login only):
+ *   { success: true, data: { token: "JWT", merchant: { id, name, email } } }
+ *
+ * requestData<T>() unwraps the standard envelope and returns `.data`.
  */
 
 // ---- Auth ----
@@ -47,28 +48,29 @@ import type {
 function mapEnvelopeToSession(envelope: AuthEnvelope, email: string): AuthSession {
   if (!envelope.success || !envelope.data) {
     throw {
-      message: envelope.error || envelope.message || "Authentication failed.",
+      message: envelope.error?.message || "Authentication failed.",
+      code: envelope.error?.code,
       status: 401,
     };
   }
-  const d = envelope.data;
+  const { token, merchant } = envelope.data;
   const user: User = {
-    id: d.merchantId,
-    name: d.name,
-    email,
-    role: (d.role || "merchant") as UserRole,
-    merchantId: d.merchantId,
-    tier: d.tier,
+    id: merchant.id,
+    name: merchant.name,
+    email: merchant.email || email,
+    role: "merchant",
+    merchantId: merchant.id,
   };
   return {
-    accessToken: d.token,
-    refreshToken: d.token,
+    accessToken: token,
+    refreshToken: token, // v3.1 doesn't issue a separate refresh token yet
     expiresAt: Date.now() + 1000 * 60 * 60 * 8,
     user,
   };
 }
 
 export const auth = {
+  /** POST auth/login — v3.1: { token, merchant: { id, name, email } } */
   login: async (email: string, password: string, remember = false): Promise<AuthSession> => {
     const envelope = await request<AuthEnvelope>({
       url: "auth/login",
@@ -77,7 +79,8 @@ export const auth = {
     });
     return mapEnvelopeToSession(envelope, email);
   },
-  register: async (data: RegisterPayload): Promise<AuthResponse> => {
+  /** POST auth/register */
+  register: async (data: RegisterPayload): Promise<AuthSession> => {
     const envelope = await request<AuthEnvelope>({
       url: "auth/register",
       method: "POST",
@@ -90,18 +93,52 @@ export const auth = {
   reset: (token: string, password: string) =>
     request<{ success: boolean; message?: string }>({ url: "auth/reset", method: "POST", data: { token, password } }),
   me: () => requestData<User>({ url: "auth/me", method: "GET" }),
-  /** POST auth/logout — revokes the refresh token server-side */
   logout: () =>
-    request<{ success: boolean }>({ url: "auth/logout", method: "POST" }).catch(() => {
-      // Best-effort — even if the network fails, clear locally
-    }).then(() => tokenStore.clear()),
+    request<{ success: boolean }>({ url: "auth/logout", method: "POST" }).catch(() => {}).then(() => tokenStore.clear()),
 };
 
-// ---- Wallets (top-level per BACKEND.md) ----
+// ---- Analytics (v3.1: GET /analytics/overview) ----
+export const analytics = {
+  /** GET analytics/overview — returns { wallet, transactions, recentTransactions } */
+  overview: () => requestData<AnalyticsOverview>({ url: "analytics/overview", method: "GET" }),
+};
+
+// ---- Transactions (v3.1: GET /transactions with ?page&limit&status&gateway&currency&reference) ----
+export const transactions = {
+  /** GET transactions — paginated, supports page, limit, status, gateway, currency, reference */
+  list: (filters: DataTableFilters = {}) => {
+    // Map frontend filters to v3.1 query params
+    const params: Record<string, unknown> = {};
+    if (filters.page) params.page = filters.page;
+    if (filters.limit) params.limit = filters.limit;
+    else if (filters.pageSize) params.limit = filters.pageSize;
+    if (filters.status && filters.status !== "all") params.status = filters.status;
+    if (filters.gateway && filters.gateway !== "all") params.gateway = filters.gateway;
+    if (filters.currency && filters.currency !== "all") params.currency = filters.currency;
+    if (filters.reference) params.reference = filters.reference;
+    else if (filters.search) params.reference = filters.search;
+    return requestData<Paginated<Transaction>>({ url: "transactions", method: "GET", params });
+  },
+  /** GET transactions/stats — aggregate stats */
+  stats: () =>
+    requestData<{
+      total: number;
+      approved: number;
+      failed: number;
+      pending: number;
+      successRate: number;
+      volume: number;
+    }>({ url: "transactions/stats", method: "GET" }),
+  /** GET transactions/:id */
+  detail: (id: string) =>
+    requestData<Transaction>({ url: `transactions/${id}`, method: "GET" }),
+};
+
+// ---- Wallets (v3.1: GET /wallets returns { wallets[], summary }) ----
 export const wallets = {
-  /** GET wallets */
-  list: () => requestData<Wallet[]>({ url: "wallets", method: "GET" }),
-  /** GET wallets/movements?walletId= */
+  /** GET wallets — returns { wallets: Wallet[], summary: WalletSummary } */
+  list: () => requestData<WalletsResponse>({ url: "wallets", method: "GET" }),
+  /** GET wallets/movements — returns WalletMovement[] */
   movements: (walletId?: string) =>
     requestData<WalletMovement[]>({ url: "wallets/movements", method: "GET", params: { walletId } }),
   /** POST wallets/swap */
@@ -115,109 +152,90 @@ export const wallets = {
     requestData<{ ok: boolean; reference: string }>({ url: "wallets/payout", method: "POST", data: { currency, amount, beneficiary } }),
 };
 
-// ---- Analytics (top-level per BACKEND.md) ----
-export const analytics = {
-  /** GET analytics/overview */
-  overview: () => requestData<AnalyticsOverview>({ url: "analytics/overview", method: "GET" }),
-};
-
-// ---- Risk (top-level per BACKEND.md) ----
+// ---- Risk ----
 export const risk = {
-  /** GET risk/profile */
   profile: () => requestData<RiskProfile>({ url: "risk/profile", method: "GET" }),
 };
 
-// ---- Transactions (top-level per BACKEND.md) ----
-export const transactions = {
-  /** GET transactions — paginated + filtered */
-  list: (filters: DataTableFilters = {}) =>
-    requestData<Paginated<Transaction>>({ url: "transactions", method: "GET", params: filters }),
-  /** GET transactions/:id */
-  detail: (id: string) =>
-    requestData<Transaction>({ url: `transactions/${id}`, method: "GET" }),
-};
-
-// ---- Customers (top-level per BACKEND.md) ----
+// ---- Customers ----
 export const customers = {
-  /** GET customers */
   list: () => requestData<Customer[]>({ url: "customers", method: "GET" }),
 };
 
-// ---- Commerce (top-level per BACKEND.md) ----
+// ---- Commerce ----
 export const products = {
-  /** GET products */
   list: () => requestData<Product[]>({ url: "products", method: "GET" }),
-  /** POST products */
   create: (data: Partial<Product>) =>
     requestData<Product>({ url: "products", method: "POST", data }),
-  /** DELETE products/:id */
   remove: (id: string) =>
     requestData<{ ok: boolean }>({ url: `products/${id}`, method: "DELETE" }),
 };
 
 export const stores = {
-  /** GET stores */
   list: () => requestData<Store[]>({ url: "stores", method: "GET" }),
 };
 
 export const paymentLinks = {
-  /** GET payment-links */
   list: () => requestData<PaymentLink[]>({ url: "payment-links", method: "GET" }),
 };
 
 export const invoices = {
-  /** GET invoices */
   list: () => requestData<Invoice[]>({ url: "invoices", method: "GET" }),
 };
 
 export const subscriptions = {
-  /** GET subscriptions */
   list: () => requestData<Subscription[]>({ url: "subscriptions", method: "GET" }),
 };
 
-// ---- Developers (top-level per BACKEND.md) ----
+// ---- Developers ----
 export const apiKeys = {
-  /** GET api-keys */
   list: () => requestData<ApiKey[]>({ url: "api-keys", method: "GET" }),
-  /** POST api-keys */
   create: (name: string, environment: "live" | "test", scopes: string[]) =>
     requestData<ApiKey>({ url: "api-keys", method: "POST", data: { name, environment, scopes } }),
-  /** DELETE api-keys/:id */
   revoke: (id: string) =>
     requestData<{ ok: boolean }>({ url: `api-keys/${id}`, method: "DELETE" }),
 };
 
 export const webhooks = {
-  /** GET webhooks */
   list: () => requestData<Webhook[]>({ url: "webhooks", method: "GET" }),
-  /** POST webhooks */
   create: (url: string, events: string[]) =>
     requestData<Webhook>({ url: "webhooks", method: "POST", data: { url, events } }),
-  /** DELETE webhooks/:id */
   remove: (id: string) =>
     requestData<{ ok: boolean }>({ url: `webhooks/${id}`, method: "DELETE" }),
 };
 
-// ---- Payouts / Deposits (top-level per BACKEND.md) ----
-export const payouts = {
-  /** GET payouts */
-  list: () => requestData<WalletMovement[]>({ url: "payouts", method: "GET" }),
-};
-
-export const deposits = {
-  /** GET deposits */
-  list: () => requestData<WalletMovement[]>({ url: "deposits", method: "GET" }),
-};
-
-// ---- Treasury (top-level per BACKEND.md) ----
+// ---- Treasury ----
 export const treasury = {
-  /** GET treasury/overview */
   overview: () => requestData<TreasuryOverview>({ url: "treasury/overview", method: "GET" }),
 };
 
-// ---- KYC (top-level per BACKEND.md) ----
+// ---- Checkout (v3.1) ----
+export const checkout = {
+  /** POST checkout/session — create checkout session (uses API key, not JWT) */
+  createSession: (data: {
+    amount: number;
+    currency: string;
+    reference: string;
+    customerEmail: string;
+    metadata?: Record<string, string>;
+  }) =>
+    requestData<{
+      sessionId: string;
+      checkoutUrl: string;
+    }>({ url: "checkout/session", method: "POST", data }),
+  /** GET checkout/session/:id — load session details (public) */
+  loadSession: (id: string) =>
+    requestData<{
+      sessionId: string;
+      storeName: string;
+      amount: number;
+      currency: string;
+      reference: string;
+    }>({ url: `checkout/session/${id}`, method: "GET" }),
+};
+
+// ---- KYC ----
 export const kyc = {
-  /** GET kyc/status */
   status: () =>
     requestData<{ status: string; submittedAt?: string; documents?: unknown[]; riskFlags?: string[] }>({
       url: "kyc/status",
@@ -225,31 +243,24 @@ export const kyc = {
     }),
 };
 
-// ---- Admin (platform-level per BACKEND.md) ----
+// ---- Admin ----
 export const admin = {
-  /** GET admin/treasury/overview */
   treasury: () => requestData<TreasuryOverview>({ url: "admin/treasury/overview", method: "GET" }),
-  /** GET admin/merchants */
   merchants: () => requestData<AdminMerchant[]>({ url: "admin/merchants", method: "GET" }),
-  /** POST admin/merchants/:id/status */
   setMerchantStatus: (id: string, status: AdminMerchant["status"]) =>
     requestData<{ ok: boolean }>({ url: `admin/merchants/${id}/status`, method: "POST", data: { status } }),
-  /** GET admin/kyc — approval queue */
   kycQueue: () => requestData<KycReview[]>({ url: "admin/kyc", method: "GET" }),
-  /** POST admin/kyc/:id/approved | admin/kyc/:id/rejected */
   kycDecision: (id: string, decision: "approved" | "rejected") =>
     requestData<{ ok: boolean }>({ url: `admin/kyc/${id}/${decision}`, method: "POST" }),
-  /** GET admin/health */
   health: () => requestData<SystemHealth>({ url: "admin/health", method: "GET" }),
-  /** GET admin/revenue */
   revenue: () =>
     requestData<{ total: number; series: { date: string; value: number }[] }>({ url: "admin/revenue", method: "GET" }),
 };
 
 export const xpApi = {
-  auth, wallets, analytics, risk, transactions, customers, products, stores,
-  paymentLinks, invoices, subscriptions, apiKeys, webhooks, payouts, deposits,
-  treasury, kyc, admin,
+  auth, analytics, transactions, wallets, risk, customers, products, stores,
+  paymentLinks, invoices, subscriptions, apiKeys, webhooks, treasury, checkout,
+  kyc, admin,
 };
 
 export type XpApi = typeof xpApi;

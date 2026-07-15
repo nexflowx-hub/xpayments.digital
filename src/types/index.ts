@@ -267,6 +267,7 @@ export interface Store {
   revenue: number;
   currency: CurrencyCode;
   createdAt: string;
+  storeCode?: string;
 }
 
 export interface PaymentLink {
@@ -309,11 +310,15 @@ export interface ApiKey {
   name: string;
   prefix: string;
   lastFour: string;
-  fullKey?: string; // only right after creation
+  fullKey?: string;
   scopes: string[];
   createdAt: string;
   lastUsedAt?: string;
   environment: "live" | "test";
+  storeId?: string;
+  storeName?: string;
+  storeCode?: string;
+  keyPreview?: string;
 }
 
 export interface Webhook {
@@ -325,6 +330,9 @@ export interface Webhook {
   lastDeliveryAt?: string;
   successRate: number;
   createdAt: string;
+  storeId?: string;
+  storeName?: string;
+  storeCode?: string;
 }
 
 // ---- Treasury ----

@@ -5,9 +5,9 @@ import { motion } from "framer-motion";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Webhook, Plus, Trash2, Loader2, Eye, EyeOff, Copy, Bell, CheckCircle2,
-  XCircle,
+  XCircle, Store,
 } from "lucide-react";
-import { useWebhooks } from "@/hooks/queries";
+import { useWebhooks, useStores } from "@/hooks/queries";
 import { xpApi } from "@/lib/api/xpApi";
 import { PageHeader, EmptyState, fadeUp } from "@/components/shared";
 import { StatusBadge } from "@/components/shared/badges";
@@ -20,6 +20,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
+} from "@/components/ui/select";
+import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import {
@@ -29,6 +32,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn, timeAgo } from "@/lib/utils";
 import { toast } from "sonner";
+import type { Webhook as WebhookType, Store as StoreType } from "@/types";
 
 const WEBHOOK_EVENTS = [
   { id: "payment.succeeded", label: "payment.succeeded", desc: "Sent when a payment is captured successfully." },
@@ -41,18 +45,23 @@ const WEBHOOK_EVENTS = [
 
 export default function WebhooksPage() {
   const { data, isLoading } = useWebhooks();
+  const { data: stores } = useStores();
   const qc = useQueryClient();
   const [createOpen, setCreateOpen] = React.useState(false);
 
   const [url, setUrl] = React.useState("");
+  const [storeId, setStoreId] = React.useState("");
   const [events, setEvents] = React.useState<string[]>(["payment.succeeded", "payment.failed"]);
 
+  const storeList = stores ?? [];
+
   const createMutation = useMutation({
-    mutationFn: () => xpApi.webhooks.create(url, events),
+    mutationFn: () => xpApi.webhooks.create({ url, events, storeId }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["webhooks"] });
       setCreateOpen(false);
       setUrl("");
+      setStoreId("");
       setEvents(["payment.succeeded", "payment.failed"]);
       toast.success("Webhook endpoint added");
     },
@@ -76,10 +85,12 @@ export default function WebhooksPage() {
   const copyToClipboard = (text: string, label = "Copied") => {
     if (typeof navigator !== "undefined" && navigator.clipboard) {
       navigator.clipboard.writeText(text).then(() => toast.success(label));
-    } else {
-      toast.success(label);
     }
   };
+
+  // Helper: find store by storeId
+  const getStoreName = (sid?: string) => storeList.find((s) => s.id === sid)?.name ?? "—";
+  const getStoreCode = (sid?: string) => storeList.find((s) => s.id === sid)?.storeCode ?? "—";
 
   return (
     <div className="flex flex-col gap-6">
@@ -87,11 +98,18 @@ export default function WebhooksPage() {
         title="Webhooks"
         description="Receive real-time event notifications at your endpoints."
         actions={
-          <Button size="sm" className="gap-1.5" onClick={() => setCreateOpen(true)}>
+          <Button size="sm" className="gap-1.5" onClick={() => setCreateOpen(true)} disabled={storeList.length === 0}>
             <Plus className="h-3.5 w-3.5" /> Add endpoint
           </Button>
         }
       />
+
+      {storeList.length === 0 && (
+        <div className="flex items-center gap-2 rounded-lg border border-amber-500/25 bg-amber-500/8 px-4 py-3 text-sm text-amber-300">
+          <Store className="h-4 w-4" />
+          You need at least one store before adding webhook endpoints. Go to Stores to create one.
+        </div>
+      )}
 
       {/* Endpoints */}
       {isLoading ? (
@@ -104,7 +122,7 @@ export default function WebhooksPage() {
             icon={Webhook}
             title="No webhook endpoints"
             description="Add an HTTPS endpoint to start receiving event notifications."
-            action={<Button size="sm" onClick={() => setCreateOpen(true)} className="gap-1.5"><Plus className="h-3.5 w-3.5" /> New endpoint</Button>}
+            action={storeList.length > 0 ? <Button size="sm" onClick={() => setCreateOpen(true)} className="gap-1.5"><Plus className="h-3.5 w-3.5" /> New endpoint</Button> : undefined}
           />
         </Card>
       ) : (
@@ -118,6 +136,8 @@ export default function WebhooksPage() {
             >
               <WebhookCard
                 webhook={w}
+                storeName={w.storeName ?? getStoreName(w.storeId)}
+                storeCode={w.storeCode ?? getStoreCode(w.storeId)}
                 onRemove={() => removeMutation.mutate(w.id)}
                 removing={removeMutation.isPending}
                 onCopySecret={(s) => copyToClipboard(s, "Signing secret copied")}
@@ -162,6 +182,23 @@ export default function WebhooksPage() {
           </DialogHeader>
 
           <div className="flex flex-col gap-4 py-2">
+            {/* Store — required */}
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="wh-store">Store <span className="text-rose-400">*</span></Label>
+              <Select value={storeId} onValueChange={setStoreId}>
+                <SelectTrigger id="wh-store">
+                  <SelectValue placeholder="Select a store" />
+                </SelectTrigger>
+                <SelectContent>
+                  {storeList.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name} {s.storeCode ? `(${s.storeCode})` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="wh-url">Endpoint URL</Label>
               <Input
@@ -207,7 +244,7 @@ export default function WebhooksPage() {
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
             <Button
               onClick={() => createMutation.mutate()}
-              disabled={!url.trim() || events.length === 0 || !url.startsWith("https://") || createMutation.isPending}
+              disabled={!url.trim() || !storeId || events.length === 0 || !url.startsWith("https://") || createMutation.isPending}
               className="gap-1.5"
             >
               {createMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
@@ -222,36 +259,48 @@ export default function WebhooksPage() {
 
 function WebhookCard({
   webhook,
+  storeName,
+  storeCode,
   onRemove,
   removing,
   onCopySecret,
 }: {
-  webhook: import("@/types").Webhook;
+  webhook: WebhookType;
+  storeName: string;
+  storeCode: string;
   onRemove: () => void;
   removing: boolean;
   onCopySecret: (s: string) => void;
 }) {
   const [revealSecret, setRevealSecret] = React.useState(false);
   const successColor =
-    webhook.successRate >= 99
+    (webhook.successRate ?? 0) >= 99
       ? "text-emerald-400"
-      : webhook.successRate >= 95
+      : (webhook.successRate ?? 0) >= 95
         ? "text-amber-400"
         : "text-rose-400";
   const progressColor =
-    webhook.successRate >= 99 ? "primary" : webhook.successRate >= 95 ? "amber" : "rose";
+    (webhook.successRate ?? 0) >= 99 ? "primary" : (webhook.successRate ?? 0) >= 95 ? "amber" : "rose";
 
-  // Map progress color to a real Tailwind class via inline style instead — Progress uses primary.
-  // We layer a custom bar via indicator color override using data attribute trick.
   return (
     <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex-1 space-y-3">
+          {/* Store + URL + Status */}
           <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              <Store className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-sm font-medium">{storeName}</span>
+              {storeCode !== "—" && (
+                <span className="font-mono text-[10px] text-muted-foreground">({storeCode})</span>
+              )}
+            </div>
+            <span className="text-border/60">·</span>
             <span className="font-mono text-sm text-foreground">{webhook.url}</span>
             <StatusBadge status={webhook.status} />
           </div>
 
+          {/* Events */}
           <div className="flex flex-wrap gap-1.5">
             {(webhook?.events ?? []).map((e) => (
               <Badge key={e} variant="outline" className="border-primary/30 bg-primary/8 font-mono text-[10px] text-primary">
@@ -260,6 +309,7 @@ function WebhookCard({
             ))}
           </div>
 
+          {/* Stats */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Success rate</p>
@@ -269,7 +319,7 @@ function WebhookCard({
                 </span>
               </div>
               <Progress
-                value={webhook.successRate}
+                value={webhook.successRate ?? 0}
                 className={cn(
                   "mt-1.5 h-1.5",
                   progressColor === "amber" && "[&>div]:bg-amber-400",
@@ -289,6 +339,7 @@ function WebhookCard({
             </div>
           </div>
 
+          {/* Signing secret */}
           <div>
             <p className="mb-1 text-[10px] uppercase tracking-wider text-muted-foreground">Signing secret</p>
             <div className="flex items-center gap-2">

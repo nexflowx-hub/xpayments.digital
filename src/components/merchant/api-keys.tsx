@@ -4,10 +4,9 @@ import * as React from "react";
 import { motion } from "framer-motion";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  KeyRound, Plus, Copy, Eye, EyeOff, Trash2, Loader2, ShieldAlert,
-  CheckCircle2,
+  KeyRound, Plus, Copy, Trash2, Loader2, ShieldAlert, CheckCircle2, Store,
 } from "lucide-react";
-import { useApiKeys } from "@/hooks/queries";
+import { useApiKeys, useStores } from "@/hooks/queries";
 import { xpApi } from "@/lib/api/xpApi";
 import { PageHeader, EmptyState, fadeUp } from "@/components/shared";
 import { Card } from "@/components/ui/card";
@@ -17,6 +16,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -28,42 +30,47 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn, formatDate, timeAgo } from "@/lib/utils";
 import { toast } from "sonner";
-import type { ApiKey } from "@/types";
 
 const ALL_SCOPES = ["read", "write", "payments", "payouts", "webhooks"] as const;
 const SCOPE_LABELS: Record<string, string> = {
-  read: "Read",
-  write: "Write",
-  payments: "Payments",
-  payouts: "Payouts",
-  webhooks: "Webhooks",
+  read: "Read", write: "Write", payments: "Payments", payouts: "Payouts", webhooks: "Webhooks",
 };
 
 type EnvFilter = "all" | "live" | "test";
 
 export default function ApiKeysPage() {
   const { data, isLoading } = useApiKeys();
+  const { data: stores } = useStores();
   const qc = useQueryClient();
   const [envFilter, setEnvFilter] = React.useState<EnvFilter>("all");
   const [createOpen, setCreateOpen] = React.useState(false);
-  const [revealedKey, setRevealedKey] = React.useState<ApiKey | null>(null);
+  const [revealedKey, setRevealedKey] = React.useState<{ fullKey: string; name: string; environment: string; scopes: string[] } | null>(null);
   const [confirmSaved, setConfirmSaved] = React.useState(false);
 
   // Create form state
   const [name, setName] = React.useState("");
+  const [storeId, setStoreId] = React.useState("");
   const [environment, setEnvironment] = React.useState<"live" | "test">("test");
   const [scopes, setScopes] = React.useState<string[]>(["read", "payments"]);
 
+  const storeList = stores ?? [];
+
   const createMutation = useMutation({
-    mutationFn: () => xpApi.apiKeys.create(name, environment, scopes),
+    mutationFn: () => xpApi.apiKeys.create({ name, environment, scopes, storeId }),
     onSuccess: (key) => {
       qc.invalidateQueries({ queryKey: ["api-keys"] });
       setCreateOpen(false);
       setName("");
+      setStoreId("");
       setScopes(["read", "payments"]);
       setEnvironment("test");
       if (key.fullKey) {
-        setRevealedKey(key);
+        setRevealedKey({
+          fullKey: key.fullKey,
+          name: key.name,
+          environment: key.environment,
+          scopes: key.scopes,
+        });
         setConfirmSaved(false);
       }
       toast.success("API key created");
@@ -89,10 +96,12 @@ export default function ApiKeysPage() {
   const copyToClipboard = (text: string, label = "Copied") => {
     if (typeof navigator !== "undefined" && navigator.clipboard) {
       navigator.clipboard.writeText(text).then(() => toast.success(label));
-    } else {
-      toast.success(label);
     }
   };
+
+  // Helper: find store name by storeId
+  const getStoreName = (sid?: string) => storeList.find((s) => s.id === sid)?.name ?? "—";
+  const getStoreCode = (sid?: string) => storeList.find((s) => s.id === sid)?.storeCode ?? "—";
 
   return (
     <div className="flex flex-col gap-6">
@@ -100,7 +109,7 @@ export default function ApiKeysPage() {
         title="API Keys"
         description="Manage credentials used to authenticate API requests."
         actions={
-          <Button size="sm" className="gap-1.5" onClick={() => setCreateOpen(true)}>
+          <Button size="sm" className="gap-1.5" onClick={() => setCreateOpen(true)} disabled={storeList.length === 0}>
             <Plus className="h-3.5 w-3.5" /> Create API key
           </Button>
         }
@@ -115,9 +124,7 @@ export default function ApiKeysPage() {
               onClick={() => setEnvFilter(e)}
               className={cn(
                 "rounded-md px-3 py-1 text-xs font-medium capitalize transition",
-                envFilter === e
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground",
+                envFilter === e ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
               )}
             >
               {e === "all" ? "All keys" : `${e === "live" ? "Live" : "Test"} only`}
@@ -129,6 +136,13 @@ export default function ApiKeysPage() {
           Never share live secret keys. Rotate immediately on suspected exposure.
         </div>
       </motion.div>
+
+      {storeList.length === 0 && (
+        <div className="flex items-center gap-2 rounded-lg border border-amber-500/25 bg-amber-500/8 px-4 py-3 text-sm text-amber-300">
+          <Store className="h-4 w-4" />
+          You need at least one store before creating API keys. Go to Stores to create one.
+        </div>
+      )}
 
       {/* Keys table */}
       <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
@@ -151,15 +165,16 @@ export default function ApiKeysPage() {
             icon={KeyRound}
             title="No API keys yet"
             description="Create your first key to start integrating XPayments."
-            action={<Button size="sm" onClick={() => setCreateOpen(true)} className="gap-1.5"><Plus className="h-3.5 w-3.5" /> New key</Button>}
+            action={storeList.length > 0 ? <Button size="sm" onClick={() => setCreateOpen(true)} className="gap-1.5"><Plus className="h-3.5 w-3.5" /> New key</Button> : undefined}
           />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border/60 text-left text-xs text-muted-foreground">
+                  <th className="pb-2 font-medium">Store</th>
                   <th className="pb-2 font-medium">Name</th>
-                  <th className="pb-2 font-medium">Key</th>
+                  <th className="pb-2 font-medium">Key Preview</th>
                   <th className="pb-2 font-medium">Environment</th>
                   <th className="pb-2 font-medium">Scopes</th>
                   <th className="pb-2 font-medium">Created</th>
@@ -170,10 +185,14 @@ export default function ApiKeysPage() {
               <tbody>
                 {filtered.map((k) => (
                   <tr key={k.id} className="border-b border-border/30 transition hover:bg-muted/30">
+                    <td className="py-3">
+                      <p className="font-medium">{k.storeName ?? getStoreName(k.storeId)}</p>
+                      <p className="text-[10px] font-mono text-muted-foreground">{k.storeCode ?? getStoreCode(k.storeId)}</p>
+                    </td>
                     <td className="py-3 font-medium">{k.name}</td>
                     <td className="py-3">
                       <span className="font-mono text-xs text-muted-foreground">
-                        {k.prefix}<span className="text-foreground/50">••••</span>{k.lastFour}
+                        {k.keyPreview ?? `${k.prefix}••••${k.lastFour}`}
                       </span>
                     </td>
                     <td className="py-3">
@@ -213,7 +232,7 @@ export default function ApiKeysPage() {
                           <AlertDialogHeader>
                             <AlertDialogTitle>Revoke this API key?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              The key <span className="font-mono">{k.prefix}••••{k.lastFour}</span> ({k.name}) will be permanently revoked. Any application using it will lose access immediately. This cannot be undone.
+                              The key <span className="font-mono">{k.prefix}••••{k.lastFour}</span> ({k.name}) will be permanently revoked. This cannot be undone.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
@@ -245,6 +264,23 @@ export default function ApiKeysPage() {
           </DialogHeader>
 
           <div className="flex flex-col gap-4 py-2">
+            {/* Store — required */}
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="key-store">Store <span className="text-rose-400">*</span></Label>
+              <Select value={storeId} onValueChange={setStoreId}>
+                <SelectTrigger id="key-store">
+                  <SelectValue placeholder="Select a store" />
+                </SelectTrigger>
+                <SelectContent>
+                  {storeList.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name} {s.storeCode ? `(${s.storeCode})` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="key-name">Key name</Label>
               <Input
@@ -315,7 +351,7 @@ export default function ApiKeysPage() {
             <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
             <Button
               onClick={() => createMutation.mutate()}
-              disabled={!name.trim() || scopes.length === 0 || createMutation.isPending}
+              disabled={!name.trim() || !storeId || scopes.length === 0 || createMutation.isPending}
               className="gap-1.5"
             >
               {createMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
@@ -346,14 +382,14 @@ export default function ApiKeysPage() {
               <div className="flex items-center gap-2">
                 <Input
                   readOnly
-                  value={revealedKey.fullKey ?? ""}
+                  value={revealedKey.fullKey}
                   className="font-mono text-xs"
                   onFocus={(e) => e.currentTarget.select()}
                 />
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => copyToClipboard(revealedKey.fullKey ?? "", "API key copied")}
+                  onClick={() => copyToClipboard(revealedKey.fullKey, "API key copied")}
                 >
                   <Copy className="h-4 w-4" />
                 </Button>
@@ -367,7 +403,7 @@ export default function ApiKeysPage() {
                 )}>
                   {revealedKey.environment}
                 </Badge>
-                <span>Scopes: {revealedKey.scopes.join(", ")}</span>
+                <span>Scopes: {(revealedKey.scopes ?? []).join(", ")}</span>
               </div>
             </div>
           )}
@@ -383,7 +419,7 @@ export default function ApiKeysPage() {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Confirm you saved the key</AlertDialogTitle>
                   <AlertDialogDescription>
-                    The full key will be hidden forever once you close this dialog. You will only see the prefix and last 4 characters going forward. Continue?
+                    The full key will be hidden forever once you close this dialog. Continue?
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

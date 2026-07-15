@@ -190,16 +190,16 @@ export const subscriptions = {
 // ---- Developers ----
 export const apiKeys = {
   list: () => requestData<ApiKey[]>({ url: "api-keys", method: "GET" }),
-  create: (name: string, environment: "live" | "test", scopes: string[]) =>
-    requestData<ApiKey>({ url: "api-keys", method: "POST", data: { name, environment, scopes } }),
+  create: (data: { name: string; environment: "live" | "test"; scopes: string[]; storeId: string }) =>
+    requestData<ApiKey>({ url: "api-keys", method: "POST", data }),
   revoke: (id: string) =>
     requestData<{ ok: boolean }>({ url: `api-keys/${id}`, method: "DELETE" }),
 };
 
 export const webhooks = {
   list: () => requestData<Webhook[]>({ url: "webhooks", method: "GET" }),
-  create: (url: string, events: string[]) =>
-    requestData<Webhook>({ url: "webhooks", method: "POST", data: { url, events } }),
+  create: (data: { url: string; events: string[]; storeId: string }) =>
+    requestData<Webhook>({ url: "webhooks", method: "POST", data }),
   remove: (id: string) =>
     requestData<{ ok: boolean }>({ url: `webhooks/${id}`, method: "DELETE" }),
 };

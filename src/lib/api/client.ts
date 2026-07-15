@@ -7,60 +7,104 @@ import type { ApiError, ApiResponse } from "@/types";
 import { API_BASE_URL } from "@/config";
 
 /**
- * XPayments centralized API client.
+ * XPayments centralized API client — v2 storage architecture.
  *
- * - `request<T>()` — raw HTTP, returns `res.data` as-is (used by auth which has
- *   its own envelope mapping).
- * - `requestData<T>()` — unwraps the standard `{ success, data, message? }`
- *   envelope and returns `.data` directly. If `success === false` it throws an
- *   `ApiError`. If `.data` is null/undefined it returns `null` (callers must
- *   guard with `?? []` or `?.`).
- * - Request interceptor injects `Authorization: Bearer <token>`.
- * - Response interceptor handles 401 with a **request queue** (concurrent
- *   requests during refresh are queued, not dropped).
+ * Storage keys (v2):
+ *   xp-auth-v2     → { accessToken, refreshToken, user, authenticated }  (auth only)
+ *   xp-locale       → { locale }  (preferences — never cleared on logout)
+ *   xp-app-version  → frontend version string (triggers migration on change)
+ *
+ * Legacy keys (auto-cleaned on bootstrap):
+ *   xp-auth, xp_access_token, xp_refresh_token, xp_user
+ *
+ * tokenStore is the low-level accessor for the interceptor. It reads from
+ * the same xp-auth-v2 key that the Zustand persist middleware writes to,
+ * via a shared in-memory cache that stays in sync.
  */
 
-const STORAGE = {
-  access: "xp_access_token",
-  refresh: "xp_refresh_token",
-  user: "xp_user",
-};
+// ---- Shared in-memory auth state (synced with Zustand persist) ----
+let _accessToken: string | null = null;
+let _refreshToken: string | null = null;
+let _user: unknown = null;
 
+export function syncAuthState(access: string | null, refresh: string | null, user: unknown) {
+  _accessToken = access;
+  _refreshToken = refresh;
+  _user = user;
+}
+
+export function clearAuthState() {
+  _accessToken = null;
+  _refreshToken = null;
+  _user = null;
+}
+
+/** Low-level token access for the Axios interceptor. */
 export const tokenStore = {
-  get access() {
-    if (typeof window === "undefined") return null;
-    return localStorage.getItem(STORAGE.access);
-  },
-  get refresh() {
-    if (typeof window === "undefined") return null;
-    return localStorage.getItem(STORAGE.refresh);
-  },
-  get user() {
-    if (typeof window === "undefined") return null;
-    const raw = localStorage.getItem(STORAGE.user);
-    if (!raw) return null;
-    try {
-      return JSON.parse(raw);
-    } catch {
-      localStorage.removeItem(STORAGE.user);
-      return null;
-    }
-  },
+  get access() { return _accessToken; },
+  get refresh() { return _refreshToken; },
+  get user() { return _user; },
   set(access: string, refresh: string, user: unknown) {
-    if (typeof window === "undefined") return;
-    localStorage.setItem(STORAGE.access, access);
-    localStorage.setItem(STORAGE.refresh, refresh);
-    localStorage.setItem(STORAGE.user, JSON.stringify(user ?? null));
+    syncAuthState(access, refresh, user);
   },
   clear() {
-    if (typeof window === "undefined") return;
-    localStorage.removeItem(STORAGE.access);
-    localStorage.removeItem(STORAGE.refresh);
-    localStorage.removeItem(STORAGE.user);
+    clearAuthState();
   },
 };
 
-// ---- 401 refresh with request queue (fixes concurrent-401 bug) ----
+// ---- Legacy key cleanup (runs once on bootstrap) ----
+const LEGACY_KEYS = [
+  "xp-auth",           // old Zustand persist key
+  "xp_access_token",   // old raw token key
+  "xp_refresh_token",  // old raw refresh key
+  "xp_user",           // old raw user JSON
+  "xp-local",          // old locale key
+  "xpayments-auth",
+  "auth-storage",
+];
+
+const AUTH_STORAGE_KEY = "xp-auth-v2";
+const APP_VERSION_KEY = "xp-app-version";
+export const APP_STORAGE_VERSION = "2026.07.15.1";
+
+export function cleanupLegacyStorage() {
+  if (typeof window === "undefined") return;
+  for (const key of LEGACY_KEYS) {
+    localStorage.removeItem(key);
+  }
+  // Check app version — if changed, only clean auth (preserve preferences)
+  const storedVersion = localStorage.getItem(APP_VERSION_KEY);
+  if (storedVersion && storedVersion !== APP_STORAGE_VERSION) {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    localStorage.setItem(APP_VERSION_KEY, APP_STORAGE_VERSION);
+  } else if (!storedVersion) {
+    localStorage.setItem(APP_VERSION_KEY, APP_STORAGE_VERSION);
+  }
+}
+
+/** Bootstrap: load auth from xp-auth-v2 into in-memory cache. */
+export function bootstrapAuthStorage() {
+  if (typeof window === "undefined") return;
+  cleanupLegacyStorage();
+  try {
+    const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    const state = parsed?.state ?? parsed;
+    if (state?.accessToken) _accessToken = state.accessToken;
+    if (state?.refreshToken) _refreshToken = state.refreshToken;
+    if (state?.user) _user = state.user;
+  } catch {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+  }
+}
+
+// ---- Logout handler (called by interceptor on 401) ----
+let onLogout: ((reason?: string) => void) | null = null;
+export function registerLogoutHandler(fn: (reason?: string) => void) {
+  onLogout = fn;
+}
+
 let isRefreshing = false;
 let failedQueue: Array<{
   config: AxiosRequestConfig;
@@ -83,22 +127,9 @@ function processQueue(error: unknown, token: string | null) {
   failedQueue = [];
 }
 
-let onLogout: (() => void) | null = null;
-export function registerLogoutHandler(fn: () => void) {
-  onLogout = fn;
-}
-
-function forceLogout() {
-  tokenStore.clear();
-  onLogout?.();
-}
-
 export const api: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   timeout: 15000,
-  // Do NOT set Content-Type globally — let axios set it per-request based on
-  // the data type. Setting it globally can trigger CORS preflight on every
-  // request because it becomes a non-simple header.
 });
 
 // ---- Request interceptor: inject JWT ----
@@ -113,12 +144,13 @@ api.interceptors.request.use(
   (err) => Promise.reject(err)
 );
 
-// ---- Response interceptor: 401 → refresh with queue, else force logout ----
+// ---- Response interceptor: 401 → refresh once, else graceful logout ----
 api.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
+    // Auth routes are public — propagate 401 (bad credentials)
     const isAuthRoute =
       typeof original?.url === "string" &&
       (original.url.includes("auth/login") ||
@@ -132,17 +164,18 @@ api.interceptors.response.use(
       return Promise.reject(normalizeError(error));
     }
 
-    // Protected route: 401 → refresh once, queue concurrent requests
+    // Protected route: 401 → attempt single refresh
     if (error.response?.status === 401 && !original._retry) {
       if (isRefreshing) {
-        // Queue this request — it will be retried after the refresh completes
+        // Queue this request — will be retried after refresh completes
         return new Promise((resolve, reject) => {
           failedQueue.push({ config: original, resolve, reject });
         });
       }
 
       if (!tokenStore.refresh) {
-        forceLogout();
+        // No refresh token — graceful logout (preserves preferences)
+        onLogout?.("session_expired");
         return Promise.reject(normalizeError(error));
       }
 
@@ -156,11 +189,22 @@ api.interceptors.response.use(
           { headers: { "Content-Type": "application/json" } }
         );
         const newToken = data.data?.token ?? data.accessToken ?? data.token;
-        tokenStore.set(
-          newToken,
-          data.refreshToken ?? tokenStore.refresh,
-          data.user ?? data.data?.user ?? tokenStore.user
-        );
+        if (!newToken || typeof newToken !== "string") {
+          throw new Error("Invalid refresh response");
+        }
+        // Update in-memory + persisted state
+        syncAuthState(newToken, tokenStore.refresh ?? "", tokenStore.user);
+        // Also update localStorage directly (Zustand persist will sync on next state change)
+        try {
+          const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed?.state) {
+              parsed.state.accessToken = newToken;
+              localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(parsed));
+            }
+          }
+        } catch {}
         isRefreshing = false;
         processQueue(null, newToken);
         original.headers.set("Authorization", `Bearer ${newToken}`);
@@ -168,7 +212,8 @@ api.interceptors.response.use(
       } catch (refreshError) {
         isRefreshing = false;
         processQueue(refreshError, null);
-        forceLogout();
+        // Graceful logout — only clears auth, preserves locale/theme
+        onLogout?.("session_expired");
         return Promise.reject(normalizeError(error));
       }
     }
@@ -186,40 +231,27 @@ function normalizeError(err: unknown): ApiError {
       return { message: "Network error — could not reach the API.", code: err.code, status: 0 };
     }
     const data = err.response?.data as
-      | { message?: string; error?: string; code?: string; details?: unknown }
+      | { message?: string; error?: { code?: string; message?: string }; code?: string }
       | undefined;
     return {
-      message: data?.message || data?.error || err.message,
-      code: data?.code,
+      message: data?.error?.message || data?.message || err.message,
+      code: data?.error?.code || data?.code,
       status: err.response?.status,
     };
   }
   return { message: "Unexpected error", status: 500 };
 }
 
-/**
- * Raw request — returns `res.data` as-is. Used by auth endpoints that have
- * their own envelope mapping (`mapEnvelopeToSession`).
- */
+// ---- Typed request wrappers ----
+
 export async function request<T>(config: AxiosRequestConfig): Promise<T> {
   const res = await api(config);
   return res.data as T;
 }
 
-/**
- * Envelope-unwrapping request. Assumes the backend returns (API Contract v3.1):
- *   { success: true,  data: T, meta?: {} }
- *   { success: false, error: { code: "ERROR_CODE", message: "..." } }
- *
- * Returns `envelope.data` directly. If `success === false`, throws an `ApiError`
- * with the error code and message. If `envelope.data` is null/undefined,
- * returns null — callers MUST guard with `?? []` or optional chaining.
- */
 export async function requestData<T>(config: AxiosRequestConfig): Promise<T> {
   const res = await api(config);
   const envelope = res.data as ApiResponse<T>;
-
-  // Handle envelope responses
   if (envelope && typeof envelope === "object" && "success" in envelope) {
     if (!envelope.success) {
       const errMsg = envelope.error?.message || envelope.message || "Request failed.";
@@ -228,9 +260,7 @@ export async function requestData<T>(config: AxiosRequestConfig): Promise<T> {
     }
     return envelope.data as T;
   }
-
-  // No envelope — return raw data (backwards compatible)
   return res.data as T;
 }
 
-export { STORAGE };
+export { AUTH_STORAGE_KEY };

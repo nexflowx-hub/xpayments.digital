@@ -1,0 +1,35 @@
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="XPayments logo">
+  <defs>
+    <linearGradient id="xp-x-grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0080FF"/>
+      <stop offset="100%" stop-color="#00C8FF"/>
+    </linearGradient>
+    <radialGradient id="xp-emblem-shadow" cx="50%" cy="50%" r="52%">
+      <stop offset="78%" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.10"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Circular emblem (white with subtle drop shadow ring) -->
+  <circle cx="256" cy="256" r="248" fill="#FFFFFF"/>
+  <circle cx="256" cy="256" r="248" fill="url(#xp-emblem-shadow)"/>
+  <circle cx="256" cy="256" r="248" fill="none" stroke="#F0F0F0" stroke-width="1.5"/>
+
+  <!--
+    The X = four triangular/trapezoidal arms in a cross formation (45°/135°/225°/315°),
+    meeting at a central diamond. Top-left & bottom-right arms use vibrant blue (#0080FF),
+    top-right & bottom-left use bright cyan (#00C8FF) for a dynamic two-tone.
+    Each arm is a quadrilateral tapering from outer edge to the center.
+  -->
+  <!-- Top-left arm (vibrant blue) -->
+  <polygon points="120,120 168,120 256,256 168,256" fill="#0080FF"/>
+  <!-- Top-right arm (bright cyan) -->
+  <polygon points="344,120 392,120 344,256 256,256" fill="#00C8FF"/>
+  <!-- Bottom-left arm (bright cyan) -->
+  <polygon points="120,392 168,392 168,256 256,256" fill="#00C8FF"/>
+  <!-- Bottom-right arm (vibrant blue) -->
+  <polygon points="344,392 392,392 256,256 344,256" fill="#0080FF"/>
+
+  <!-- Central diamond accent (darker blue) -->
+  <polygon points="256,224 288,256 256,288 224,256" fill="#0066CC"/>
+</svg>

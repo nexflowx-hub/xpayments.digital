@@ -5,64 +5,66 @@ import { persist } from "zustand/middleware";
 import type { AuthSession, RegisterPayload, User, UserRole } from "@/types";
 import { auth as authApi } from "@/lib/api/xpApi";
 import {
-  tokenStore,
-  registerLogoutHandler,
-  syncAuthState,
-  clearAuthState,
-  bootstrapAuthStorage,
-  AUTH_STORAGE_KEY,
+  XP_STORAGE_KEYS,
   APP_STORAGE_VERSION,
-} from "@/lib/api/client";
+  clearAuthenticationStorage,
+  migrateClientStorage,
+} from "@/lib/storage/xp-storage";
+
+export type SessionStatus = "hydrating" | "checking" | "authenticated" | "unauthenticated";
 
 interface AuthState {
   user: User | null;
   accessToken: string | null;
   refreshToken: string | null;
-  isAuthenticated: boolean;
+  authenticated: boolean;
   isLoading: boolean;
   hydrated: boolean;
   sessionChecked: boolean;
+  sessionStatus: SessionStatus;
+  networkError: boolean;
   login: (email: string, password: string, remember?: boolean) => Promise<User>;
   register: (data: RegisterPayload) => Promise<User>;
   logout: (opts?: { preservePreferences?: boolean; reason?: string }) => void;
+  clearSession: (opts?: { preservePreferences?: boolean; reason?: string }) => void;
   hydrate: () => void;
+  retrySession: () => void;
   hasRole: (...roles: UserRole[]) => boolean;
 }
 
-/**
- * Auth store v2 — versioned, migrated, with session validation.
- *
- * Storage: xp-auth-v2 (version: 2)
- * Contains ONLY: accessToken, refreshToken, user, isAuthenticated
- * Preferences (locale, theme) are in separate stores and NEVER cleared on logout.
- *
- * Bootstrap flow:
- *   1. bootstrapAuthStorage() loads from localStorage into in-memory cache
- *   2. hydrate() sets hydrated=true, then calls auth/me to validate
- *   3. If token invalid → graceful logout (preserves preferences)
- *   4. sessionChecked=true → page.tsx renders the correct view
- */
+// In-memory token cache (synced with persist)
+let _memToken: string | null = null;
+let _memRefresh: string | null = null;
+let _memUser: unknown = null;
+
+export function getMemToken() { return _memToken; }
+export function getMemRefresh() { return _memRefresh; }
+export function getMemUser() { return _memUser; }
+export function setMemAuth(token: string | null, refresh: string | null, user: unknown) {
+  _memToken = token; _memRefresh = refresh; _memUser = user;
+}
+
+let _onLogout: ((reason?: string) => void) | null = null;
+export function registerLogoutHandler(fn: (reason?: string) => void) { _onLogout = fn; }
+
 export const useAuth = create<AuthState>()(
   persist(
     (set, get) => {
-      // Bootstrap in-memory cache from localStorage on first load
+      // Bootstrap: migrate + load from localStorage into memory
       if (typeof window !== "undefined") {
-        bootstrapAuthStorage();
-      }
-
-      // Wire logout handler — called by interceptor on 401
-      if (typeof window !== "undefined") {
+        migrateClientStorage();
+        try {
+          const raw = localStorage.getItem(XP_STORAGE_KEYS.auth);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            const state = parsed?.state ?? parsed;
+            if (state?.accessToken) { _memToken = state.accessToken; _memRefresh = state.refreshToken; _memUser = state.user; }
+          }
+        } catch { /* ignore */ }
         registerLogoutHandler((reason?: string) => {
-          // Only clear auth — NEVER touch locale/theme/preferences
-          clearAuthState();
-          set({
-            user: null,
-            accessToken: null,
-            refreshToken: null,
-            isAuthenticated: false,
-            isLoading: false,
-            sessionChecked: true,
-          });
+          clearAuthenticationStorage();
+          _memToken = null; _memRefresh = null; _memUser = null;
+          set({ user: null, accessToken: null, refreshToken: null, authenticated: false, isLoading: false, sessionChecked: true, sessionStatus: "unauthenticated", networkError: false });
         });
       }
 
@@ -70,114 +72,82 @@ export const useAuth = create<AuthState>()(
         user: null,
         accessToken: null,
         refreshToken: null,
-        isAuthenticated: false,
+        authenticated: false,
         isLoading: false,
         hydrated: false,
         sessionChecked: false,
+        sessionStatus: "hydrating",
+        networkError: false,
 
         login: async (email, password, remember = false) => {
           set({ isLoading: true });
           try {
             const session: AuthSession = await authApi.login(email, password, remember);
-            syncAuthState(session.accessToken, session.refreshToken, session.user);
-            set({
-              user: session.user,
-              accessToken: session.accessToken,
-              refreshToken: session.refreshToken,
-              isAuthenticated: true,
-              isLoading: false,
-              hydrated: true,
-              sessionChecked: true,
-            });
+            _memToken = session.accessToken; _memRefresh = session.refreshToken; _memUser = session.user;
+            set({ user: session.user, accessToken: session.accessToken, refreshToken: session.refreshToken, authenticated: true, isLoading: false, hydrated: true, sessionChecked: true, sessionStatus: "authenticated", networkError: false });
             return session.user;
-          } catch (e) {
-            set({ isLoading: false });
-            throw e;
-          }
+          } catch (e) { set({ isLoading: false }); throw e; }
         },
 
         register: async (data) => {
           set({ isLoading: true });
           try {
             const session: AuthSession = await authApi.register(data);
-            syncAuthState(session.accessToken, session.refreshToken, session.user);
-            set({
-              user: session.user,
-              accessToken: session.accessToken,
-              refreshToken: session.refreshToken,
-              isAuthenticated: true,
-              isLoading: false,
-              hydrated: true,
-              sessionChecked: true,
-            });
+            _memToken = session.accessToken; _memRefresh = session.refreshToken; _memUser = session.user;
+            set({ user: session.user, accessToken: session.accessToken, refreshToken: session.refreshToken, authenticated: true, isLoading: false, hydrated: true, sessionChecked: true, sessionStatus: "authenticated", networkError: false });
             return session.user;
-          } catch (e) {
-            set({ isLoading: false });
-            throw e;
-          }
+          } catch (e) { set({ isLoading: false }); throw e; }
         },
 
         logout: (opts?: { preservePreferences?: boolean; reason?: string }) => {
-          // Best-effort server logout
           authApi.logout().catch(() => {});
-          // Clear auth state ONLY — preservePreferences is always true
-          // (locale and theme are in separate stores)
-          clearAuthState();
-          set({
-            user: null,
-            accessToken: null,
-            refreshToken: null,
-            isAuthenticated: false,
-            isLoading: false,
-            sessionChecked: true,
-          });
+          clearAuthenticationStorage();
+          _memToken = null; _memRefresh = null; _memUser = null;
+          set({ user: null, accessToken: null, refreshToken: null, authenticated: false, isLoading: false, sessionChecked: true, sessionStatus: "unauthenticated", networkError: false });
+        },
+
+        clearSession: (opts?: { preservePreferences?: boolean; reason?: string }) => {
+          clearAuthenticationStorage();
+          _memToken = null; _memRefresh = null; _memUser = null;
+          set({ user: null, accessToken: null, refreshToken: null, authenticated: false, isLoading: false, sessionChecked: true, sessionStatus: "unauthenticated", networkError: false });
         },
 
         hydrate: () => {
-          // Load from in-memory cache (populated by bootstrapAuthStorage)
-          const token = tokenStore.access;
-          const user = tokenStore.user as User | null;
-          const refreshToken = tokenStore.refresh;
-
+          const token = _memToken;
+          const user = _memUser as User | null;
           if (token && user) {
-            // We have a token — mark as hydrated, then validate server-side
-            set({
-              user,
-              accessToken: token,
-              refreshToken,
-              isAuthenticated: true,
-              hydrated: true,
-              sessionChecked: false, // will be set true after auth/me resolves
-            });
-
-            // Validate session server-side
+            set({ user, accessToken: token, refreshToken: _memRefresh, authenticated: true, hydrated: true, sessionStatus: "checking", sessionChecked: false });
+            // Validate server-side
             authApi.me()
               .then((meUser) => {
-                if (meUser && tokenStore.access) {
-                  syncAuthState(tokenStore.access, tokenStore.refresh ?? "", meUser);
-                  set({ user: meUser as User, isAuthenticated: true, sessionChecked: true });
+                if (meUser) {
+                  _memUser = meUser;
+                  set({ user: meUser as User, authenticated: true, sessionChecked: true, sessionStatus: "authenticated", networkError: false });
                 } else {
-                  // me() returned null/empty — treat as unauthenticated
-                  clearAuthState();
-                  set({ user: null, accessToken: null, isAuthenticated: false, sessionChecked: true });
+                  clearAuthenticationStorage();
+                  _memToken = null; _memRefresh = null; _memUser = null;
+                  set({ user: null, accessToken: null, authenticated: false, sessionChecked: true, sessionStatus: "unauthenticated" });
                 }
               })
-              .catch(() => {
-                // 401 → interceptor already called onLogout → state is clean
-                // Just mark session as checked so the UI can proceed
-                set({ sessionChecked: true });
+              .catch((err: any) => {
+                const status = err?.status;
+                if (status === 401 || status === 403) {
+                  clearAuthenticationStorage();
+                  _memToken = null; _memRefresh = null; _memUser = null;
+                  set({ user: null, accessToken: null, authenticated: false, sessionChecked: true, sessionStatus: "unauthenticated" });
+                } else {
+                  // Network error (500, 502, 503, 0) — DON'T clear session
+                  set({ sessionChecked: true, sessionStatus: "unauthenticated", networkError: true });
+                }
               });
           } else {
-            // No token — unauthenticated
-            set({
-              user: null,
-              accessToken: null,
-              refreshToken: null,
-              isAuthenticated: false,
-              hydrated: true,
-              sessionChecked: true,
-            });
+            set({ user: null, accessToken: null, refreshToken: null, authenticated: false, hydrated: true, sessionChecked: true, sessionStatus: "unauthenticated", networkError: false });
           }
+        },
+
+        retrySession: () => {
+          set({ sessionStatus: "checking", sessionChecked: false, networkError: false });
+          get().hydrate();
         },
 
         hasRole: (...roles) => {
@@ -187,25 +157,17 @@ export const useAuth = create<AuthState>()(
       };
     },
     {
-      name: AUTH_STORAGE_KEY, // "xp-auth-v2"
+      name: XP_STORAGE_KEYS.auth,
       version: 2,
-      // Persist ONLY auth fields — never preferences
       partialize: (s) => ({
         accessToken: s.accessToken,
         refreshToken: s.refreshToken,
         user: s.user,
-        isAuthenticated: s.isAuthenticated,
+        authenticated: s.authenticated,
       }),
-      // Migration: if version < 2, start fresh
       migrate: (persistedState: unknown, version: number) => {
         if (version < 2) {
-          // Old format — discard, start clean
-          return {
-            accessToken: null,
-            refreshToken: null,
-            user: null,
-            isAuthenticated: false,
-          };
+          return { accessToken: null, refreshToken: null, user: null, authenticated: false };
         }
         return persistedState as Partial<AuthState>;
       },

@@ -49,6 +49,8 @@ export default function ApiKeysPage() {
   const [revealedKey, setRevealedKey] = React.useState<{ fullKey: string; name: string; environment: string; scopes: string[] } | null>(null);
   const [confirmSaved, setConfirmSaved] = React.useState(false);
   const [revealedKeyIds, setRevealedKeyIds] = React.useState<Set<string>>(new Set());
+  const [revealedKeys, setRevealedKeys] = React.useState<Record<string, string>>({});
+  const [revealLoadingId, setRevealLoadingId] = React.useState<string | null>(null);
 
   const toggleReveal = (id: string) =>
     setRevealedKeyIds((prev) => {
@@ -204,11 +206,11 @@ export default function ApiKeysPage() {
                     <td className="py-3">
                       <div className="flex items-center gap-1.5">
                         <span className="font-mono text-xs text-muted-foreground">
-                          {revealedKeyIds.has(k.id) && k.fullKey
-                            ? k.fullKey
+                          {revealedKeyIds.has(k.id) && (revealedKeys[k.id] || k.fullKey)
+                            ? (revealedKeys[k.id] || k.fullKey)
                             : k.keyPreview ?? `${k.prefix}••••${k.lastFour}`}
                         </span>
-                        {k.fullKey && (
+                        {(revealedKeys[k.id] || k.fullKey) && (
                           <button
                             onClick={() => toggleReveal(k.id)}
                             className="text-muted-foreground transition hover:text-foreground"
@@ -219,8 +221,8 @@ export default function ApiKeysPage() {
                         )}
                         <button
                           onClick={() => copyToClipboard(
-                            revealedKeyIds.has(k.id) && k.fullKey
-                              ? k.fullKey
+                            revealedKeyIds.has(k.id) && (revealedKeys[k.id] || k.fullKey)
+                              ? (revealedKeys[k.id] || k.fullKey)
                               : k.keyPreview ?? `${k.prefix}••••${k.lastFour}`,
                             "Key copied"
                           )}
@@ -258,7 +260,30 @@ export default function ApiKeysPage() {
                       {k.lastUsedAt ? timeAgo(k.lastUsedAt) : "Never"}
                     </td>
                     <td className="py-3 text-right">
-                      <AlertDialog>
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="gap-1 text-primary hover:bg-primary/10"
+                          disabled={revealLoadingId === k.id}
+                          onClick={async () => {
+                            setRevealLoadingId(k.id);
+                            try {
+                              const revealed = await xpApi.apiKeys.reveal(k.id);
+                              setRevealedKeys((prev) => ({ ...prev, [k.id]: revealed.fullKey }));
+                              setRevealedKeyIds((prev) => { const n = new Set(prev); n.add(k.id); return n; });
+                              toast.success("Key revealed — copy it now");
+                            } catch {
+                              toast.error("Could not reveal key");
+                            } finally {
+                              setRevealLoadingId(null);
+                            }
+                          }}
+                        >
+                          {revealLoadingId === k.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
+                          View
+                        </Button>
+                        <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button variant="ghost" size="sm" className="gap-1 text-rose-400 hover:bg-rose-500/10 hover:text-rose-300">
                             <Trash2 className="h-3.5 w-3.5" /> Revoke
@@ -282,6 +307,7 @@ export default function ApiKeysPage() {
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
+                      </div>
                     </td>
                   </tr>
                 ))}

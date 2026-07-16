@@ -1,4 +1,4 @@
-import { request, requestData, tokenStore } from "./client";
+import { request, requestData } from "./client";
 import type {
   AdminMerchant,
   AnalyticsOverview,
@@ -94,7 +94,7 @@ export const auth = {
     request<{ success: boolean; message?: string }>({ url: "auth/reset", method: "POST", data: { token, password } }),
   me: () => requestData<User>({ url: "auth/me", method: "GET" }),
   logout: () =>
-    request<{ success: boolean }>({ url: "auth/logout", method: "POST" }).catch(() => {}).then(() => tokenStore.clear()),
+    request<{ success: boolean }>({ url: "auth/logout", method: "POST" }).catch(() => {}),
 };
 
 // ---- Analytics (v3.1: GET /analytics/overview) ----
@@ -192,6 +192,8 @@ export const apiKeys = {
   list: () => requestData<ApiKey[]>({ url: "api-keys", method: "GET" }),
   create: (data: { name: string; environment: "live" | "test"; scopes: string[]; storeId: string }) =>
     requestData<ApiKey>({ url: "api-keys", method: "POST", data }),
+  reveal: (id: string) =>
+    requestData<ApiKey & { fullKey: string }>({ url: `api-keys/${id}/reveal`, method: "POST" }),
   revoke: (id: string) =>
     requestData<{ ok: boolean }>({ url: `api-keys/${id}`, method: "DELETE" }),
 };

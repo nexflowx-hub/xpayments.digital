@@ -62,3 +62,43 @@ Stage Summary:
 - All brand assets replaced with new official gold coin logo
 - 14 files committed and pushed to GitHub main branch
 - Build passes, zero new errors
+
+---
+Task ID: 3
+Agent: main
+Task: Replace logo with official version (transparent bg, dark-theme integration)
+
+Work Log:
+- Analyzed uploaded logo (ChatGPT Image 15 de jul. de 2026, 21_11_39 - Copia.png)
+  - 1254x1254 RGB (no alpha), circular logo on white (#FEFEFE) background
+  - Black outer ring (~10px), green X symbol, "XPayments .DIGITAL" text
+- Pixel-level analysis:
+  - Logo radius ~596px from center (1204px diameter in 1254px frame)
+  - Edge: sharp dark→white transition at r=596 (RGB(53,53,55)→RGB(255,255,255))
+  - 396 anti-aliased transition pixels around circumference (brightness 30-208)
+  - Background: off-white RGB(254,254,254) — not pure white
+- Background removal strategy:
+  - Threshold 235: brightness > 235 → alpha=0 (transparent)
+  - Transition zone 200-235: gradual alpha fade (smooth edge)
+  - Below 200: fully opaque (all logo content)
+  - Anti-aliased edge pixels stay opaque with their dark gray colors → blend naturally with dark theme
+- Critical workflow: **resize FIRST from original (white bg intact), THEN remove white**
+  - Prevents LANCZOS from creating semi-transparent interior pixels
+  - Verified: favicon 32x32 center = all a=255 (was a=191-249 before fix)
+- Generated all sizes from 1204x1204 cropped original:
+  - favicon-32.png (2.7 KB, 15 semi-transparent edge pixels only)
+  - icon-192.png (59.2 KB), icon-512.png (368.3 KB)
+  - icon-maskable-192/512, apple-touch-icon (180x180)
+  - og-image.png (1200x1200, 1856 KB)
+  - logo.png (1024x1024, master), logo-1024.png
+- Created preview composites against dark (#0B1220) and light (#FFF) backgrounds
+- SVG wrappers updated (favicon.svg 3.8KB, logo.svg/logo-symbol.svg 79KB)
+- XSymbol component updated (img tag → /logo-symbol.svg)
+- Build: `npx next build` passes cleanly
+- Pushed to GitHub: commit e20ea9a (13 files changed)
+
+Stage Summary:
+- New official logo with pixel-perfect transparent background
+- Black ring integrates seamlessly with dark theme (#0B1220)
+- Zero interior semi-transparent artifacts (resize-then-remove workflow)
+- 13 files committed and pushed to GitHub main branch

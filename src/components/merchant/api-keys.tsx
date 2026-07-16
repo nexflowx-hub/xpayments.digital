@@ -4,7 +4,7 @@ import * as React from "react";
 import { motion } from "framer-motion";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
-  KeyRound, Plus, Copy, Trash2, Loader2, ShieldAlert, CheckCircle2, Store,
+  Eye, EyeOff, KeyRound, Plus, Copy, Trash2, Loader2, ShieldAlert, CheckCircle2, Store,
 } from "lucide-react";
 import { useApiKeys, useStores } from "@/hooks/queries";
 import { xpApi } from "@/lib/api/xpApi";
@@ -206,11 +206,16 @@ export default function ApiKeysPage() {
                     <td className="py-3">
                       <div className="flex items-center gap-1.5">
                         <span className="font-mono text-xs text-muted-foreground">
-                          {revealedKeyIds.has(k.id) && (revealedKeys[k.id] || k.fullKey)
-                            ? (revealedKeys[k.id] || k.fullKey)
-                            : k.keyPreview ?? `${k.prefix}••••${k.lastFour}`}
+                          {(() => {
+                            const keyValue = k.fullKey ?? k.keyPreview ?? `${k.prefix}••••${k.lastFour}`;
+                            const revealedValue = revealedKeys[k.id];
+                            if (revealedKeyIds.has(k.id) && revealedValue) {
+                              return revealedValue;
+                            }
+                            return k.keyPreview ?? `${k.prefix}••••${k.lastFour}`;
+                          })()}
                         </span>
-                        {(revealedKeys[k.id] || k.fullKey) && (
+                        {(revealedKeys[k.id] || k.fullKey) ? (
                           <button
                             onClick={() => toggleReveal(k.id)}
                             className="text-muted-foreground transition hover:text-foreground"
@@ -218,11 +223,18 @@ export default function ApiKeysPage() {
                           >
                             {revealedKeyIds.has(k.id) ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
                           </button>
+                        ) : (
+                          <span
+                            className="text-muted-foreground/50"
+                            title="The full key is only available at creation time."
+                          >
+                            <Eye className="h-3 w-3" />
+                          </span>
                         )}
                         <button
                           onClick={() => copyToClipboard(
-                            revealedKeyIds.has(k.id) && (revealedKeys[k.id] || k.fullKey)
-                              ? (revealedKeys[k.id] || k.fullKey)
+                            revealedKeyIds.has(k.id) && revealedKeys[k.id]
+                              ? revealedKeys[k.id]
                               : k.keyPreview ?? `${k.prefix}••••${k.lastFour}`,
                             "Key copied"
                           )}
@@ -270,9 +282,13 @@ export default function ApiKeysPage() {
                             setRevealLoadingId(k.id);
                             try {
                               const revealed = await xpApi.apiKeys.reveal(k.id);
-                              setRevealedKeys((prev) => ({ ...prev, [k.id]: revealed.fullKey }));
-                              setRevealedKeyIds((prev) => { const n = new Set(prev); n.add(k.id); return n; });
-                              toast.success("Key revealed — copy it now");
+                              if (revealed.fullKey) {
+                                setRevealedKeys((prev) => ({ ...prev, [k.id]: revealed.fullKey }));
+                                setRevealedKeyIds((prev) => { const n = new Set(prev); n.add(k.id); return n; });
+                                toast.success("Key revealed — copy it now");
+                              } else {
+                                toast.error("The full key is only available at creation time.");
+                              }
                             } catch {
                               toast.error("Could not reveal key");
                             } finally {

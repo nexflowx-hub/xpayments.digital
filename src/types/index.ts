@@ -388,6 +388,160 @@ export interface SystemHealth {
   workers: { name: string; active: number; idle: number; region: string }[];
 }
 
+// ---- Financial Evolution ----
+export type FinancialPeriod = "today" | "7d" | "30d" | "month" | "custom";
+
+export interface FinancialSummary {
+  /** Vendas brutas hoje */
+  grossToday?: number;
+  /** Taxas registradas hoje */
+  feesToday?: number;
+  /** Vendas líquidas hoje */
+  netToday?: number;
+  /** Vendas brutas esta semana */
+  grossWeek?: number;
+  /** Vendas líquidas esta semana */
+  netWeek?: number;
+  /** Vendas brutas no mês */
+  grossMonth?: number;
+  /** Taxas registradas no mês */
+  feesMonth?: number;
+  /** Vendas líquidas no mês */
+  netMonth?: number;
+  /** Vendas brutas total */
+  grossTotal?: number;
+  /** Taxas registradas total */
+  feesTotal?: number;
+  /** Vendas líquidas total */
+  netTotal?: number;
+  /** Pendente de liberação */
+  pending?: number;
+  /** Wallet total (pending + available + reserved + reconciliation) */
+  walletTotal?: number;
+  /** Disponível para payout */
+  available?: number;
+  /** Próxima liberação (valor) */
+  nextReleaseAmount?: number;
+  /** Próxima liberação (data ISO) */
+  nextReleaseDate?: string;
+  /** Saídas previstas (payouts scheduled, não realizados) */
+  scheduledPayouts?: number;
+  /** Disponível projetado (available − scheduledPayouts) */
+  projectedAvailable?: number;
+  /** Total já pago em payouts */
+  totalPaid?: number;
+  /** Moeda principal */
+  currency?: CurrencyCode;
+}
+
+export interface FinancialChartPoint {
+  date: string;
+  gross: number;
+  fees: number;
+  net: number;
+}
+
+export type ReleaseStatus =
+  | "pending"
+  | "expected"
+  | "partially_released"
+  | "released"
+  | "held"
+  | "reconciliation";
+
+export interface Release {
+  id: string;
+  storeId: string;
+  storeName?: string;
+  storeCode?: string;
+  expectedDate: string;
+  grossAmount: number;
+  fees: number;
+  netAmount: number;
+  releasedAmount: number;
+  remainingAmount: number;
+  status: ReleaseStatus;
+  currency: CurrencyCode;
+  createdAt: string;
+  releasedAt?: string;
+}
+
+export type PayoutStatus = "draft" | "scheduled" | "paid" | "cancelled";
+
+export interface PayoutStatement {
+  id: string;
+  number: string;
+  storeIds: string[];
+  storeNames?: string[];
+  amount: number;
+  currency: CurrencyCode;
+  scheduledDate: string;
+  paidDate?: string;
+  status: PayoutStatus;
+  reference?: string;
+  description?: string;
+  createdAt: string;
+  updatedAt?: string;
+  timeline?: PayoutTimelineEvent[];
+}
+
+export interface PayoutTimelineEvent {
+  status: PayoutStatus;
+  date: string;
+  description?: string;
+}
+
+export type FinancialMovementType =
+  | "sale"
+  | "fee"
+  | "refund"
+  | "chargeback"
+  | "release"
+  | "payout"
+  | "payout_cancel"
+  | "adjustment";
+
+export interface FinancialMovement {
+  id: string;
+  type: FinancialMovementType;
+  amount: number;
+  currency: CurrencyCode;
+  description: string;
+  reference?: string;
+  storeId?: string;
+  storeName?: string;
+  storeCode?: string;
+  createdAt: string;
+  balanceAfter?: number;
+}
+
+export interface StoreFinancials {
+  storeId: string;
+  storeName: string;
+  storeCode?: string;
+  gross: number;
+  fees: number;
+  net: number;
+  pending: number;
+  released: number;
+  scheduledPayouts: number;
+  paidPayouts: number;
+  operationalBalance: number;
+  currency: CurrencyCode;
+}
+
+export interface FinancialFilters {
+  period?: FinancialPeriod;
+  from?: string;
+  to?: string;
+  storeId?: string;
+  status?: string;
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortDir?: "asc" | "desc";
+}
+
 // ---- Generic API ----
 export interface Paginated<T> {
   data: T[];

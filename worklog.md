@@ -102,3 +102,49 @@ Stage Summary:
 - Black ring integrates seamlessly with dark theme (#0B1220)
 - Zero interior semi-transparent artifacts (resize-then-remove workflow)
 - 13 files committed and pushed to GitHub main branch
+
+---
+Task ID: 4
+Agent: main
+Task: Financial Evolution — dashboard + fluxo financeiro (feature branch)
+
+Work Log:
+- Created branch `feat/financial-evolution` from main
+- Defined 7 new TypeScript types in src/types/index.ts:
+  - FinancialSummary (14 optional fields for all KPIs)
+  - FinancialChartPoint (date, gross, fees, net)
+  - FinancialPeriod, FinancialFilters
+  - Release (6 statuses, store linkage, amounts)
+  - PayoutStatement (4 statuses, timeline, multi-store)
+  - FinancialMovement (8 types, balance tracking)
+  - StoreFinancials (per-store analytical breakdown)
+- Added 6 new API endpoints in src/lib/api/xpApi.ts:
+  - financial.summary(), financial.chart()
+  - financial.releases(), financial.payouts()
+  - financial.movements(), financial.byStore()
+- Added 6 new query hooks in src/hooks/queries.ts
+- Created src/components/merchant/financial-dashboard.tsx:
+  - 10 KPI stat cards (gross today, net today, net month, pending, wallet, available, next release, scheduled payouts, projected available, total paid)
+  - Chart section with Bruto/Taxas/Líquido toggle
+  - Period selector (Hoje, 7 dias, 30 dias, Mês, Intervalo custom)
+  - Custom date range inputs
+  - All values from API — undefined shown as '—' never 0
+- Created src/components/merchant/financial-flow.tsx:
+  - 5 tabs: Resumo, Liberações, Saídas e Payouts, Movimentos, Por Store
+  - Generic DataTable with pagination, status/store filters
+  - Resumo tab: summary table
+  - Liberações tab: release schedule with 6 statuses
+  - Saídas tab: payout statements with 4 statuses
+  - Movimentos tab: all financial movements with 8 types
+  - Por Store tab: per-store analytical breakdown (9 columns)
+- Updated view-router: dashboard → financial-dashboard, added financial-flow route
+- Build passes cleanly
+- Pushed to GitHub: branch feat/financial-evolution, commit f756121
+- GitHub PR link provided for review before merging
+
+Stage Summary:
+- 6 files changed, 843 insertions, 4 deletions
+- All rules followed: no frontend calculations, no mock data, missing values as '—'
+- Taxas (not Revenue), no provider/XPAYMENTS fee separation
+- Scheduled payouts only affect projected available (not real wallet)
+- On feature branch, NOT on main — awaits backend contract validation

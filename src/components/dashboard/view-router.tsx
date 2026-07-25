@@ -98,13 +98,14 @@ const lazy = (loader: () => Promise<{ default: React.ComponentType }>) =>
   dynamic(loader, { loading: () => <PageFallback />, ssr: false });
 
 const merchantPages: Record<string, React.ComponentType> = {
-  dashboard: lazy(() => import("@/components/merchant/dashboard")),
+  dashboard: lazy(() => import("@/components/merchant/financial-dashboard")),
   analytics: lazy(() => import("@/components/merchant/analytics")),
   risk: lazy(() => import("@/components/merchant/risk")),
   payments: lazy(() => import("@/components/merchant/payments")),
   wallets: lazy(() => import("@/components/merchant/wallets")),
   fx: lazy(() => import("@/components/merchant/fx")),
   treasury: lazy(() => import("@/components/merchant/treasury")),
+  "financial-flow": lazy(() => import("@/components/merchant/financial-flow")),
   stores: lazy(() => import("@/components/merchant/stores")),
   products: lazy(() => import("@/components/merchant/products")),
   customers: lazy(() => import("@/components/merchant/customers")),

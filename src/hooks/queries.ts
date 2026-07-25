@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { xpApi } from "@/lib/api/xpApi";
-import type { DataTableFilters, CurrencyCode, Wallet, WalletsResponse } from "@/types";
+import type { DataTableFilters, CurrencyCode, FinancialFilters, Wallet, WalletsResponse } from "@/types";
 
 // ---- Analytics ----
 export function useAnalyticsOverview() {
@@ -119,4 +119,43 @@ export function useAdminHealth() {
 }
 export function useAdminRevenue() {
   return useQuery({ queryKey: ["admin", "revenue"], queryFn: () => xpApi.admin.revenue() });
+}
+
+// ---- Financial Evolution ----
+export function useFinancialSummary(params?: { period?: string; from?: string; to?: string }) {
+  return useQuery({
+    queryKey: ["financial", "summary", params],
+    queryFn: () => xpApi.financial.summary(params),
+  });
+}
+export function useFinancialChart(params: { period?: string; from?: string; to?: string } = {}) {
+  return useQuery({
+    queryKey: ["financial", "chart", params],
+    queryFn: () => xpApi.financial.chart(params),
+  });
+}
+export function useReleases(filters?: FinancialFilters) {
+  return useQuery({
+    queryKey: ["financial", "releases", filters],
+    queryFn: () => xpApi.financial.releases(filters),
+  });
+}
+export function usePayouts(filters?: FinancialFilters) {
+  return useQuery({
+    queryKey: ["financial", "payouts", filters],
+    queryFn: () => xpApi.financial.payouts(filters),
+  });
+}
+export function useFinancialMovements(filters?: FinancialFilters) {
+  return useQuery({
+    queryKey: ["financial", "movements", filters],
+    queryFn: () => xpApi.financial.movements(filters),
+  });
+}
+export function useFinancialByStore(params?: { period?: string; from?: string; to?: string }) {
+  return useQuery({
+    queryKey: ["financial", "by-store", params],
+    queryFn: () => xpApi.financial.byStore(params),
+    select: (d) => d ?? [],
+  });
 }

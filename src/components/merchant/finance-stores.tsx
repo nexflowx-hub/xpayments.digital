@@ -34,6 +34,15 @@ export default function FinanceStoresPage() {
   const { data: storesRes, isLoading, isError, error, refetch, isFetching } = useFinanceStores();
   const [showAll, setShowAll] = React.useState(false);
 
+  const allItems: FinanceStore[] = storesRes?.stores ?? [];
+  const cur = storesRes?.currency ?? "EUR";
+
+  const filteredItems = React.useMemo(() => {
+    const visible = allItems.filter((s) => !HIDDEN_STORES.includes(s.storeCode?.toUpperCase() ?? "") && !HIDDEN_STORES.includes(s.storeName?.toUpperCase() ?? ""));
+    if (showAll) return visible;
+    return visible.filter(hasActivity);
+  }, [allItems, showAll]);
+
   if (isError) {
     const msg = (error as { message?: string })?.message ?? "Failed to load store data.";
     return (
@@ -43,15 +52,6 @@ export default function FinanceStoresPage() {
       </div>
     );
   }
-
-  const allItems: FinanceStore[] = storesRes?.items ?? [];
-  const summary = storesRes?.summary;
-
-  const filteredItems = React.useMemo(() => {
-    const visible = allItems.filter((s) => !HIDDEN_STORES.includes(s.storeCode?.toUpperCase() ?? "") && !HIDDEN_STORES.includes(s.storeName?.toUpperCase() ?? ""));
-    if (showAll) return visible;
-    return visible.filter(hasActivity);
-  }, [allItems, showAll]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -77,35 +77,7 @@ export default function FinanceStoresPage() {
         }
       />
 
-      {/* Summary */}
-      {isLoading ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
-        </div>
-      ) : summary ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Card className="border-border/60 bg-card/60 p-4 backdrop-blur-xl">
-            <p className="text-xs text-muted-foreground">{t("finance.totalGross")}</p>
-            <p className="mt-1 font-mono text-lg font-semibold tabular-nums">
-              {formatCurrency(summary.totalGross, "EUR")}
-            </p>
-          </Card>
-          <Card className="border-border/60 bg-card/60 p-4 backdrop-blur-xl">
-            <p className="text-xs text-muted-foreground">{t("finance.registeredFees")}</p>
-            <p className="mt-1 font-mono text-lg font-semibold tabular-nums">
-              {formatCurrency(summary.totalFees, "EUR")}
-            </p>
-          </Card>
-          <Card className="border-border/60 bg-card/60 p-4 backdrop-blur-xl">
-            <p className="text-xs text-muted-foreground">{t("finance.totalNet")}</p>
-            <p className="mt-1 font-mono text-lg font-semibold tabular-nums text-emerald-400">
-              {formatCurrency(summary.totalNet, "EUR")}
-            </p>
-          </Card>
-        </div>
-      ) : null}
-
-      {/* Stores table */}
+      {/* Stores table — no summary cards (backend does not provide summary) */}
       {isLoading ? (
         <Skeleton className="h-96 rounded-xl" />
       ) : filteredItems.length === 0 ? (
@@ -136,51 +108,48 @@ export default function FinanceStoresPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredItems.map((s) => {
-                  const cur = s.currency ?? "EUR";
-                  return (
-                    <TableRow key={s.storeId} className="border-border/30">
-                      <TableCell>
-                        <div className="flex items-center gap-1.5">
-                          <StoreIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                          <div>
-                            <span className="text-xs font-medium">{s.storeName}</span>
-                            {s.storeCode && (
-                              <p className="text-[10px] text-muted-foreground">{s.storeCode}</p>
-                            )}
-                          </div>
+                {filteredItems.map((s) => (
+                  <TableRow key={s.storeId} className="border-border/30">
+                    <TableCell>
+                      <div className="flex items-center gap-1.5">
+                        <StoreIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                        <div>
+                          <span className="text-xs font-medium">{s.storeName}</span>
+                          {s.storeCode && (
+                            <p className="text-[10px] text-muted-foreground">{s.storeCode}</p>
+                          )}
                         </div>
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-xs tabular-nums">
-                        {formatCurrency(s.gross, cur)}
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-xs tabular-nums text-amber-400">
-                        {formatCurrency(s.fees, cur)}
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-xs tabular-nums text-emerald-400">
-                        {formatCurrency(s.net, cur)}
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-xs tabular-nums text-amber-400">
-                        {formatCurrency(s.pending, cur)}
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-xs tabular-nums">
-                        {formatCurrency(s.released, cur)}
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-xs tabular-nums">
-                        {formatCurrency(s.paidPayouts, cur)}
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-xs tabular-nums text-sky-400">
-                        {formatCurrency(s.scheduledPayouts, cur)}
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-xs tabular-nums">
-                        {formatCurrency(s.operationalBalance, cur)}
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-xs tabular-nums text-emerald-400">
-                        {formatCurrency(s.availableAfterPayouts, cur)}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-xs tabular-nums">
+                      {formatCurrency(s.gross, cur)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-xs tabular-nums text-amber-400">
+                      {formatCurrency(s.fees, cur)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-xs tabular-nums text-emerald-400">
+                      {formatCurrency(s.net, cur)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-xs tabular-nums text-amber-400">
+                      {formatCurrency(s.pending, cur)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-xs tabular-nums">
+                      {formatCurrency(s.released, cur)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-xs tabular-nums">
+                      {formatCurrency(s.paidPayouts, cur)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-xs tabular-nums text-sky-400">
+                      {formatCurrency(s.scheduledPayouts, cur)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-xs tabular-nums">
+                      {formatCurrency(s.operationalBalance, cur)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-xs tabular-nums text-emerald-400">
+                      {formatCurrency(s.availableAfterPayouts, cur)}
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </div>

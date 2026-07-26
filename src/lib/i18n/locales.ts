@@ -178,6 +178,7 @@ export const dictionaries: Record<Locale, Dict> = {
     "finance.pendingCol": "Pending", "finance.releasedCol": "Released", "finance.paidPayoutsCol": "Paid Payouts", "finance.scheduledPayoutsCol": "Scheduled Payouts",
     "finance.operationalBalance": "Operational Balance", "finance.availableAfterPayouts": "Available After Payouts",
     "finance.availableAfterPayoutsNote": "Available after payouts is an analytical allocation per Store, not an independent wallet.",
+    "finance.overdueNet": "Overdue Net",
   },
   "pt-BR": {
     "common.signin": "Entrar", "common.signup": "Começar a construir", "common.bookDemo": "Agendar demonstração",
@@ -314,6 +315,7 @@ export const dictionaries: Record<Locale, Dict> = {
     "finance.pendingCol": "Pendente", "finance.releasedCol": "Liberado", "finance.paidPayoutsCol": "Payouts Pagos", "finance.scheduledPayoutsCol": "Payouts Programados",
     "finance.operationalBalance": "Saldo Operacional", "finance.availableAfterPayouts": "Disponível Após Payouts",
     "finance.availableAfterPayoutsNote": "Disponível após payouts é uma alocação analítica por Store, não uma wallet independente.",
+    "finance.overdueNet": "Líquido em Atraso",
   },
   fr: {
     "common.signin": "Se connecter", "common.signup": "Commencer", "common.bookDemo": "Réserver une démo",
@@ -450,6 +452,7 @@ export const dictionaries: Record<Locale, Dict> = {
     "finance.pendingCol": "En attente", "finance.releasedCol": "Libéré", "finance.paidPayoutsCol": "Payouts Payés", "finance.scheduledPayoutsCol": "Payouts Programmés",
     "finance.operationalBalance": "Solde Opérationnel", "finance.availableAfterPayouts": "Disponible Après Payouts",
     "finance.availableAfterPayoutsNote": "Disponible après payouts est une allocation analytique par Boutique, pas un portefeuille indépendant.",
+    "finance.overdueNet": "Net En Retard",
   },
   es: {
     "common.signin": "Iniciar sesión", "common.signup": "Empezar", "common.bookDemo": "Reservar demo",
@@ -586,5 +589,6 @@ export const dictionaries: Record<Locale, Dict> = {
     "finance.pendingCol": "Pendiente", "finance.releasedCol": "Liberado", "finance.paidPayoutsCol": "Payouts Pagados", "finance.scheduledPayoutsCol": "Payouts Programados",
     "finance.operationalBalance": "Saldo Operativo", "finance.availableAfterPayouts": "Disponible Tras Payouts",
     "finance.availableAfterPayoutsNote": "Disponible tras payouts es una asignación analítica por Tienda, no una cartera independiente.",
+    "finance.overdueNet": "Neto Vencido",
   },
 };

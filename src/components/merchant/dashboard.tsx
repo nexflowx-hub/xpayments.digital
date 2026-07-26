@@ -24,6 +24,7 @@ export default function MerchantOverview() {
   const { data: finance, isLoading, isError, error, refetch, isFetching } = useFinanceOverview();
 
   const f: FinanceOverview | null = finance ?? null;
+  const cur = f?.currency ?? "EUR";
 
   if (isError) {
     const msg = (error as { message?: string })?.message ?? "Failed to load financial data.";
@@ -76,35 +77,35 @@ export default function MerchantOverview() {
               value={grossToday}
               icon={TrendingUp}
               accent="green"
-              format={(n) => formatCurrency(n, "EUR", { compact: true })}
+              format={(n) => formatCurrency(n, cur, { compact: true })}
             />
             <StatCard
               label={t("finance.netToday")}
               value={netToday}
               icon={TrendingUp}
               accent="green"
-              format={(n) => formatCurrency(n, "EUR", { compact: true })}
+              format={(n) => formatCurrency(n, cur, { compact: true })}
             />
             <StatCard
               label={t("finance.netWeek")}
               value={netWeek}
               icon={TrendingUp}
               accent="green"
-              format={(n) => formatCurrency(n, "EUR", { compact: true })}
+              format={(n) => formatCurrency(n, cur, { compact: true })}
             />
             <StatCard
               label={t("finance.netMonth")}
               value={netMonth}
               icon={TrendingUp}
               accent="green"
-              format={(n) => formatCurrency(n, "EUR", { compact: true })}
+              format={(n) => formatCurrency(n, cur, { compact: true })}
             />
             <StatCard
               label={t("finance.walletTotal")}
               value={walletBalance}
               icon={WalletIcon}
               accent="blue"
-              format={(n) => formatCurrency(n, "EUR", { compact: true })}
+              format={(n) => formatCurrency(n, cur, { compact: true })}
             />
           </>
         )}
@@ -121,21 +122,21 @@ export default function MerchantOverview() {
               value={walletPending}
               icon={Clock}
               accent="amber"
-              format={(n) => formatCurrency(n, "EUR", { compact: true })}
+              format={(n) => formatCurrency(n, cur, { compact: true })}
             />
             <StatCard
               label={t("finance.available")}
               value={walletAvailable}
               icon={ShieldCheck}
               accent="green"
-              format={(n) => formatCurrency(n, "EUR", { compact: true })}
+              format={(n) => formatCurrency(n, cur, { compact: true })}
             />
             <StatCard
               label={t("finance.paidPayouts")}
               value={paidTotal}
               icon={ArrowUpRight}
               accent="violet"
-              format={(n) => formatCurrency(n, "EUR", { compact: true })}
+              format={(n) => formatCurrency(n, cur, { compact: true })}
             />
             <StatCard
               label={t("finance.nextRelease")}
@@ -144,7 +145,7 @@ export default function MerchantOverview() {
               accent="blue"
               format={(n) =>
                 nextRelease
-                  ? `${formatCurrency(n, nextRelease.currency, { compact: true })} · ${formatDateCivil(nextRelease.estimatedDate)}`
+                  ? `${formatCurrency(n, f?.currency ?? cur, { compact: true })} · ${formatDateCivil(nextRelease.date)}`
                   : "—"
               }
             />
@@ -174,19 +175,19 @@ export default function MerchantOverview() {
             <div className="rounded-xl border border-border/60 bg-background/40 p-4">
               <p className="text-xs text-muted-foreground">{t("finance.walletTotal")}</p>
               <p className="mt-1 font-mono text-xl font-semibold tabular-nums">
-                {formatCurrency(walletBalance, "EUR")}
+                {formatCurrency(walletBalance, cur)}
               </p>
             </div>
             <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
               <p className="text-xs text-muted-foreground">{t("finance.pending")}</p>
               <p className="mt-1 font-mono text-xl font-semibold tabular-nums text-amber-400">
-                {formatCurrency(walletPending, "EUR")}
+                {formatCurrency(walletPending, cur)}
               </p>
             </div>
             <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
               <p className="text-xs text-muted-foreground">{t("finance.available")}</p>
               <p className="mt-1 font-mono text-xl font-semibold tabular-nums text-emerald-400">
-                {formatCurrency(walletAvailable, "EUR")}
+                {formatCurrency(walletAvailable, cur)}
               </p>
             </div>
           </div>
@@ -208,25 +209,25 @@ export default function MerchantOverview() {
               <div className="flex items-center justify-between rounded-lg border border-border/40 bg-background/40 px-3 py-2.5">
                 <span className="text-xs text-muted-foreground">{t("finance.grossToday")}</span>
                 <span className="font-mono text-sm font-semibold tabular-nums">
-                  {formatCurrency(grossToday, "EUR")}
+                  {formatCurrency(grossToday, cur)}
                 </span>
               </div>
               <div className="flex items-center justify-between rounded-lg border border-border/40 bg-background/40 px-3 py-2.5">
                 <span className="text-xs text-muted-foreground">{t("finance.registeredFees")}</span>
                 <span className="font-mono text-sm font-semibold tabular-nums">
-                  {formatCurrency(feesToday, "EUR")}
+                  {formatCurrency(feesToday, cur)}
                 </span>
               </div>
               <div className="flex items-center justify-between rounded-lg border border-border/40 bg-background/40 px-3 py-2.5">
                 <span className="text-xs text-muted-foreground">{t("finance.netToday")}</span>
                 <span className="font-mono text-sm font-semibold tabular-nums text-emerald-400">
-                  {formatCurrency(netToday, "EUR")}
+                  {formatCurrency(netToday, cur)}
                 </span>
               </div>
               <div className="flex items-center justify-between rounded-lg border border-border/40 bg-background/40 px-3 py-2.5">
                 <span className="text-xs text-muted-foreground">{t("finance.netMonth")}</span>
                 <span className="font-mono text-sm font-semibold tabular-nums text-emerald-400">
-                  {formatCurrency(netMonth, "EUR")}
+                  {formatCurrency(netMonth, cur)}
                 </span>
               </div>
               <div className="mt-1 flex gap-4 text-[10px] text-muted-foreground">
@@ -255,7 +256,7 @@ export default function MerchantOverview() {
               <div className="flex items-center justify-between rounded-lg border border-border/40 bg-background/40 px-3 py-2.5">
                 <span className="text-xs text-muted-foreground">{t("finance.paidPayouts")}</span>
                 <span className="font-mono text-sm font-semibold tabular-nums">
-                  {formatCurrency(paidTotal, "EUR")}
+                  {formatCurrency(paidTotal, cur)}
                 </span>
               </div>
               <div className="flex items-center justify-between rounded-lg border border-border/40 bg-background/40 px-3 py-2.5">
@@ -267,13 +268,13 @@ export default function MerchantOverview() {
               <div className="flex items-center justify-between rounded-lg border border-border/40 bg-background/40 px-3 py-2.5">
                 <span className="text-xs text-muted-foreground">{t("finance.scheduledPayouts")}</span>
                 <span className="font-mono text-sm font-semibold tabular-nums text-amber-400">
-                  {formatCurrency(f?.payouts?.scheduled ?? 0, "EUR")}
+                  {formatCurrency(f?.payouts?.scheduled ?? 0, cur)}
                 </span>
               </div>
               <div className="flex items-center justify-between rounded-lg border border-border/40 bg-background/40 px-3 py-2.5">
                 <span className="text-xs text-muted-foreground">{t("finance.projectedAvailable")}</span>
                 <span className="font-mono text-sm font-semibold tabular-nums text-emerald-400">
-                  {formatCurrency(projectedAvailable, "EUR")}
+                  {formatCurrency(projectedAvailable, cur)}
                 </span>
               </div>
             </div>
@@ -294,13 +295,13 @@ export default function MerchantOverview() {
               <div>
                 <p className="text-sm font-semibold">{t("finance.nextReleaseTitle")}</p>
                 <p className="text-xs text-muted-foreground">
-                  {t("finance.estimatedRelease")}: {formatDateCivil(nextRelease.estimatedDate)}
+                  {t("finance.estimatedRelease")}: {formatDateCivil(nextRelease.date)}
                 </p>
               </div>
             </div>
             <div className="text-right">
               <p className="font-mono text-xl font-semibold tabular-nums text-primary">
-                {formatCurrency(nextRelease.amount, nextRelease.currency)}
+                {formatCurrency(nextRelease.amount, f?.currency ?? cur)}
               </p>
               <Badge variant="outline" className="mt-1 text-[10px]">
                 {t("finance.awaitingRelease")}

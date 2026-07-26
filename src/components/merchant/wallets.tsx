@@ -37,6 +37,7 @@ export default function WalletsPage() {
   const scheduledTotal = finance?.payouts?.scheduled ?? 0;
   const projectedAvailable = finance?.projectedAvailable ?? 0;
   const nextRelease = finance?.nextRelease;
+  const cur = finance?.currency ?? "EUR";
 
   return (
     <div className="flex flex-col gap-6">
@@ -65,21 +66,21 @@ export default function WalletsPage() {
               value={walletBalance}
               icon={WalletIcon}
               accent="blue"
-              format={(n) => formatCurrency(n, "EUR")}
+              format={(n) => formatCurrency(n, cur)}
             />
             <StatCard
               label={t("finance.pending")}
               value={walletPending}
               icon={Clock}
               accent="amber"
-              format={(n) => formatCurrency(n, "EUR")}
+              format={(n) => formatCurrency(n, cur)}
             />
             <StatCard
               label={t("finance.available")}
               value={walletAvailable}
               icon={ShieldCheck}
               accent="green"
-              format={(n) => formatCurrency(n, "EUR")}
+              format={(n) => formatCurrency(n, cur)}
             />
           </>
         )}
@@ -103,7 +104,7 @@ export default function WalletsPage() {
                 <p className="text-xs font-medium text-muted-foreground">{t("finance.pending")}</p>
               </div>
               <p className="font-mono text-2xl font-semibold tabular-nums text-amber-400">
-                {formatCurrency(walletPending, "EUR")}
+                {formatCurrency(walletPending, cur)}
               </p>
               <p className="mt-1 text-[10px] text-muted-foreground">{t("finance.pendingDesc")}</p>
             </div>
@@ -115,7 +116,7 @@ export default function WalletsPage() {
                 <p className="text-xs font-medium text-muted-foreground">{t("finance.available")}</p>
               </div>
               <p className="font-mono text-2xl font-semibold tabular-nums text-emerald-400">
-                {formatCurrency(walletAvailable, "EUR")}
+                {formatCurrency(walletAvailable, cur)}
               </p>
               <p className="mt-1 text-[10px] text-muted-foreground">{t("finance.availableDesc")}</p>
             </div>
@@ -145,7 +146,7 @@ export default function WalletsPage() {
               <div className="flex items-center justify-between rounded-lg border border-border/40 bg-background/40 px-3 py-2.5">
                 <span className="text-xs text-muted-foreground">{t("finance.paidPayouts")}</span>
                 <span className="font-mono text-sm font-semibold tabular-nums">
-                  {formatCurrency(paidTotal, "EUR")}
+                  {formatCurrency(paidTotal, cur)}
                   <span className="ml-2 text-[10px] font-normal text-muted-foreground">
                     ({finance?.payouts?.paidCount ?? 0})
                   </span>
@@ -154,7 +155,7 @@ export default function WalletsPage() {
               <div className="flex items-center justify-between rounded-lg border border-border/40 bg-background/40 px-3 py-2.5">
                 <span className="text-xs text-muted-foreground">{t("finance.scheduledPayouts")}</span>
                 <span className="font-mono text-sm font-semibold tabular-nums text-amber-400">
-                  {formatCurrency(scheduledTotal, "EUR")}
+                  {formatCurrency(scheduledTotal, cur)}
                   <span className="ml-2 text-[10px] font-normal text-muted-foreground">
                     ({finance?.payouts?.scheduledCount ?? 0})
                   </span>
@@ -172,7 +173,7 @@ export default function WalletsPage() {
               <div className="flex items-center justify-between rounded-lg border border-border/40 bg-background/40 px-3 py-2.5">
                 <span className="text-xs text-muted-foreground">{t("finance.projectedAvailable")}</span>
                 <span className="font-mono text-sm font-semibold tabular-nums text-emerald-400">
-                  {formatCurrency(projectedAvailable, "EUR")}
+                  {formatCurrency(projectedAvailable, cur)}
                 </span>
               </div>
               {nextRelease ? (
@@ -182,11 +183,11 @@ export default function WalletsPage() {
                       <CalendarClock className="h-4 w-4 text-primary" />
                       <div>
                         <p className="text-xs font-medium">{t("finance.nextRelease")}</p>
-                        <p className="text-[10px] text-muted-foreground">{t("finance.estimatedRelease")}: {formatDateCivil(nextRelease.estimatedDate)}</p>
+                        <p className="text-[10px] text-muted-foreground">{t("finance.estimatedRelease")}: {formatDateCivil(nextRelease.date)}</p>
                       </div>
                     </div>
                     <span className="font-mono text-sm font-semibold tabular-nums text-primary">
-                      {formatCurrency(nextRelease.amount, nextRelease.currency)}
+                      {formatCurrency(nextRelease.amount, finance?.currency ?? cur)}
                     </span>
                   </div>
                 </div>

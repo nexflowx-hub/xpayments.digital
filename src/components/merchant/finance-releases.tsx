@@ -20,10 +20,6 @@ import type { FinanceReleaseItem } from "@/types";
 const releaseStatusMap: Record<string, { label: string; className: string }> = {
   expected: { label: "Prevista", className: "border-emerald-500/25 bg-emerald-500/12 text-emerald-400" },
   overdue: { label: "Estimativa ultrapassada", className: "border-amber-500/25 bg-amber-500/12 text-amber-400" },
-  partially_released: { label: "Parcialmente liberada", className: "border-sky-500/25 bg-sky-500/12 text-sky-400" },
-  released: { label: "Liberada", className: "border-emerald-500/25 bg-emerald-500/12 text-emerald-400" },
-  held: { label: "Retida", className: "border-rose-500/25 bg-rose-500/12 text-rose-400" },
-  reconciliation: { label: "Reconciliação", className: "border-violet-500/25 bg-violet-500/12 text-violet-400" },
 };
 
 function ReleaseStatusBadge({ status }: { status: string }) {
@@ -31,9 +27,29 @@ function ReleaseStatusBadge({ status }: { status: string }) {
   return <Badge variant="outline" className={cn("text-[10px]", s.className)}>{s.label}</Badge>;
 }
 
+/** Stable key from date + storeId + storeCode */
+function releaseKey(r: FinanceReleaseItem): string {
+  return `${r.date}__${r.storeId ?? "none"}__${r.storeCode ?? "none"}`;
+}
+
 export default function FinanceReleasesPage() {
   const t = useT();
   const { data: releases, isLoading, isError, error, refetch, isFetching } = useFinanceReleases();
+
+  const items = releases?.items ?? [];
+  const summary = releases?.summary;
+  const cur = releases?.currency ?? "EUR";
+
+  // Group by date
+  const grouped = React.useMemo(() => {
+    const map = new Map<string, FinanceReleaseItem[]>();
+    items.forEach((r) => {
+      const key = r.date?.split("T")[0] ?? "unknown";
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(r);
+    });
+    return map;
+  }, [items]);
 
   if (isError) {
     const msg = (error as { message?: string })?.message ?? "Failed to load releases.";
@@ -44,20 +60,6 @@ export default function FinanceReleasesPage() {
       </div>
     );
   }
-
-  const items = releases?.items ?? [];
-  const summary = releases?.summary;
-
-  // Group by date
-  const grouped = React.useMemo(() => {
-    const map = new Map<string, FinanceReleaseItem[]>();
-    items.forEach((r) => {
-      const key = r.expectedDate?.split("T")[0] ?? "unknown";
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(r);
-    });
-    return map;
-  }, [items]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -72,7 +74,7 @@ export default function FinanceReleasesPage() {
         }
       />
 
-      {/* Summary */}
+      {/* Summary — only what backend provides: totalNet, movementCount, overdueNet */}
       {isLoading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
@@ -80,21 +82,21 @@ export default function FinanceReleasesPage() {
       ) : summary ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Card className="border-border/60 bg-card/60 p-4 backdrop-blur-xl">
-            <p className="text-xs text-muted-foreground">{t("finance.totalGross")}</p>
-            <p className="mt-1 font-mono text-lg font-semibold tabular-nums">
-              {formatCurrency(summary.totalGross, "EUR")}
-            </p>
-          </Card>
-          <Card className="border-border/60 bg-card/60 p-4 backdrop-blur-xl">
-            <p className="text-xs text-muted-foreground">{t("finance.registeredFees")}</p>
-            <p className="mt-1 font-mono text-lg font-semibold tabular-nums">
-              {formatCurrency(summary.totalFees, "EUR")}
-            </p>
-          </Card>
-          <Card className="border-border/60 bg-card/60 p-4 backdrop-blur-xl">
             <p className="text-xs text-muted-foreground">{t("finance.totalNet")}</p>
             <p className="mt-1 font-mono text-lg font-semibold tabular-nums text-emerald-400">
-              {formatCurrency(summary.totalNet, "EUR")}
+              {formatCurrency(summary.totalNet, cur)}
+            </p>
+          </Card>
+          <Card className="border-border/60 bg-card/60 p-4 backdrop-blur-xl">
+            <p className="text-xs text-muted-foreground">{t("finance.movementsCol")}</p>
+            <p className="mt-1 font-mono text-lg font-semibold tabular-nums">
+              {summary.movementCount}
+            </p>
+          </Card>
+          <Card className="border-border/60 bg-card/60 p-4 backdrop-blur-xl">
+            <p className="text-xs text-muted-foreground">{t("finance.overdueNet")}</p>
+            <p className="mt-1 font-mono text-lg font-semibold tabular-nums text-amber-400">
+              {formatCurrency(summary.overdueNet, cur)}
             </p>
           </Card>
         </div>
@@ -106,7 +108,7 @@ export default function FinanceReleasesPage() {
       ) : items.length === 0 ? (
         <EmptyState icon={CalendarClock} title={t("finance.noReleases")} description={t("finance.noReleasesDesc")} />
       ) : (
- <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+        <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h3 className="text-sm font-semibold">{t("finance.releasesList")}</h3>
@@ -129,30 +131,30 @@ export default function FinanceReleasesPage() {
               </TableHeader>
               <TableBody>
                 {items.map((r) => (
-                  <TableRow key={r.id} className="border-border/30">
+                  <TableRow key={releaseKey(r)} className="border-border/30">
                     <TableCell className="text-xs">
                       <div className="flex items-center gap-1.5">
                         <CalendarClock className="h-3.5 w-3.5 text-muted-foreground" />
-                        {formatDateCivil(r.expectedDate)}
+                        {formatDateCivil(r.date)}
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1.5">
                         <StoreIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                        <span className="text-xs">{r.storeName}</span>
+                        <span className="text-xs">{r.storeName ?? "—"}</span>
                       </div>
                     </TableCell>
                     <TableCell className="text-right font-mono text-xs tabular-nums">
-                      {formatCurrency(r.gross, r.currency ?? "EUR")}
+                      {formatCurrency(r.gross, cur)}
                     </TableCell>
                     <TableCell className="text-right font-mono text-xs tabular-nums text-amber-400">
-                      {formatCurrency(r.fees, r.currency ?? "EUR")}
+                      {formatCurrency(r.fees, cur)}
                     </TableCell>
                     <TableCell className="text-right font-mono text-xs tabular-nums text-emerald-400">
-                      {formatCurrency(r.net, r.currency ?? "EUR")}
+                      {formatCurrency(r.net, cur)}
                     </TableCell>
                     <TableCell className="text-right font-mono text-xs tabular-nums">
-                      {r.movements}
+                      {r.movementCount}
                     </TableCell>
                     <TableCell><ReleaseStatusBadge status={r.status} /></TableCell>
                   </TableRow>

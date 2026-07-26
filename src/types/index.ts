@@ -397,12 +397,11 @@ export interface FinancePeriod {
 }
 
 export interface FinanceWallet {
+  id: string;
   balance: number;
   pending: number;
   available: number;
-  // NEVER expose these in the merchant UI:
-  // bookBalance?: number;
-  // reconciliationHold?: number;
+  reserved: number;
 }
 
 export interface FinancePayoutSummary {
@@ -413,12 +412,15 @@ export interface FinancePayoutSummary {
 }
 
 export interface FinanceNextRelease {
-  estimatedDate: string;
+  date: string;
   amount: number;
-  currency: string;
+  movementCount: number;
+  status: "expected" | "overdue";
 }
 
 export interface FinanceOverview {
+  currency: string;
+  timezone: string;
   sales: {
     today: FinancePeriod;
     week: FinancePeriod;
@@ -429,32 +431,31 @@ export interface FinanceOverview {
   payouts: FinancePayoutSummary;
   projectedAvailable: number;
   nextRelease: FinanceNextRelease | null;
+  generatedAt: string;
 }
 
 export interface FinanceReleaseItem {
-  id: string;
-  storeId: string;
-  storeName: string;
-  storeCode?: string;
-  expectedDate: string;
+  date: string;
+  storeId: string | null;
+  storeCode: string | null;
+  storeName: string | null;
   gross: number;
   fees: number;
   net: number;
-  movements: number;
-  status: "expected" | "overdue" | "partially_released" | "released" | "held" | "reconciliation";
-  releasedValue?: number;
-  remaining?: number;
-  currency?: string;
+  movementCount: number;
+  status: "expected" | "overdue";
 }
 
 export interface FinanceReleasesResponse {
+  currency: string;
+  timezone: string;
   items: FinanceReleaseItem[];
   summary: {
-    totalGross: number;
-    totalFees: number;
     totalNet: number;
-    totalMovements: number;
+    movementCount: number;
+    overdueNet: number;
   };
+  generatedAt: string;
 }
 
 export type PayoutStatementStatus =
@@ -467,34 +468,41 @@ export type PayoutStatementStatus =
 
 export interface PayoutAllocation {
   storeId: string;
+  storeCode: string;
   storeName: string;
   amount: number;
 }
 
 export interface PayoutStatement {
   id: string;
-  statementNumber: string;
-  stores: PayoutAllocation[];
-  value: number;
+  statementCode: string;
   currency: string;
+  amount: number;
   status: PayoutStatementStatus;
-  scheduledDate?: string;
-  paidAt?: string;
-  paidOn?: string;
-  historicalDateOnly?: boolean;
-  description?: string;
-  externalReference?: string;
+  scheduledFor: string | null;
+  paidOn: string | null;
+  paidAt: string | null;
+  externalReference: string | null;
+  description: string | null;
+  historicalDateOnly: boolean;
+  allocations: PayoutAllocation[];
+  metadata: Record<string, unknown>;
   createdAt: string;
+  updatedAt: string;
 }
 
 export interface PayoutStatementsResponse {
+  currency: string;
   items: PayoutStatement[];
   summary: {
-    totalPaid: number;
-    totalScheduled: number;
-    totalPaidCount: number;
-    totalScheduledCount: number;
+    totalCount: number;
+    paidCount: number;
+    scheduledCount: number;
+    draftCount: number;
+    paidAmount: number;
+    scheduledAmount: number;
   };
+  generatedAt: string;
 }
 
 export interface FinanceStore {
@@ -516,13 +524,9 @@ export interface FinanceStore {
 }
 
 export interface FinanceStoresResponse {
-  items: FinanceStore[];
-  summary: {
-    totalGross: number;
-    totalFees: number;
-    totalNet: number;
-    totalPending: number;
-  };
+  currency: string;
+  stores: FinanceStore[];
+  generatedAt: string;
 }
 
 // ---- Generic API ----

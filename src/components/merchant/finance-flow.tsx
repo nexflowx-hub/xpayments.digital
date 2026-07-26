@@ -33,6 +33,7 @@ export default function FinanceFlowPage() {
   const s = finance?.sales;
   const w = finance?.wallet;
   const p = finance?.payouts;
+  const cur = finance?.currency ?? "EUR";
 
   return (
     <div className="flex flex-col gap-6">
@@ -57,13 +58,13 @@ export default function FinanceFlowPage() {
         ) : (
           <>
             <StatCard label={t("finance.grossMonth")} value={s?.month?.gross ?? 0} icon={TrendingUp} accent="green"
-              format={(n) => formatCurrency(n, "EUR", { compact: true })} />
+              format={(n) => formatCurrency(n, cur, { compact: true })} />
             <StatCard label={t("finance.registeredFeesMonth")} value={s?.month?.fees ?? 0} icon={TrendingUp} accent="amber"
-              format={(n) => formatCurrency(n, "EUR", { compact: true })} />
+              format={(n) => formatCurrency(n, cur, { compact: true })} />
             <StatCard label={t("finance.netMonth")} value={s?.month?.net ?? 0} icon={TrendingUp} accent="green"
-              format={(n) => formatCurrency(n, "EUR", { compact: true })} />
+              format={(n) => formatCurrency(n, cur, { compact: true })} />
             <StatCard label={t("finance.walletTotal")} value={w?.balance ?? 0} icon={WalletIcon} accent="blue"
-              format={(n) => formatCurrency(n, "EUR", { compact: true })} />
+              format={(n) => formatCurrency(n, cur, { compact: true })} />
           </>
         )}
       </div>
@@ -74,13 +75,13 @@ export default function FinanceFlowPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard label={t("finance.pending")} value={w?.pending ?? 0} icon={Clock} accent="amber"
-            format={(n) => formatCurrency(n, "EUR", { compact: true })} />
+            format={(n) => formatCurrency(n, cur, { compact: true })} />
           <StatCard label={t("finance.available")} value={w?.available ?? 0} icon={WalletIcon} accent="green"
-            format={(n) => formatCurrency(n, "EUR", { compact: true })} />
+            format={(n) => formatCurrency(n, cur, { compact: true })} />
           <StatCard label={t("finance.paidPayouts")} value={p?.paid ?? 0} icon={ArrowUpRight} accent="violet"
-            format={(n) => formatCurrency(n, "EUR", { compact: true })} />
+            format={(n) => formatCurrency(n, cur, { compact: true })} />
           <StatCard label={t("finance.projectedAvailable")} value={finance?.projectedAvailable ?? 0} icon={WalletIcon} accent="green"
-            format={(n) => formatCurrency(n, "EUR", { compact: true })} />
+            format={(n) => formatCurrency(n, cur, { compact: true })} />
         </div>
       )}
 

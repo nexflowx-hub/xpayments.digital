@@ -57,7 +57,8 @@ export function formatDate(iso: string, opts?: { withTime?: boolean }) {
 }
 
 /** Format a date string as dd/MM/yyyy (civil date, no timezone shift). */
-export function formatDateCivil(iso: string): string {
+export function formatDateCivil(iso?: string | null): string {
+  if (!iso) return "—";
   const parts = iso.split("T")[0].split("-");
   if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
   const d = new Date(iso);

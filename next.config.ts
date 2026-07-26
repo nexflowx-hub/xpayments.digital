@@ -7,9 +7,6 @@ const nextConfig: NextConfig = {
   },
   reactStrictMode: false,
   allowedDevOrigins: ["*.space-z.ai", "*.chat.z.ai"],
-  turbopack: {
-    root: "/home/z/xpayments-work",
-  },
 };
 
 export default nextConfig;

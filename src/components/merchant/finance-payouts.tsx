@@ -47,6 +47,7 @@ export default function FinancePayoutsPage() {
 
   const items: PayoutStatement[] = payoutRes?.items ?? [];
   const summary = payoutRes?.summary;
+  const cur = payoutRes?.currency ?? "EUR";
 
   return (
     <div className="flex flex-col gap-6">
@@ -71,15 +72,15 @@ export default function FinancePayoutsPage() {
           <Card className="border-border/60 bg-card/60 p-4 backdrop-blur-xl">
             <p className="text-xs text-muted-foreground">{t("finance.paidPayouts")}</p>
             <p className="mt-1 font-mono text-lg font-semibold tabular-nums text-emerald-400">
-              {formatCurrency(summary.totalPaid, "EUR")}
-              <span className="ml-2 text-xs font-normal text-muted-foreground">({summary.totalPaidCount})</span>
+              {formatCurrency(summary.paidAmount, cur)}
+              <span className="ml-2 text-xs font-normal text-muted-foreground">({summary.paidCount})</span>
             </p>
           </Card>
           <Card className="border-border/60 bg-card/60 p-4 backdrop-blur-xl">
             <p className="text-xs text-muted-foreground">{t("finance.scheduledPayouts")}</p>
             <p className="mt-1 font-mono text-lg font-semibold tabular-nums text-amber-400">
-              {formatCurrency(summary.totalScheduled, "EUR")}
-              <span className="ml-2 text-xs font-normal text-muted-foreground">({summary.totalScheduledCount})</span>
+              {formatCurrency(summary.scheduledAmount, cur)}
+              <span className="ml-2 text-xs font-normal text-muted-foreground">({summary.scheduledCount})</span>
             </p>
           </Card>
         </div>
@@ -120,38 +121,36 @@ export default function FinancePayoutsPage() {
                     <TableCell className="font-mono text-xs text-primary">
                       <div className="flex items-center gap-1.5">
                         <FileText className="h-3.5 w-3.5" />
-                        {ps.statementNumber}
+                        {ps.statementCode}
                       </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col gap-0.5">
-                        {ps.stores?.slice(0, 2).map((a) => (
+                        {ps.allocations?.slice(0, 2).map((a) => (
                           <span key={a.storeId} className="flex items-center gap-1 text-xs">
                             <StoreIcon className="h-3 w-3 text-muted-foreground" />
                             {a.storeName}
                           </span>
                         ))}
-                        {(ps.stores?.length ?? 0) > 2 && (
+                        {(ps.allocations?.length ?? 0) > 2 && (
                           <span className="text-[10px] text-muted-foreground">
-                            +{(ps.stores?.length ?? 0) - 2} {t("finance.moreStores")}
+                            +{(ps.allocations?.length ?? 0) - 2} {t("finance.moreStores")}
                           </span>
                         )}
                       </div>
                     </TableCell>
                     <TableCell className="text-right font-mono text-xs tabular-nums">
-                      {formatCurrency(ps.value, ps.currency)}
+                      {formatCurrency(ps.amount, ps.currency)}
                     </TableCell>
                     <TableCell className="text-xs">{ps.currency}</TableCell>
                     <TableCell><PayoutStatusBadge status={ps.status} /></TableCell>
                     <TableCell className="text-xs">
-                      {ps.scheduledDate ? formatDateCivil(ps.scheduledDate) : "—"}
+                      {formatDateCivil(ps.scheduledFor)}
                     </TableCell>
                     <TableCell className="text-xs">
-                      {ps.historicalDateOnly && ps.paidOn
+                      {ps.historicalDateOnly
                         ? formatDateCivil(ps.paidOn)
-                        : ps.paidAt
-                          ? formatDateCivil(ps.paidAt)
-                          : "—"}
+                        : formatDateCivil(ps.paidAt)}
                     </TableCell>
                     <TableCell className="max-w-[150px] truncate text-xs text-muted-foreground">
                       {ps.description || "—"}

@@ -1,229 +1,320 @@
 "use client";
 
 import * as React from "react";
-import { motion } from "framer-motion";
 import {
-  DollarSign, TrendingUp, Target, ShieldCheck, ArrowUpRight,
-  Activity, Crown, Wallet as WalletIcon, Zap,
+  TrendingUp, Wallet as WalletIcon, Clock, ArrowUpRight,
+  ShieldCheck, RefreshCw, CalendarClock, ChevronRight,
 } from "lucide-react";
-import { useAnalyticsOverview, useRiskProfile, useWallets, useTransactions } from "@/hooks/queries";
+import { useFinanceOverview } from "@/hooks/queries";
 import {
-  StatCard, PageHeader, ErrorState,
+  StatCard, PageHeader, ErrorState, EmptyState,
 } from "@/components/shared";
-import { StatusBadge, CurrencyBadge, MethodBadge } from "@/components/shared/badges";
-import { AreaTrend, DonutChart, BarTrend } from "@/components/shared/charts";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { formatCurrency, formatNumber, formatPercent, timeAgo, cn } from "@/lib/utils";
-import { CURRENCIES } from "@/config";
-import type { AnalyticsOverview, RiskProfile, Wallet, Transaction } from "@/types";
+import { formatCurrency, formatDateCivil, cn } from "@/lib/utils";
+import type { FinanceOverview } from "@/types";
 import { useT } from "@/lib/i18n";
+import { useUi } from "@/stores/ui";
 
 export default function MerchantOverview() {
   const t = useT();
-  const { data: analytics, isLoading: aLoading, isError: aError, refetch: aRefetch } = useAnalyticsOverview();
-  const { data: risk } = useRiskProfile();
-  const { data: wallets } = useWallets();
-  const { data: txPage } = useTransactions({ page: 1, limit: 6, sortBy: "createdAt", sortDir: "desc" });
+  const setMerchantView = useUi((s) => s.setMerchantView);
+  const { data: finance, isLoading, isError, error, refetch, isFetching } = useFinanceOverview();
 
-  // Safe accessors — v3.1 shapes
-  const a: AnalyticsOverview | null = analytics ?? null;
-  const r: RiskProfile | null = risk ?? null;
-  const w: Wallet[] = wallets ?? [];
-  // v3.1 Paginated has meta: { page, limit, total, pages }
-  const txs: Transaction[] = txPage?.data ?? a?.recentTransactions ?? [];
+  const f: FinanceOverview | null = finance ?? null;
 
-  if (aError) return (
-    <div className="flex flex-col gap-6">
-      <PageHeader title={t("nav.dashboard")} description="Visão geral em tempo real dos seus pagamentos, receita e risco." />
-      <ErrorState message="Failed to load analytics data. The backend may be unreachable." onRetry={() => aRefetch()} />
-    </div>
-  );
+  if (isError) {
+    const msg = (error as { message?: string })?.message ?? "Failed to load financial data.";
+    return (
+      <div className="flex flex-col gap-6">
+        <PageHeader title={t("nav.dashboard")} description={t("finance.dashboardDesc")} />
+        <ErrorState message={msg} onRetry={() => refetch()} />
+      </div>
+    );
+  }
 
-  // v3.1 stat values from analytics/overview
-  const totalBalance = a?.wallet?.totalBalance ?? 0;
-  const availableBalance = a?.wallet?.availableBalance ?? 0;
-  const txToday = a?.transactions?.today ?? 0;
-  const txMonth = a?.transactions?.month ?? 0;
-  const txTotal = a?.transactions?.total ?? 0;
-  const successRate = a?.transactions?.successRate ?? 0;
-  const volumeToday = a?.transactions?.volumeToday ?? 0;
-  const volumeMonth = a?.transactions?.volumeMonth ?? 0;
+  const walletBalance = f?.wallet?.balance ?? 0;
+  const walletPending = f?.wallet?.pending ?? 0;
+  const walletAvailable = f?.wallet?.available ?? 0;
+  const grossToday = f?.sales?.today?.gross ?? 0;
+  const netToday = f?.sales?.today?.net ?? 0;
+  const netWeek = f?.sales?.week?.net ?? 0;
+  const netMonth = f?.sales?.month?.net ?? 0;
+  const paidTotal = f?.payouts?.paid ?? 0;
+  const nextRelease = f?.nextRelease;
+  const projectedAvailable = f?.projectedAvailable ?? 0;
+  const feesToday = f?.sales?.today?.fees ?? 0;
+  const txToday = f?.sales?.today?.transactions ?? 0;
+  const txMonth = f?.sales?.month?.transactions ?? 0;
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title={t("nav.dashboard")}
-        description="Visão geral em tempo real dos seus pagamentos, receita e risco."
+        description={t("finance.dashboardDesc")}
         actions={
-          <>
-            <Button variant="outline" size="sm">Export</Button>
-            <Button size="sm" className="gap-1.5"><Zap className="h-3.5 w-3.5" /> New payment</Button>
-          </>
+          <div className="flex items-center gap-2">
+            {isFetching && <RefreshCw className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+            <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-1.5">
+              <RefreshCw className={cn("h-3.5 w-3.5", isFetching && "animate-spin")} />
+              {t("common.refresh")}
+            </Button>
+          </div>
         }
       />
 
-      {/* Stat cards — v3.1 shape */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        {aLoading || !a ? (
+      {/* ---- KPI Cards ---- */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
+        {isLoading ? (
           Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)
         ) : (
           <>
-            <StatCard label="Total Balance" value={totalBalance} icon={WalletIcon} accent="blue" format={(n) => formatCurrency(n, "EUR", { compact: true })} />
-            <StatCard label="Volume (Today)" value={volumeToday} icon={DollarSign} accent="green" format={(n) => formatCurrency(n, "EUR", { compact: true })} />
-            <StatCard label="Volume (Month)" value={volumeMonth} icon={TrendingUp} accent="green" format={(n) => formatCurrency(n, "EUR", { compact: true })} />
-            <StatCard label="Success Rate" value={successRate} icon={ShieldCheck} accent="green" format={(n) => formatPercent(n)} />
-            <StatCard label="Risk Score" value={r?.score ?? 0} icon={Activity} accent="amber" format={(n) => Math.round(n).toString()} />
+            <StatCard
+              label={t("finance.grossToday")}
+              value={grossToday}
+              icon={TrendingUp}
+              accent="green"
+              format={(n) => formatCurrency(n, "EUR", { compact: true })}
+            />
+            <StatCard
+              label={t("finance.netToday")}
+              value={netToday}
+              icon={TrendingUp}
+              accent="green"
+              format={(n) => formatCurrency(n, "EUR", { compact: true })}
+            />
+            <StatCard
+              label={t("finance.netWeek")}
+              value={netWeek}
+              icon={TrendingUp}
+              accent="green"
+              format={(n) => formatCurrency(n, "EUR", { compact: true })}
+            />
+            <StatCard
+              label={t("finance.netMonth")}
+              value={netMonth}
+              icon={TrendingUp}
+              accent="green"
+              format={(n) => formatCurrency(n, "EUR", { compact: true })}
+            />
+            <StatCard
+              label={t("finance.walletTotal")}
+              value={walletBalance}
+              icon={WalletIcon}
+              accent="blue"
+              format={(n) => formatCurrency(n, "EUR", { compact: true })}
+            />
           </>
         )}
       </div>
 
-      {/* Wallet + Transaction summary */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2 border-border/60 bg-card/60 p-5 backdrop-blur-xl">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-semibold">Wallet Balances</h3>
-              <p className="text-xs text-muted-foreground">Multi-currency liquidity</p>
-            </div>
-            <Button variant="ghost" size="sm" className="text-xs">View all</Button>
-          </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {w.length === 0 ? (
-              Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)
-            ) : (
-              w.slice(0, 4).map((wallet, i) => {
-                const c = CURRENCIES.find((x) => x.code === wallet.currency);
-                return (
-                  <div key={i} className="relative overflow-hidden rounded-xl border border-border/60 bg-background/40 p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="grid h-8 w-8 place-items-center rounded-lg text-xs font-bold bg-primary/10 text-primary">
-                          {c?.flag ?? wallet.currency}
-                        </div>
-                        <div>
-                          <p className="text-xs font-medium">{wallet.currency}</p>
-                          <p className="text-[10px] text-muted-foreground">{wallet.type}</p>
-                        </div>
-                      </div>
-                    </div>
-                    <p className="mt-2 font-mono text-lg font-semibold tabular-nums">
-                      {formatCurrency(wallet.balance, wallet.currency, { compact: true })}
-                    </p>
-                    <div className="mt-1 flex gap-3 text-[10px] text-muted-foreground">
-                      <span>Avail {formatCurrency(wallet.available, wallet.currency, { compact: true })}</span>
-                      <span>Res {formatCurrency(wallet.reserved, wallet.currency, { compact: true })}</span>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </Card>
-
-        <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
-          <div className="mb-4">
-            <h3 className="text-sm font-semibold">Transaction Summary</h3>
-            <p className="text-xs text-muted-foreground">Today & this month</p>
-          </div>
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between rounded-lg border border-border/40 bg-background/40 px-3 py-2">
-              <span className="text-xs text-muted-foreground">Today</span>
-              <span className="font-mono text-sm font-semibold tabular-nums">{txToday}</span>
-            </div>
-            <div className="flex items-center justify-between rounded-lg border border-border/40 bg-background/40 px-3 py-2">
-              <span className="text-xs text-muted-foreground">This Month</span>
-              <span className="font-mono text-sm font-semibold tabular-nums">{txMonth}</span>
-            </div>
-            <div className="flex items-center justify-between rounded-lg border border-border/40 bg-background/40 px-3 py-2">
-              <span className="text-xs text-muted-foreground">All Time</span>
-              <span className="font-mono text-sm font-semibold tabular-nums">{txTotal}</span>
-            </div>
-            <div className="flex items-center justify-between rounded-lg border border-border/40 bg-background/40 px-3 py-2">
-              <span className="text-xs text-muted-foreground">Success Rate</span>
-              <span className="font-mono text-sm font-semibold tabular-nums text-emerald-400">{formatPercent(successRate)}</span>
-            </div>
-          </div>
-        </Card>
+      {/* ---- Second row ---- */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {isLoading ? (
+          Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)
+        ) : (
+          <>
+            <StatCard
+              label={t("finance.pending")}
+              value={walletPending}
+              icon={Clock}
+              accent="amber"
+              format={(n) => formatCurrency(n, "EUR", { compact: true })}
+            />
+            <StatCard
+              label={t("finance.available")}
+              value={walletAvailable}
+              icon={ShieldCheck}
+              accent="green"
+              format={(n) => formatCurrency(n, "EUR", { compact: true })}
+            />
+            <StatCard
+              label={t("finance.paidPayouts")}
+              value={paidTotal}
+              icon={ArrowUpRight}
+              accent="violet"
+              format={(n) => formatCurrency(n, "EUR", { compact: true })}
+            />
+            <StatCard
+              label={t("finance.nextRelease")}
+              value={nextRelease?.amount ?? 0}
+              icon={CalendarClock}
+              accent="blue"
+              format={(n) =>
+                nextRelease
+                  ? `${formatCurrency(n, nextRelease.currency, { compact: true })} · ${formatDateCivil(nextRelease.estimatedDate)}`
+                  : "—"
+              }
+            />
+          </>
+        )}
       </div>
 
-      {/* Latest transactions — from analytics/overview.recentTransactions or transactions API */}
-      <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-semibold">Latest Transactions</h3>
-            <p className="text-xs text-muted-foreground">Most recent payment activity</p>
+      {/* ---- Wallet composition ---- */}
+      {isLoading ? (
+        <Skeleton className="h-48 rounded-xl" />
+      ) : (
+        <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold">{t("finance.walletComposition")}</h3>
+              <p className="text-xs text-muted-foreground">{t("finance.walletCompositionDesc")}</p>
+            </div>
+            <Button
+              variant="ghost" size="sm" className="gap-1 text-xs"
+              onClick={() => setMerchantView("wallets")}
+            >
+              {t("common.viewAll")}
+              <ChevronRight className="h-3 w-3" />
+            </Button>
           </div>
-          <Button variant="ghost" size="sm" className="text-xs">View all</Button>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border/60 text-left text-xs text-muted-foreground">
-                <th className="pb-2 font-medium">Reference</th>
-                <th className="pb-2 font-medium">Customer</th>
-                <th className="pb-2 font-medium">Method</th>
-                <th className="pb-2 text-right font-medium">Amount</th>
-                <th className="pb-2 font-medium">Status</th>
-                <th className="pb-2 text-right font-medium">Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              {txs.length > 0 ? (
-                txs.map((t) => (
-                  <tr key={t.id} className="border-b border-border/30 transition hover:bg-muted/30">
-                    <td className="py-2.5 font-mono text-xs text-primary">{t.reference}</td>
-                    <td className="py-2.5">
-                      <p className="font-medium">{t.customer}</p>
-                      <p className="text-xs text-muted-foreground">{t.country}</p>
-                    </td>
-                    <td className="py-2.5"><MethodBadge method={t.method} /></td>
-                    <td className="py-2.5 text-right font-mono tabular-nums">
-                      {formatCurrency(t.amount, t.currency)}
-                    </td>
-                    <td className="py-2.5"><StatusBadge status={t.status} /></td>
-                    <td className="py-2.5 text-right text-xs text-muted-foreground">{timeAgo(t.createdAt)}</td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
-                    No transactions yet
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="rounded-xl border border-border/60 bg-background/40 p-4">
+              <p className="text-xs text-muted-foreground">{t("finance.walletTotal")}</p>
+              <p className="mt-1 font-mono text-xl font-semibold tabular-nums">
+                {formatCurrency(walletBalance, "EUR")}
+              </p>
+            </div>
+            <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4">
+              <p className="text-xs text-muted-foreground">{t("finance.pending")}</p>
+              <p className="mt-1 font-mono text-xl font-semibold tabular-nums text-amber-400">
+                {formatCurrency(walletPending, "EUR")}
+              </p>
+            </div>
+            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+              <p className="text-xs text-muted-foreground">{t("finance.available")}</p>
+              <p className="mt-1 font-mono text-xl font-semibold tabular-nums text-emerald-400">
+                {formatCurrency(walletAvailable, "EUR")}
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
 
-      {/* Risk strip */}
-      <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-          <div>
-            <p className="text-xs text-muted-foreground">Risk score</p>
-            <p className="mt-1 text-2xl font-semibold text-emerald-400">{r?.score ?? "—"}</p>
-            <p className="text-[10px] text-muted-foreground">{r?.trustStatus?.replace("_", " ") ?? "—"}</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Reserve</p>
-            <p className="mt-1 text-2xl font-semibold">{r ? formatPercent(r.reservePct) : "—"}</p>
-            <p className="text-[10px] text-muted-foreground">rolling reserve</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Chargeback rate</p>
-            <p className="mt-1 text-2xl font-semibold">{r ? formatPercent(r.chargebackRate, 2) : "—"}</p>
-            <p className="text-[10px] text-muted-foreground">vs 1% threshold</p>
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">Active alerts</p>
-            <p className="mt-1 text-2xl font-semibold text-amber-400">{(r?.alerts ?? []).length}</p>
-            <p className="text-[10px] text-muted-foreground">needs attention</p>
-          </div>
+      {/* ---- Quick financial summary ---- */}
+      {isLoading ? (
+        <Skeleton className="h-64 rounded-xl" />
+      ) : (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {/* Sales summary */}
+          <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold">{t("finance.salesSummary")}</h3>
+              <p className="text-xs text-muted-foreground">{t("finance.salesSummaryDesc")}</p>
+            </div>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between rounded-lg border border-border/40 bg-background/40 px-3 py-2.5">
+                <span className="text-xs text-muted-foreground">{t("finance.grossToday")}</span>
+                <span className="font-mono text-sm font-semibold tabular-nums">
+                  {formatCurrency(grossToday, "EUR")}
+                </span>
+              </div>
+              <div className="flex items-center justify-between rounded-lg border border-border/40 bg-background/40 px-3 py-2.5">
+                <span className="text-xs text-muted-foreground">{t("finance.registeredFees")}</span>
+                <span className="font-mono text-sm font-semibold tabular-nums">
+                  {formatCurrency(feesToday, "EUR")}
+                </span>
+              </div>
+              <div className="flex items-center justify-between rounded-lg border border-border/40 bg-background/40 px-3 py-2.5">
+                <span className="text-xs text-muted-foreground">{t("finance.netToday")}</span>
+                <span className="font-mono text-sm font-semibold tabular-nums text-emerald-400">
+                  {formatCurrency(netToday, "EUR")}
+                </span>
+              </div>
+              <div className="flex items-center justify-between rounded-lg border border-border/40 bg-background/40 px-3 py-2.5">
+                <span className="text-xs text-muted-foreground">{t("finance.netMonth")}</span>
+                <span className="font-mono text-sm font-semibold tabular-nums text-emerald-400">
+                  {formatCurrency(netMonth, "EUR")}
+                </span>
+              </div>
+              <div className="mt-1 flex gap-4 text-[10px] text-muted-foreground">
+                <span>{txToday} {t("finance.transactionsToday")}</span>
+                <span>{txMonth} {t("finance.transactionsMonth")}</span>
+              </div>
+            </div>
+          </Card>
+
+          {/* Payouts summary */}
+          <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold">{t("finance.payoutsSummary")}</h3>
+                <p className="text-xs text-muted-foreground">{t("finance.payoutsSummaryDesc")}</p>
+              </div>
+              <Button
+                variant="ghost" size="sm" className="gap-1 text-xs"
+                onClick={() => setMerchantView("finance-payouts")}
+              >
+                {t("common.viewAll")}
+                <ChevronRight className="h-3 w-3" />
+              </Button>
+            </div>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between rounded-lg border border-border/40 bg-background/40 px-3 py-2.5">
+                <span className="text-xs text-muted-foreground">{t("finance.paidPayouts")}</span>
+                <span className="font-mono text-sm font-semibold tabular-nums">
+                  {formatCurrency(paidTotal, "EUR")}
+                </span>
+              </div>
+              <div className="flex items-center justify-between rounded-lg border border-border/40 bg-background/40 px-3 py-2.5">
+                <span className="text-xs text-muted-foreground">{t("finance.paidCount")}</span>
+                <span className="font-mono text-sm font-semibold tabular-nums">
+                  {f?.payouts?.paidCount ?? 0}
+                </span>
+              </div>
+              <div className="flex items-center justify-between rounded-lg border border-border/40 bg-background/40 px-3 py-2.5">
+                <span className="text-xs text-muted-foreground">{t("finance.scheduledPayouts")}</span>
+                <span className="font-mono text-sm font-semibold tabular-nums text-amber-400">
+                  {formatCurrency(f?.payouts?.scheduled ?? 0, "EUR")}
+                </span>
+              </div>
+              <div className="flex items-center justify-between rounded-lg border border-border/40 bg-background/40 px-3 py-2.5">
+                <span className="text-xs text-muted-foreground">{t("finance.projectedAvailable")}</span>
+                <span className="font-mono text-sm font-semibold tabular-nums text-emerald-400">
+                  {formatCurrency(projectedAvailable, "EUR")}
+                </span>
+              </div>
+            </div>
+          </Card>
         </div>
-      </Card>
+      )}
+
+      {/* ---- Next release card ---- */}
+      {isLoading ? (
+        <Skeleton className="h-24 rounded-xl" />
+      ) : nextRelease ? (
+        <Card className="border-primary/30 bg-primary/5 p-5 backdrop-blur-xl">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="rounded-lg bg-primary/10 p-2.5">
+                <CalendarClock className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold">{t("finance.nextReleaseTitle")}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t("finance.estimatedRelease")}: {formatDateCivil(nextRelease.estimatedDate)}
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="font-mono text-xl font-semibold tabular-nums text-primary">
+                {formatCurrency(nextRelease.amount, nextRelease.currency)}
+              </p>
+              <Badge variant="outline" className="mt-1 text-[10px]">
+                {t("finance.awaitingRelease")}
+              </Badge>
+            </div>
+          </div>
+        </Card>
+      ) : (
+        <EmptyState
+          icon={CalendarClock}
+          title={t("finance.noReleases")}
+          description={t("finance.noReleasesDesc")}
+        />
+      )}
     </div>
   );
 }

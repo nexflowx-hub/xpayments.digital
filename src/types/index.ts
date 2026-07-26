@@ -388,6 +388,143 @@ export interface SystemHealth {
   workers: { name: string; active: number; idle: number; region: string }[];
 }
 
+// ---- Finance (v4 — /finance/* endpoints) ----
+export interface FinancePeriod {
+  gross: number;
+  fees: number;
+  net: number;
+  transactions: number;
+}
+
+export interface FinanceWallet {
+  balance: number;
+  pending: number;
+  available: number;
+  // NEVER expose these in the merchant UI:
+  // bookBalance?: number;
+  // reconciliationHold?: number;
+}
+
+export interface FinancePayoutSummary {
+  paid: number;
+  paidCount: number;
+  scheduled: number;
+  scheduledCount: number;
+}
+
+export interface FinanceNextRelease {
+  estimatedDate: string;
+  amount: number;
+  currency: string;
+}
+
+export interface FinanceOverview {
+  sales: {
+    today: FinancePeriod;
+    week: FinancePeriod;
+    month: FinancePeriod;
+    allTime: FinancePeriod;
+  };
+  wallet: FinanceWallet;
+  payouts: FinancePayoutSummary;
+  projectedAvailable: number;
+  nextRelease: FinanceNextRelease | null;
+}
+
+export interface FinanceReleaseItem {
+  id: string;
+  storeId: string;
+  storeName: string;
+  storeCode?: string;
+  expectedDate: string;
+  gross: number;
+  fees: number;
+  net: number;
+  movements: number;
+  status: "expected" | "overdue" | "partially_released" | "released" | "held" | "reconciliation";
+  releasedValue?: number;
+  remaining?: number;
+  currency?: string;
+}
+
+export interface FinanceReleasesResponse {
+  items: FinanceReleaseItem[];
+  summary: {
+    totalGross: number;
+    totalFees: number;
+    totalNet: number;
+    totalMovements: number;
+  };
+}
+
+export type PayoutStatementStatus =
+  | "paid"
+  | "scheduled"
+  | "processing"
+  | "draft"
+  | "cancelled"
+  | "failed";
+
+export interface PayoutAllocation {
+  storeId: string;
+  storeName: string;
+  amount: number;
+}
+
+export interface PayoutStatement {
+  id: string;
+  statementNumber: string;
+  stores: PayoutAllocation[];
+  value: number;
+  currency: string;
+  status: PayoutStatementStatus;
+  scheduledDate?: string;
+  paidAt?: string;
+  paidOn?: string;
+  historicalDateOnly?: boolean;
+  description?: string;
+  externalReference?: string;
+  createdAt: string;
+}
+
+export interface PayoutStatementsResponse {
+  items: PayoutStatement[];
+  summary: {
+    totalPaid: number;
+    totalScheduled: number;
+    totalPaidCount: number;
+    totalScheduledCount: number;
+  };
+}
+
+export interface FinanceStore {
+  storeId: string;
+  storeName: string;
+  storeCode?: string;
+  status: string;
+  gross: number;
+  fees: number;
+  net: number;
+  pending: number;
+  released: number;
+  paidPayouts: number;
+  scheduledPayouts: number;
+  operationalBalance: number;
+  availableAfterPayouts: number;
+  transactions: number;
+  currency?: string;
+}
+
+export interface FinanceStoresResponse {
+  items: FinanceStore[];
+  summary: {
+    totalGross: number;
+    totalFees: number;
+    totalNet: number;
+    totalPending: number;
+  };
+}
+
 // ---- Generic API ----
 export interface Paginated<T> {
   data: T[];

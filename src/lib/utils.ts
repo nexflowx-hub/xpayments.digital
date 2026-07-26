@@ -56,6 +56,14 @@ export function formatDate(iso: string, opts?: { withTime?: boolean }) {
   });
 }
 
+/** Format a date string as dd/MM/yyyy (civil date, no timezone shift). */
+export function formatDateCivil(iso: string): string {
+  const parts = iso.split("T")[0].split("-");
+  if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  const d = new Date(iso);
+  return d.toLocaleDateString("pt-PT", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
 export function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
   const sec = Math.floor(diff / 1000);

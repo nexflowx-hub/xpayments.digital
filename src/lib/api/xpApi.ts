@@ -25,6 +25,10 @@ import type {
   Webhook,
   DataTableFilters,
   CurrencyCode,
+  FinanceOverview,
+  FinanceReleasesResponse,
+  FinanceStoresResponse,
+  PayoutStatementsResponse,
 } from "@/types";
 
 /**
@@ -238,6 +242,22 @@ export const checkout = {
     }>({ url: `checkout/session/${id}`, method: "GET" }),
 };
 
+// ---- Finance (v4 — /finance/* endpoints) ----
+export const finance = {
+  /** GET finance/overview?currency=EUR */
+  overview: (currency: string = "EUR") =>
+    requestData<FinanceOverview>({ url: "finance/overview", method: "GET", params: { currency } }),
+  /** GET finance/releases?currency=EUR */
+  releases: (currency: string = "EUR") =>
+    requestData<FinanceReleasesResponse>({ url: "finance/releases", method: "GET", params: { currency } }),
+  /** GET finance/stores?currency=EUR */
+  stores: (currency: string = "EUR") =>
+    requestData<FinanceStoresResponse>({ url: "finance/stores", method: "GET", params: { currency } }),
+  /** GET payout-statements?currency=EUR */
+  payoutStatements: (currency: string = "EUR") =>
+    requestData<PayoutStatementsResponse>({ url: "payout-statements", method: "GET", params: { currency } }),
+};
+
 // ---- KYC ----
 export const kyc = {
   status: () =>
@@ -264,7 +284,7 @@ export const admin = {
 export const xpApi = {
   auth, analytics, transactions, wallets, risk, customers, products, stores,
   paymentLinks, invoices, subscriptions, apiKeys, webhooks, treasury, checkout,
-  kyc, admin,
+  kyc, admin, finance,
 };
 
 export type XpApi = typeof xpApi;

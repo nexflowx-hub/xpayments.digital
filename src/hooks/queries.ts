@@ -104,6 +104,36 @@ export function useWebhooks() {
   return useQuery({ queryKey: ["webhooks"], queryFn: () => xpApi.webhooks.list(), select: (d) => d ?? [] });
 }
 
+// ---- Finance (v4) ----
+export function useFinanceOverview(currency: string = "EUR") {
+  return useQuery({
+    queryKey: ["finance", "overview", currency],
+    queryFn: () => xpApi.finance.overview(currency),
+    staleTime: 30_000,
+  });
+}
+export function useFinanceReleases(currency: string = "EUR") {
+  return useQuery({
+    queryKey: ["finance", "releases", currency],
+    queryFn: () => xpApi.finance.releases(currency),
+    staleTime: 30_000,
+  });
+}
+export function useFinanceStores(currency: string = "EUR") {
+  return useQuery({
+    queryKey: ["finance", "stores", currency],
+    queryFn: () => xpApi.finance.stores(currency),
+    staleTime: 30_000,
+  });
+}
+export function usePayoutStatements(currency: string = "EUR") {
+  return useQuery({
+    queryKey: ["finance", "payout-statements", currency],
+    queryFn: () => xpApi.finance.payoutStatements(currency),
+    staleTime: 30_000,
+  });
+}
+
 // ---- Admin ----
 export function useAdminMerchants() {
   return useQuery({ queryKey: ["admin", "merchants"], queryFn: () => xpApi.admin.merchants(), select: (d) => d ?? [] });

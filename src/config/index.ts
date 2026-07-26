@@ -27,6 +27,9 @@ import {
   Activity,
   Cpu,
   Gauge,
+  ArrowRightLeft,
+  CalendarClock,
+  TrendingUp,
 } from "lucide-react";
 
 export interface NavItem {
@@ -60,6 +63,10 @@ export const merchantNav: NavSection[] = [
     items: [
       { id: "payments", label: "Payments", tKey: "nav.payments", icon: Receipt },
       { id: "wallets", label: "Wallets", tKey: "nav.wallets", icon: Wallet },
+      { id: "finance-flow", label: "Financial Flow", tKey: "nav.financeFlow", icon: ArrowRightLeft },
+      { id: "finance-releases", label: "Releases", tKey: "nav.financeReleases", icon: CalendarClock },
+      { id: "finance-payouts", label: "Payouts & Exits", tKey: "nav.financePayouts", icon: TrendingUp },
+      { id: "finance-stores", label: "By Store", tKey: "nav.financeStores", icon: StoreIcon },
       { id: "fx", label: "FX", tKey: "nav.fx", icon: ArrowLeftRight },
       { id: "treasury", label: "Treasury", tKey: "nav.treasury", icon: Banknote },
     ],

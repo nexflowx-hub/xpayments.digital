@@ -31,10 +31,6 @@ const CHART_METRICS: { key: ChartMetric; label: string }[] = [
   { key: "net", label: "Líquido" },
 ];
 
-function dv(value: number | undefined | null, fmt: (n: number) => string): string {
-  return value === undefined || value === null ? "—" : fmt(value);
-}
-
 export default function FinancialDashboard() {
   const { data: summary, isLoading: sLoading, isError: sError, refetch } = useFinancialSummary();
   const { data: stores } = useStores();
@@ -53,8 +49,12 @@ export default function FinancialDashboard() {
   );
 
   const s = summary;
-  const cur = s?.currency ?? "EUR";
+  const cur = "EUR";
   const fmt = (n: number) => formatCurrency(n, cur);
+
+  function dv(value: number | undefined | null): string {
+    return value === undefined || value === null ? "—" : fmt(value);
+  }
 
   if (sError) return (
     <div className="flex flex-col gap-6">
@@ -126,7 +126,7 @@ export default function FinancialDashboard() {
                   </div>
                   <div className="mt-3">
                     <p className="text-2xl font-semibold tracking-tight tabular-nums">
-                      {dv(kpi.value, fmt)}
+                      {dv(kpi.value)}
                     </p>
                     {kpi.label === "Próxima liberação" && s?.nextReleaseDate && (
                       <p className="mt-1 text-[10px] text-muted-foreground">

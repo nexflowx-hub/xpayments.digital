@@ -71,9 +71,9 @@ export default function MerchantOverview() {
           Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)
         ) : (
           <>
-            <StatCard label="Total Balance" value={totalBalance} icon={WalletIcon} accent="blue" format={(n) => formatCurrency(n, "EUR", { compact: true })} />
-            <StatCard label="Volume (Today)" value={volumeToday} icon={DollarSign} accent="green" format={(n) => formatCurrency(n, "EUR", { compact: true })} />
-            <StatCard label="Volume (Month)" value={volumeMonth} icon={TrendingUp} accent="green" format={(n) => formatCurrency(n, "EUR", { compact: true })} />
+            <StatCard label="Total Balance" value={totalBalance} icon={WalletIcon} accent="blue" format={(n) => formatCurrency(n, "EUR")} />
+            <StatCard label="Volume (Today)" value={volumeToday} icon={DollarSign} accent="green" format={(n) => formatCurrency(n, "EUR")} />
+            <StatCard label="Volume (Month)" value={volumeMonth} icon={TrendingUp} accent="green" format={(n) => formatCurrency(n, "EUR")} />
             <StatCard label="Success Rate" value={successRate} icon={ShieldCheck} accent="green" format={(n) => formatPercent(n)} />
             <StatCard label="Risk Score" value={r?.score ?? 0} icon={Activity} accent="amber" format={(n) => Math.round(n).toString()} />
           </>
@@ -110,11 +110,11 @@ export default function MerchantOverview() {
                       </div>
                     </div>
                     <p className="mt-2 font-mono text-lg font-semibold tabular-nums">
-                      {formatCurrency(wallet.balance, wallet.currency, { compact: true })}
+                      {formatCurrency(wallet.balance, wallet.currency)}
                     </p>
                     <div className="mt-1 flex gap-3 text-[10px] text-muted-foreground">
-                      <span>Avail {formatCurrency(wallet.available, wallet.currency, { compact: true })}</span>
-                      <span>Res {formatCurrency(wallet.reserved, wallet.currency, { compact: true })}</span>
+                      <span>Avail {formatCurrency(wallet.available, wallet.currency)}</span>
+                      <span>Res {formatCurrency(wallet.reserved, wallet.currency)}</span>
                     </div>
                   </div>
                 );

@@ -104,6 +104,48 @@ export function useWebhooks() {
   return useQuery({ queryKey: ["webhooks"], queryFn: () => xpApi.webhooks.list(), select: (d) => d ?? [] });
 }
 
+// ---- Real Finance Endpoints (v4) ----
+import type {
+  FinanceOverview,
+  FinanceReleasesResponse,
+  FinanceStoresResponse,
+  PayoutStatementsResponse,
+  MerchantProfile,
+} from "@/types";
+
+export function useFinanceOverview(currency = "EUR") {
+  return useQuery({
+    queryKey: ["financeV4", "overview", currency],
+    queryFn: () => xpApi.financeV4.overview(currency),
+  });
+}
+export function useFinanceReleases(currency = "EUR") {
+  return useQuery({
+    queryKey: ["financeV4", "releases", currency],
+    queryFn: () => xpApi.financeV4.releases(currency),
+  });
+}
+export function useFinanceStores(currency = "EUR") {
+  return useQuery({
+    queryKey: ["financeV4", "stores", currency],
+    queryFn: () => xpApi.financeV4.stores(currency),
+  });
+}
+export function usePayoutStatements(currency = "EUR") {
+  return useQuery({
+    queryKey: ["financeV4", "payout-statements", currency],
+    queryFn: () => xpApi.financeV4.payoutStatements(currency),
+  });
+}
+
+// ---- Merchant Profile ----
+export function useMerchantProfile() {
+  return useQuery({
+    queryKey: ["merchant", "profile"],
+    queryFn: () => xpApi.merchant.profile(),
+  });
+}
+
 // ---- Admin ----
 export function useAdminMerchants() {
   return useQuery({ queryKey: ["admin", "merchants"], queryFn: () => xpApi.admin.merchants(), select: (d) => d ?? [] });

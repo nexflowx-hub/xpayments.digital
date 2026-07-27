@@ -11,6 +11,11 @@ import type {
   FinancialFilters,
   FinancialMovement,
   FinancialSummary,
+  FinanceOverview,
+  FinanceReleasesResponse,
+  FinanceStoresResponse,
+  PayoutStatementsResponse,
+  MerchantProfile,
   Invoice,
   KycReview,
   Paginated,
@@ -290,10 +295,31 @@ export const financial = {
     requestData<StoreFinancials[]>({ url: "financial/by-store", method: "GET", params }),
 };
 
+// ---- Real Finance Endpoints (v4) ----
+export const financeV4 = {
+  /** GET finance/overview?currency=EUR */
+  overview: (currency = "EUR") =>
+    requestData<FinanceOverview>({ url: "finance/overview", method: "GET", params: { currency } }),
+  /** GET finance/releases?currency=EUR */
+  releases: (currency = "EUR") =>
+    requestData<FinanceReleasesResponse>({ url: "finance/releases", method: "GET", params: { currency } }),
+  /** GET finance/stores?currency=EUR */
+  stores: (currency = "EUR") =>
+    requestData<FinanceStoresResponse>({ url: "finance/stores", method: "GET", params: { currency } }),
+  /** GET payout-statements?currency=EUR */
+  payoutStatements: (currency = "EUR") =>
+    requestData<PayoutStatementsResponse>({ url: "payout-statements", method: "GET", params: { currency } }),
+};
+
+// ---- Merchant Profile ----
+export const merchant = {
+  profile: () => requestData<MerchantProfile>({ url: "merchant/profile", method: "GET" }),
+};
+
 export const xpApi = {
   auth, analytics, transactions, wallets, risk, customers, products, stores,
   paymentLinks, invoices, subscriptions, apiKeys, webhooks, treasury, checkout,
-  kyc, admin, financial,
+  kyc, admin, financial, financeV4, merchant,
 };
 
 export type XpApi = typeof xpApi;

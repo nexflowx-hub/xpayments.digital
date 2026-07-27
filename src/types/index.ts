@@ -580,3 +580,122 @@ export interface DataTableFilters {
   sortDir?: "asc" | "desc";
   reference?: string; // v3.1 uses 'reference' for search
 }
+
+// ---- Real Finance Endpoints (v4 API Contract) ----
+
+/** GET /finance/overview?currency=EUR */
+export interface FinanceOverview {
+  currency: string;
+  timezone: string;
+  generatedAt: string;
+  wallet: {
+    balance: number;
+    available: number;
+    reserved: number;
+  };
+  sales: {
+    gross: number;
+    fees: number;
+    net: number;
+  };
+  nextRelease: {
+    date: string;
+    amount: number;
+    status: "expected" | "overdue";
+  };
+}
+
+/** GET /finance/releases?currency=EUR */
+export interface FinanceNextRelease {
+  date: string;
+  amount: number;
+  status: "expected" | "overdue";
+  movementCount: number;
+}
+
+export interface FinanceReleasesResponse {
+  currency: string;
+  generatedAt: string;
+  items: FinanceNextRelease[];
+  summary: {
+    totalNet: number;
+    movementCount: number;
+    overdueNet: number;
+  };
+}
+
+/** GET /finance/stores?currency=EUR */
+export interface FinanceStore {
+  storeId: string;
+  storeCode: string;
+  storeName: string;
+  gross: number;
+  fees: number;
+  net: number;
+  pending: number;
+  released: number;
+  scheduledPayouts: number;
+  paidPayouts: number;
+  operationalBalance: number;
+}
+
+export interface FinanceStoresResponse {
+  currency: string;
+  stores: FinanceStore[];
+  generatedAt: string;
+}
+
+/** GET /payout-statements?currency=EUR */
+export interface PayoutAllocation {
+  storeId: string;
+  storeCode: string;
+  storeName: string;
+  amount: number;
+}
+
+export interface PayoutStatementV4 {
+  id: string;
+  statementCode: string;
+  allocations: PayoutAllocation[];
+  amount: number;
+  currency: string;
+  scheduledFor: string;
+  paidAt?: string;
+  status: "draft" | "scheduled" | "paid" | "cancelled";
+  reference?: string;
+  description?: string;
+  historicalDateOnly: boolean;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PayoutStatementsResponse {
+  currency: string;
+  generatedAt: string;
+  items: PayoutStatementV4[];
+  summary: {
+    paidAmount: number;
+    scheduledAmount: number;
+    paidCount: number;
+    scheduledCount: number;
+    draftCount: number;
+  };
+}
+
+/** GET /merchant/profile */
+export interface MerchantProfile {
+  id: string;
+  name: string;
+  email: string;
+  company?: string;
+  country?: string;
+  website?: string;
+  supportEmail?: string;
+  industry?: string;
+  kycStatus?: string;
+  kycSubmittedAt?: string;
+  createdAt: string;
+  tier?: string;
+}
+

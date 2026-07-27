@@ -1,0 +1,843 @@
+    40→  { id: "company", label: "Company", icon: Building2 },
+    41→  { id: "brand", label: "Brand", icon: Palette },
+    42→  { id: "security", label: "Security", icon: ShieldCheck },
+    43→  { id: "api", label: "API", icon: Code2 },
+    44→  { id: "notifications", label: "Notifications", icon: Bell },
+    45→  { id: "billing", label: "Billing", icon: CreditCard },
+    46→  { id: "compliance", label: "Compliance", icon: ScrollText },
+    47→  { id: "users", label: "Users", icon: Users },
+    48→  { id: "roles", label: "Roles", icon: Lock },
+    49→] as const;
+    50→
+    51→type TabId = (typeof TABS)[number]["id"];
+    52→
+    53→export default function SettingsPage() {
+    54→  const t = useT();
+    55→  const [active, setActive] = React.useState<TabId>("company");
+    56→  return (
+    57→    <div className="flex flex-col gap-6">
+    58→      <PageHeader
+    59→        title={t("nav.settings")}
+    60→        description="Manage your merchant account, branding, security and team."
+    61→      />
+    62→      <Tabs value={active} onValueChange={(v) => setActive(v as TabId)} className="grid grid-cols-1 gap-6 lg:grid-cols-[220px_1fr]">
+    63→        <TabsList className="flex h-fit flex-col gap-1 self-start bg-transparent p-0">
+    64→          {TABS.map((t) => (
+    65→            <TabsTrigger
+    66→              key={t.id}
+    67→              value={t.id}
+    68→              className={cn(
+    69→                "flex w-full items-center justify-start gap-2.5 rounded-lg border border-transparent px-3 py-2 text-sm font-medium data-[state=active]:border-border/60 data-[state=active]:bg-card/80 data-[state=active]:shadow-sm",
+    70→              )}
+    71→            >
+    72→              <t.icon className="h-4 w-4" />
+    73→              {t.label}
+    74→            </TabsTrigger>
+    75→          ))}
+    76→        </TabsList>
+    77→
+    78→        <div className="min-w-0">
+    79→          <TabsContent value="company"><CompanyTab /></TabsContent>
+    80→          <TabsContent value="brand"><BrandTab /></TabsContent>
+    81→          <TabsContent value="security"><SecurityTab /></TabsContent>
+    82→          <TabsContent value="api"><ApiTab /></TabsContent>
+    83→          <TabsContent value="notifications"><NotificationsTab /></TabsContent>
+    84→          <TabsContent value="billing"><BillingTab /></TabsContent>
+    85→          <TabsContent value="compliance"><ComplianceTab /></TabsContent>
+    86→          <TabsContent value="users"><UsersTab /></TabsContent>
+    87→          <TabsContent value="roles"><RolesTab /></TabsContent>
+    88→        </div>
+    89→      </Tabs>
+    90→    </div>
+    91→  );
+    92→}
+    93→
+    94→// ---------- Company ----------
+    95→const companySchema = z.object({
+    96→  name: z.string().min(2, "Company name is required"),
+    97→  website: z.string().url("Enter a valid URL (https://…)"),
+    98→  country: z.string().min(1, "Select a country"),
+    99→  industry: z.string().min(1, "Select an industry"),
+   100→  supportEmail: z.string().email("Enter a valid email"),
+   101→});
+   102→type CompanyForm = z.infer<typeof companySchema>;
+   103→
+   104→const INDUSTRIES = ["E-commerce", "SaaS", "Marketplace", "Travel", "iGaming", "Crypto", "Financial Services", "Other"];
+   105→
+   106→function CompanyTab() {
+   107→  const { user } = useAuth();
+   108→  const form = useForm<CompanyForm>({
+   109→    resolver: zodResolver(companySchema),
+   110→    defaultValues: {
+   111→      name: user?.company ?? "Nimbus Labs",
+   112→      website: "https://nimbuslabs.io",
+   113→      country: "Portugal",
+   114→      industry: "SaaS",
+   115→      supportEmail: "support@nimbuslabs.io",
+   116→    },
+   117→  });
+   118→
+   119→  const onSubmit = (values: CompanyForm) => {
+   120→    toast.success("Company settings saved");
+   121→    console.log(values);
+   122→  };
+   123→
+   124→  return (
+   125→    <Card className="border-border/60 bg-card/60 p-6 backdrop-blur-xl">
+   126→      <div className="mb-5">
+   127→        <h3 className="text-sm font-semibold">Company profile</h3>
+   128→        <p className="text-xs text-muted-foreground">Public-facing details shown on invoices and receipts.</p>
+   129→      </div>
+   130→      <Form {...form}>
+   131→        <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+   132→          <FormField
+   133→            control={form.control}
+   134→            name="name"
+   135→            render={({ field }) => (
+   136→              <FormItem>
+   137→                <FormLabel>Company name</FormLabel>
+   138→                <FormControl><Input {...field} /></FormControl>
+   139→                <FormMessage />
+   140→              </FormItem>
+   141→            )}
+   142→          />
+   143→          <FormField
+   144→            control={form.control}
+   145→            name="website"
+   146→            render={({ field }) => (
+   147→              <FormItem>
+   148→                <FormLabel>Website</FormLabel>
+   149→                <FormControl><Input {...field} /></FormControl>
+   150→                <FormMessage />
+   151→              </FormItem>
+   152→            )}
+   153→          />
+   154→          <FormField
+   155→            control={form.control}
+   156→            name="country"
+   157→            render={({ field }) => (
+   158→              <FormItem>
+   159→                <FormLabel>Country</FormLabel>
+   160→                <Select onValueChange={field.onChange} value={field.value}>
+   161→                  <FormControl><SelectTrigger className="w-full"><SelectValue /></SelectTrigger></FormControl>
+   162→                  <SelectContent>
+   163→                    {COUNTRY_LIST.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+   164→                  </SelectContent>
+   165→                </Select>
+   166→                <FormMessage />
+   167→              </FormItem>
+   168→            )}
+   169→          />
+   170→          <FormField
+   171→            control={form.control}
+   172→            name="industry"
+   173→            render={({ field }) => (
+   174→              <FormItem>
+   175→                <FormLabel>Industry</FormLabel>
+   176→                <Select onValueChange={field.onChange} value={field.value}>
+   177→                  <FormControl><SelectTrigger className="w-full"><SelectValue /></SelectTrigger></FormControl>
+   178→                  <SelectContent>
+   179→                    {INDUSTRIES.map((i) => <SelectItem key={i} value={i}>{i}</SelectItem>)}
+   180→                  </SelectContent>
+   181→                </Select>
+   182→                <FormMessage />
+   183→              </FormItem>
+   184→            )}
+   185→          />
+   186→          <FormField
+   187→            control={form.control}
+   188→            name="supportEmail"
+   189→            render={({ field }) => (
+   190→              <FormItem className="sm:col-span-2">
+   191→                <FormLabel>Support email</FormLabel>
+   192→                <FormControl><Input type="email" {...field} /></FormControl>
+   193→                <FormDescription>Used for customer-facing receipts and disputes.</FormDescription>
+   194→                <FormMessage />
+   195→              </FormItem>
+   196→            )}
+   197→          />
+   198→          <div className="sm:col-span-2 flex justify-end">
+   199→            <Button type="submit" disabled={form.formState.isSubmitting}>Save changes</Button>
+   200→          </div>
+   201→        </form>
+   202→      </Form>
+   203→    </Card>
+   204→  );
+   205→}
+   206→
+   207→// ---------- Brand ----------
+   208→const BRAND_COLORS = [
+   209→  { name: "Electric", value: "oklch(0.62 0.21 258)" },
+   210→  { name: "Emerald", value: "oklch(0.70 0.17 158)" },
+   211→  { name: "Amber", value: "oklch(0.78 0.16 78)" },
+   212→  { name: "Violet", value: "oklch(0.66 0.20 300)" },
+   213→  { name: "Rose", value: "oklch(0.68 0.20 20)" },
+   214→  { name: "Sky", value: "oklch(0.72 0.15 200)" },
+   215→];
+   216→
+   217→function BrandTab() {
+   218→  const [color, setColor] = React.useState(BRAND_COLORS[0].value);
+   219→  const [logoName, setLogoName] = React.useState<string | null>(null);
+   220→  const fileRef = React.useRef<HTMLInputElement>(null);
+   221→
+   222→  return (
+   223→    <Card className="border-border/60 bg-card/60 p-6 backdrop-blur-xl">
+   224→      <div className="mb-5">
+   225→        <h3 className="text-sm font-semibold">Brand & appearance</h3>
+   226→        <p className="text-xs text-muted-foreground">Customize how XPayments appears to your customers.</p>
+   227→      </div>
+   228→      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+   229→        <div className="space-y-5">
+   230→          <div>
+   231→            <Label>Logo</Label>
+   232→            <button
+   233→              type="button"
+   234→              onClick={() => fileRef.current?.click()}
+   235→              className="mt-1.5 flex w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/60 bg-background/40 py-8 transition hover:border-primary/40 hover:bg-muted/30"
+   236→            >
+   237→              {logoName ? (
+   238→                <>
+   239→                  <CheckCircle2 className="h-6 w-6 text-emerald-400" />
+   240→                  <p className="text-sm font-medium">{logoName}</p>
+   241→                  <p className="text-[11px] text-muted-foreground">Click to replace</p>
+   242→                </>
+   243→              ) : (
+   244→                <>
+   245→                  <Upload className="h-6 w-6 text-muted-foreground" />
+   246→                  <p className="text-sm font-medium">Drop your logo here</p>
+   247→                  <p className="text-[11px] text-muted-foreground">PNG or SVG, max 2MB · 1:1 recommended</p>
+   248→                </>
+   249→              )}
+   250→            </button>
+   251→            <input
+   252→              ref={fileRef}
+   253→              type="file"
+   254→              accept="image/png,image/svg+xml,image/jpeg"
+   255→              className="hidden"
+   256→              onChange={(e) => {
+   257→                const f = e.target.files?.[0];
+   258→                if (f) {
+   259→                  setLogoName(f.name);
+   260→                  toast.success("Logo uploaded");
+   261→                }
+   262→              }}
+   263→            />
+   264→          </div>
+   265→
+   266→          <div>
+   267→            <Label>Brand color</Label>
+   268→            <div className="mt-1.5 flex flex-wrap gap-2">
+   269→              {BRAND_COLORS.map((c) => (
+   270→                <button
+   271→                  key={c.value}
+   272→                  type="button"
+   273→                  onClick={() => setColor(c.value)}
+   274→                  className={cn(
+   275→                    "relative h-10 w-10 rounded-lg border-2 transition",
+   276→                    color === c.value ? "border-foreground" : "border-transparent",
+   277→                  )}
+   278→                  style={{ background: c.value }}
+   279→                  title={c.name}
+   280→                >
+   281→                  {color === c.value && <Check className="absolute inset-0 m-auto h-4 w-4 text-white" />}
+   282→                </button>
+   283→              ))}
+   284→            </div>
+   285→          </div>
+   286→        </div>
+   287→
+   288→        <div>
+   289→          <Label>Preview</Label>
+   290→          <div className="mt-1.5 overflow-hidden rounded-xl border border-border/60 bg-background/40">
+   291→            <div className="border-b border-border/40 p-4" style={{ background: `${color}18` }}>
+   292→              <div className="flex items-center gap-2">
+   293→                <div className="grid h-9 w-9 place-items-center rounded-lg font-bold text-white" style={{ background: color }}>
+   294→                  {logoName ? "L" : "N"}
+   295→                </div>
+   296→                <div>
+   297→                  <p className="text-sm font-semibold">Nimbus Labs</p>
+   298→                  <p className="text-[11px] text-muted-foreground">Pay with confidence</p>
+   299→                </div>
+   300→              </div>
+   301→            </div>
+   302→            <div className="p-4">
+   303→              <div className="mb-3 h-2 w-24 rounded-full" style={{ background: color }} />
+   304→              <div className="mb-2 h-2 w-full rounded-full bg-muted/60" />
+   305→              <div className="mb-2 h-2 w-3/4 rounded-full bg-muted/60" />
+   306→              <Button size="sm" className="mt-3 w-full" style={{ background: color, borderColor: color }}>
+   307→                Pay €42.00
+   308→              </Button>
+   309→            </div>
+   310→          </div>
+   311→        </div>
+   312→      </div>
+   313→      <div className="mt-5 flex justify-end">
+   314→        <Button onClick={() => toast.success("Brand settings saved")}>Save changes</Button>
+   315→      </div>
+   316→    </Card>
+   317→  );
+   318→}
+   319→
+   320→// ---------- Security ----------
+   321→const passwordSchema = z.object({
+   322→  current: z.string().min(1, "Current password is required"),
+   323→  next: z.string().min(8, "At least 8 characters"),
+   324→  confirm: z.string(),
+   325→}).refine((d) => d.next === d.confirm, {
+   326→  message: "Passwords do not match",
+   327→  path: ["confirm"],
+   328→});
+   329→type PasswordForm = z.infer<typeof passwordSchema>;
+   330→
+   331→const SESSIONS = [
+   332→  { id: "s1", device: "MacBook Pro · Chrome", location: "Lisbon, PT", ip: "188.250.x.x", current: true, icon: Monitor },
+   333→  { id: "s2", device: "iPhone 15 · Safari", location: "Lisbon, PT", ip: "188.250.x.x", current: false, icon: Smartphone },
+   334→  { id: "s3", device: "Windows · Edge", location: "Porto, PT", ip: "81.20.x.x", current: false, icon: Monitor },
+   335→];
+   336→
+   337→function SecurityTab() {
+   338→  const form = useForm<PasswordForm>({
+   339→    resolver: zodResolver(passwordSchema),
+   340→    defaultValues: { current: "", next: "", confirm: "" },
+   341→  });
+   342→  const [mfa, setMfa] = React.useState(true);
+   343→
+   344→  return (
+   345→    <div className="flex flex-col gap-4">
+   346→      <Card className="border-border/60 bg-card/60 p-6 backdrop-blur-xl">
+   347→        <div className="mb-5">
+   348→          <h3 className="text-sm font-semibold">Change password</h3>
+   349→          <p className="text-xs text-muted-foreground">Use at least 8 characters with a mix of letters, numbers and symbols.</p>
+   350→        </div>
+   351→        <Form {...form}>
+   352→          <form onSubmit={form.handleSubmit(() => { toast.success("Password updated"); form.reset(); })} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+   353→            <FormField
+   354→              control={form.control}
+   355→              name="current"
+   356→              render={({ field }) => (
+   357→                <FormItem className="sm:col-span-2">
+   358→                  <FormLabel>Current password</FormLabel>
+   359→                  <FormControl><Input type="password" {...field} /></FormControl>
+   360→                  <FormMessage />
+   361→                </FormItem>
+   362→              )}
+   363→            />
+   364→            <FormField
+   365→              control={form.control}
+   366→              name="next"
+   367→              render={({ field }) => (
+   368→                <FormItem>
+   369→                  <FormLabel>New password</FormLabel>
+   370→                  <FormControl><Input type="password" {...field} /></FormControl>
+   371→                  <FormMessage />
+   372→                </FormItem>
+   373→              )}
+   374→            />
+   375→            <FormField
+   376→              control={form.control}
+   377→              name="confirm"
+   378→              render={({ field }) => (
+   379→                <FormItem>
+   380→                  <FormLabel>Confirm new password</FormLabel>
+   381→                  <FormControl><Input type="password" {...field} /></FormControl>
+   382→                  <FormMessage />
+   383→                </FormItem>
+   384→              )}
+   385→            />
+   386→            <div className="sm:col-span-2 flex justify-end">
+   387→              <Button type="submit">Update password</Button>
+   388→            </div>
+   389→          </form>
+   390→        </Form>
+   391→      </Card>
+   392→
+   393→      <Card className="border-border/60 bg-card/60 p-6 backdrop-blur-xl">
+   394→        <div className="flex items-start justify-between gap-4">
+   395→          <div>
+   396→            <h3 className="flex items-center gap-2 text-sm font-semibold">
+   397→              <ShieldCheck className="h-4 w-4 text-primary" />
+   398→              Two-factor authentication
+   399→            </h3>
+   400→            <p className="mt-1 text-xs text-muted-foreground">
+   401→              Require a 6-digit code from your authenticator app on every login.
+   402→            </p>
+   403→          </div>
+   404→          <Switch checked={mfa} onCheckedChange={(v) => { setMfa(v); toast.success(v ? "2FA enabled" : "2FA disabled"); }} />
+   405→        </div>
+   406→        {mfa && (
+   407→          <div className="mt-3 rounded-lg border border-emerald-500/25 bg-emerald-500/8 px-3 py-2 text-xs text-emerald-300">
+   408→            2FA is active · Authenticator app configured on Mar 14, 2025
+   409→          </div>
+   410→        )}
+   411→      </Card>
+   412→
+   413→      <Card className="border-border/60 bg-card/60 p-6 backdrop-blur-xl">
+   414→        <div className="mb-4 flex items-center justify-between">
+   415→          <div>
+   416→            <h3 className="text-sm font-semibold">Active sessions</h3>
+   417→            <p className="text-xs text-muted-foreground">Devices currently signed in to your account.</p>
+   418→          </div>
+   419→        </div>
+   420→        <div className="flex flex-col gap-2">
+   421→          {SESSIONS.map((s) => (
+   422→            <div key={s.id} className="flex items-center gap-3 rounded-lg border border-border/40 bg-background/40 px-3 py-2.5">
+   423→              <div className="rounded-lg bg-muted/40 p-2"><s.icon className="h-4 w-4 text-muted-foreground" /></div>
+   424→              <div className="min-w-0 flex-1">
+   425→                <p className="text-sm font-medium">{s.device}</p>
+   426→                <p className="text-[11px] text-muted-foreground">{s.location} · {s.ip}</p>
+   427→              </div>
+   428→              {s.current ? (
+   429→                <Badge variant="outline" className="border-emerald-500/25 bg-emerald-500/12 text-emerald-400">This device</Badge>
+   430→              ) : (
+   431→                <Button variant="ghost" size="sm" className="gap-1 text-rose-400 hover:bg-rose-500/10 hover:text-rose-300">
+   432→                  <LogOut className="h-3.5 w-3.5" /> Revoke
+   433→                </Button>
+   434→              )}
+   435→            </div>
+   436→          ))}
+   437→        </div>
+   438→      </Card>
+   439→    </div>
+   440→  );
+   441→}
+   442→
+   443→// ---------- API ----------
+   444→function ApiTab() {
+   445→  const [version, setVersion] = React.useState("2025-01-15");
+   446→  const [allowlist, setAllowlist] = React.useState("188.250.0.0/16\n81.20.0.0/16");
+   447→
+   448→  const copy = (text: string) => {
+   449→    if (typeof navigator !== "undefined" && navigator.clipboard) {
+   450→      navigator.clipboard.writeText(text).then(() => toast.success("Copied to clipboard"));
+   451→    } else toast.success("Copied to clipboard");
+   452→  };
+   453→
+   454→  return (
+   455→    <div className="flex flex-col gap-4">
+   456→      <Card className="border-border/60 bg-card/60 p-6 backdrop-blur-xl">
+   457→        <div className="mb-5">
+   458→          <h3 className="text-sm font-semibold">API access</h3>
+   459→          <p className="text-xs text-muted-foreground">Base URL and version for all API requests.</p>
+   460→        </div>
+   461→        <div className="flex flex-col gap-4">
+   462→          <div>
+   463→            <Label>Base URL</Label>
+   464→            <div className="mt-1.5 flex items-center gap-2">
+   465→              <Input readOnly value={API_BASE_URL} className="font-mono text-xs" />
+   466→              <Button variant="outline" size="icon" onClick={() => copy(API_BASE_URL)}><Copy className="h-4 w-4" /></Button>
+   467→            </div>
+   468→          </div>
+   469→          <div>
+   470→            <Label>API version</Label>
+   471→            <Select value={version} onValueChange={setVersion}>
+   472→              <SelectTrigger className="mt-1.5 w-full sm:w-60"><SelectValue /></SelectTrigger>
+   473→              <SelectContent>
+   474→                <SelectItem value="2025-01-15">2025-01-15 (latest)</SelectItem>
+   475→                <SelectItem value="2024-11-01">2024-11-01</SelectItem>
+   476→                <SelectItem value="2024-08-01">2024-08-01</SelectItem>
+   477→              </SelectContent>
+   478→            </Select>
+   479→            <p className="mt-1.5 text-[11px] text-muted-foreground">Pin to a version for predictable behavior. New versions are backward-compatible.</p>
+   480→          </div>
+   481→          <div>
+   482→            <Label>IP allowlist</Label>
+   483→            <Textarea
+   484→              value={allowlist}
+   485→              onChange={(e) => setAllowlist(e.target.value)}
+   486→              spellCheck={false}
+   487→              className="mt-1.5 h-28 resize-none font-mono text-xs"
+   488→            />
+   489→            <p className="mt-1.5 text-[11px] text-muted-foreground">One CIDR per line. Empty = allow from any IP (less secure).</p>
+   490→          </div>
+   491→          <div className="flex justify-end">
+   492→            <Button onClick={() => toast.success("API settings saved")}>Save changes</Button>
+   493→          </div>
+   494→        </div>
+   495→      </Card>
+   496→    </div>
+   497→  );
+   498→}
+   499→
+   500→// ---------- Notifications ----------
+   501→const NOTIF_EVENTS = [
+   502→  { id: "payment", label: "Payment received", desc: "When a customer payment is captured.", email: true, push: false },
+   503→  { id: "payout", label: "Payout created", desc: "When a payout is queued for processing.", email: true, push: true },
+   504→  { id: "dispute", label: "Dispute opened", desc: "When a chargeback or dispute is created.", email: true, push: true },
+   505→  { id: "risk", label: "Risk alert", desc: "When a high-risk transaction is flagged.", email: true, push: true },
+   506→  { id: "summary", label: "Weekly summary", desc: "Monday-morning recap of last week's activity.", email: true, push: false },
+   507→];
+   508→
+   509→function NotificationsTab() {
+   510→  const [events, setEvents] = React.useState(NOTIF_EVENTS);
+   511→  const toggle = (id: string, channel: "email" | "push") =>
+   512→    setEvents((prev) => prev.map((e) => (e.id === id ? { ...e, [channel]: !e[channel] } : e)));
+   513→
+   514→  return (
+   515→    <Card className="border-border/60 bg-card/60 p-6 backdrop-blur-xl">
+   516→      <div className="mb-5">
+   517→        <h3 className="text-sm font-semibold">Notifications</h3>
+   518→        <p className="text-xs text-muted-foreground">Choose which events trigger email and push notifications.</p>
+   519→      </div>
+   520→      <div className="overflow-x-auto">
+   521→        <table className="w-full text-sm">
+   522→          <thead>
+   523→            <tr className="border-b border-border/60 text-left text-xs text-muted-foreground">
+   524→              <th className="pb-2 font-medium">Event</th>
+   525→              <th className="pb-2 text-center font-medium">Email</th>
+   526→              <th className="pb-2 text-center font-medium">Push</th>
+   527→            </tr>
+   528→          </thead>
+   529→          <tbody>
+   530→            {events.map((e) => (
+   531→              <tr key={e.id} className="border-b border-border/30">
+   532→                <td className="py-3">
+   533→                  <p className="font-medium">{e.label}</p>
+   534→                  <p className="text-[11px] text-muted-foreground">{e.desc}</p>
+   535→                </td>
+   536→                <td className="py-3 text-center">
+   537→                  <Switch checked={e.email} onCheckedChange={() => toggle(e.id, "email")} />
+   538→                </td>
+   539→                <td className="py-3 text-center">
+   540→                  <Switch checked={e.push} onCheckedChange={() => toggle(e.id, "push")} />
+   541→                </td>
+   542→              </tr>
+   543→            ))}
+   544→          </tbody>
+   545→        </table>
+   546→      </div>
+   547→      <div className="mt-5 flex justify-end">
+   548→        <Button onClick={() => toast.success("Notification preferences saved")}>Save preferences</Button>
+   549→      </div>
+   550→    </Card>
+   551→  );
+   552→}
+   553→
+   554→// ---------- Billing ----------
+   555→function BillingTab() {
+   556→  const usage = [
+   557→    { label: "API calls", used: 184230, limit: 500000, unit: "" },
+   558→    { label: "Payment volume", used: 842310, limit: 2000000, unit: "€" },
+   559→    { label: "Webhook deliveries", used: 12480, limit: 100000, unit: "" },
+   560→  ];
+   561→  return (
+   562→    <div className="flex flex-col gap-4">
+   563→      <Card className="overflow-hidden border-border/60 bg-card/60 backdrop-blur-xl">
+   564→        <div className="flex flex-col gap-4 border-b border-border/60 bg-gradient-to-r from-primary/10 to-violet-500/10 p-6 sm:flex-row sm:items-center sm:justify-between">
+   565→          <div>
+   566→            <div className="flex items-center gap-2">
+   567→              <Crown className="h-5 w-5 text-amber-400" />
+   568→              <h3 className="text-base font-semibold">Pro plan</h3>
+   569→              <Badge variant="outline" className="border-amber-500/25 bg-amber-500/12 text-amber-400">Active</Badge>
+   570→            </div>
+   571→            <p className="mt-1 text-xs text-muted-foreground">€499 / month · renews on Feb 1, 2025</p>
+   572→          </div>
+   573→          <div className="flex gap-2">
+   574→            <Button variant="outline" size="sm">Manage plan</Button>
+   575→            <Button size="sm" className="gap-1.5"><Crown className="h-3.5 w-3.5" /> Upgrade</Button>
+   576→          </div>
+   577→        </div>
+   578→        <div className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-3">
+   579→          {usage.map((u) => {
+   580→            const pct = (u.used / u.limit) * 100;
+   581→            return (
+   582→              <div key={u.label}>
+   583→                <div className="flex items-center justify-between">
+   584→                  <p className="text-xs text-muted-foreground">{u.label}</p>
+   585→                  <p className="text-xs font-medium">{pct.toFixed(0)}%</p>
+   586→                </div>
+   587→                <p className="mt-1 text-sm font-semibold tabular-nums">
+   588→                  {u.unit}{u.used.toLocaleString()} <span className="text-muted-foreground">/ {u.unit}{u.limit.toLocaleString()}</span>
+   589→                </p>
+   590→                <Progress value={pct} className={cn("mt-2 h-1.5", pct > 80 && "[&>div]:bg-amber-400", pct > 95 && "[&>div]:bg-rose-400")} />
+   591→              </div>
+   592→            );
+   593→          })}
+   594→        </div>
+   595→      </Card>
+   596→
+   597→      <Card className="border-border/60 bg-card/60 p-6 backdrop-blur-xl">
+   598→        <div className="mb-4">
+   599→          <h3 className="text-sm font-semibold">Payment method</h3>
+   600→          <p className="text-xs text-muted-foreground">Card used for subscription billing.</p>
+   601→        </div>
+   602→        <div className="flex items-center justify-between rounded-lg border border-border/40 bg-background/40 px-4 py-3">
+   603→          <div className="flex items-center gap-3">
+   604→            <div className="grid h-8 w-12 place-items-center rounded bg-muted/40 text-[10px] font-bold">VISA</div>
+   605→            <div>
+   606→              <p className="font-mono text-sm">•••• 4242</p>
+   607→              <p className="text-[11px] text-muted-foreground">Expires 09/27</p>
+   608→            </div>
+   609→          </div>
+   610→          <Button variant="outline" size="sm">Update</Button>
+   611→        </div>
+   612→        <div className="mt-4 flex items-center justify-between">
+   613→          <p className="text-sm text-muted-foreground">Need a past invoice?</p>
+   614→          <Button variant="ghost" size="sm" className="gap-1.5 text-primary" onClick={() => toast.success("Opening invoices…")}>
+   615→            View all invoices <Mail className="h-3.5 w-3.5" />
+   616→          </Button>
+   617→        </div>
+   618→      </Card>
+   619→    </div>
+   620→  );
+   621→}
+   622→
+   623→// ---------- Compliance ----------
+   624→const KYC_DOCS = [
+   625→  { id: "d1", name: "Certificate of Incorporation.pdf", type: "Article", status: "approved", date: "2024-09-12" },
+   626→  { id: "d2", name: "Passport_Mariana.pdf", type: "Passport", status: "approved", date: "2024-09-12" },
+   627→  { id: "d3", name: "Address_Proof.pdf", type: "Address proof", status: "approved", date: "2024-09-15" },
+   628→  { id: "d4", name: "Beneficial_Owners.xlsx", type: "UBO declaration", status: "approved", date: "2024-09-18" },
+   629→];
+   630→
+   631→function ComplianceTab() {
+   632→  return (
+   633→    <div className="flex flex-col gap-4">
+   634→      <Card className="border-border/60 bg-card/60 p-6 backdrop-blur-xl">
+   635→        <div className="flex items-start gap-4">
+   636→          <div className="rounded-xl bg-emerald-500/12 p-3 text-emerald-400">
+   637→            <CheckCircle2 className="h-6 w-6" />
+   638→          </div>
+   639→          <div className="flex-1">
+   640→            <div className="flex items-center gap-2">
+   641→              <h3 className="text-base font-semibold">KYC verified</h3>
+   642→              <Badge variant="outline" className="border-emerald-500/25 bg-emerald-500/12 text-emerald-400">Approved</Badge>
+   643→            </div>
+   644→            <p className="mt-1 text-xs text-muted-foreground">
+   645→              Your merchant account completed KYC verification on Sep 18, 2024. All payment methods are enabled.
+   646→            </p>
+   647→          </div>
+   648→        </div>
+   649→      </Card>
+   650→
+   651→      <Card className="border-border/60 bg-card/60 p-6 backdrop-blur-xl">
+   652→        <div className="mb-4">
+   653→          <h3 className="text-sm font-semibold">Verification badges</h3>
+   654→          <p className="text-xs text-muted-foreground">Compliance programs your account has passed.</p>
+   655→        </div>
+   656→        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+   657→          {[
+   658→            { label: "Identity verified", icon: ShieldCheck },
+   659→            { label: "Business verified", icon: Building2 },
+   660→            { label: "AML screening passed", icon: ScrollText },
+   661→            { label: "Sanctions cleared", icon: CheckCircle2 },
+   662→            { label: "PEP checked", icon: Eye },
+   663→            { label: "UBO declared", icon: Users },
+   664→          ].map((b) => (
+   665→            <div key={b.label} className="flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-xs text-emerald-300">
+   666→              <b.icon className="h-3.5 w-3.5" />
+   667→              {b.label}
+   668→            </div>
+   669→          ))}
+   670→        </div>
+   671→      </Card>
+   672→
+   673→      <Card className="border-border/60 bg-card/60 p-6 backdrop-blur-xl">
+   674→        <div className="mb-4 flex items-center justify-between">
+   675→          <div>
+   676→            <h3 className="text-sm font-semibold">Submitted documents</h3>
+   677→            <p className="text-xs text-muted-foreground">All documents are encrypted at rest.</p>
+   678→          </div>
+   679→          <Button variant="outline" size="sm" className="gap-1.5"><Upload className="h-3.5 w-3.5" /> Upload more</Button>
+   680→        </div>
+   681→        <div className="flex flex-col gap-2">
+   682→          {KYC_DOCS.map((d) => (
+   683→            <div key={d.id} className="flex items-center gap-3 rounded-lg border border-border/40 bg-background/40 px-3 py-2.5">
+   684→              <div className="rounded-lg bg-muted/40 p-2"><ScrollText className="h-4 w-4 text-muted-foreground" /></div>
+   685→              <div className="min-w-0 flex-1">
+   686→                <p className="truncate text-sm font-medium">{d.name}</p>
+   687→                <p className="text-[11px] text-muted-foreground">{d.type} · uploaded {formatDate(d.date)}</p>
+   688→              </div>
+   689→              <Badge variant="outline" className="border-emerald-500/25 bg-emerald-500/12 text-emerald-400">{d.status}</Badge>
+   690→            </div>
+   691→          ))}
+   692→        </div>
+   693→      </Card>
+   694→    </div>
+   695→  );
+   696→}
+   697→
+   698→// ---------- Users ----------
+   699→const TEAM = [
+   700→  { id: "u1", name: "Mariana Costa", email: "mariana@nimbuslabs.io", role: "Owner", status: "active" },
+   701→  { id: "u2", name: "Tiago Silva", email: "tiago@nimbuslabs.io", role: "Admin", status: "active" },
+   702→  { id: "u3", name: "Ana Ferreira", email: "ana@nimbuslabs.io", role: "Developer", status: "active" },
+   703→  { id: "u4", name: "Bruno Lima", email: "bruno@nimbuslabs.io", role: "Analyst", status: "active" },
+   704→  { id: "u5", name: "Clara Nunes", email: "clara@nimbuslabs.io", role: "Viewer", status: "paused" },
+   705→];
+   706→
+   707→function UsersTab() {
+   708→  const [inviteOpen, setInviteOpen] = React.useState(false);
+   709→  const [email, setEmail] = React.useState("");
+   710→  const [role, setRole] = React.useState("Developer");
+   711→
+   712→  return (
+   713→    <Card className="border-border/60 bg-card/60 p-6 backdrop-blur-xl">
+   714→      <div className="mb-4 flex items-center justify-between">
+   715→        <div>
+   716→          <h3 className="text-sm font-semibold">Team members</h3>
+   717→          <p className="text-xs text-muted-foreground">{TEAM.length} members in this workspace</p>
+   718→        </div>
+   719→        <Button size="sm" className="gap-1.5" onClick={() => setInviteOpen(true)}>
+   720→          <Plus className="h-3.5 w-3.5" /> Invite
+   721→        </Button>
+   722→      </div>
+   723→      <div className="overflow-x-auto">
+   724→        <table className="w-full text-sm">
+   725→          <thead>
+   726→            <tr className="border-b border-border/60 text-left text-xs text-muted-foreground">
+   727→              <th className="pb-2 font-medium">Member</th>
+   728→              <th className="pb-2 font-medium">Role</th>
+   729→              <th className="pb-2 font-medium">Status</th>
+   730→              <th className="pb-2 text-right font-medium">Actions</th>
+   731→            </tr>
+   732→          </thead>
+   733→          <tbody>
+   734→            {TEAM.map((m) => (
+   735→              <tr key={m.id} className="border-b border-border/30 transition hover:bg-muted/30">
+   736→                <td className="py-3">
+   737→                  <div className="flex items-center gap-2.5">
+   738→                    <Avatar className="h-8 w-8"><AvatarFallback className="bg-primary/15 text-[11px] font-semibold text-primary">{initials(m.name)}</AvatarFallback></Avatar>
+   739→                    <div>
+   740→                      <p className="font-medium">{m.name}</p>
+   741→                      <p className="text-[11px] text-muted-foreground">{m.email}</p>
+   742→                    </div>
+   743→                  </div>
+   744→                </td>
+   745→                <td className="py-3">
+   746→                  <Badge variant="outline" className="border-border/60 bg-muted/30">{m.role}</Badge>
+   747→                </td>
+   748→                <td className="py-3"><StatusBadge status={m.status} /></td>
+   749→                <td className="py-3 text-right">
+   750→                  <Button variant="ghost" size="sm" className="text-xs text-muted-foreground">Manage</Button>
+   751→                </td>
+   752→              </tr>
+   753→            ))}
+   754→          </tbody>
+   755→        </table>
+   756→      </div>
+   757→
+   758→      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+   759→        <DialogContent className="sm:max-w-md">
+   760→          <DialogHeader>
+   761→            <DialogTitle>Invite team member</DialogTitle>
+   762→            <DialogDescription>They'll receive an email invitation to join this workspace.</DialogDescription>
+   763→          </DialogHeader>
+   764→          <div className="flex flex-col gap-3 py-2">
+   765→            <div className="flex flex-col gap-1.5">
+   766→              <Label htmlFor="invite-email">Email</Label>
+   767→              <Input id="invite-email" type="email" placeholder="teammate@company.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+   768→            </div>
+   769→            <div className="flex flex-col gap-1.5">
+   770→              <Label>Role</Label>
+   771→              <Select value={role} onValueChange={setRole}>
+   772→                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+   773→                <SelectContent>
+   774→                  {["Owner", "Admin", "Developer", "Analyst", "Viewer"].map((r) => (
+   775→                    <SelectItem key={r} value={r}>{r}</SelectItem>
+   776→                  ))}
+   777→                </SelectContent>
+   778→              </Select>
+   779→            </div>
+   780→          </div>
+   781→          <DialogFooter>
+   782→            <Button variant="outline" onClick={() => setInviteOpen(false)}>Cancel</Button>
+   783→            <Button
+   784→              onClick={() => {
+   785→                if (!email.includes("@")) { toast.error("Enter a valid email"); return; }
+   786→                setInviteOpen(false);
+   787→                setEmail("");
+   788→                toast.success(`Invitation sent to ${email}`);
+   789→              }}
+   790→            >
+   791→              Send invite
+   792→            </Button>
+   793→          </DialogFooter>
+   794→        </DialogContent>
+   795→      </Dialog>
+   796→    </Card>
+   797→  );
+   798→}
+   799→
+   800→// ---------- Roles ----------
+   801→const ROLES = [
+   802→  { id: "owner", label: "Owner", icon: Crown, desc: "Full access including billing and account deletion." },
+   803→  { id: "admin", label: "Admin", icon: Shield, desc: "Manage everything except account-level changes." },
+   804→  { id: "developer", label: "Developer", icon: Code2, desc: "API keys, webhooks, and read access to data." },
+   805→  { id: "analyst", label: "Analyst", icon: Database, desc: "Read access to analytics and reports." },
+   806→  { id: "viewer", label: "Viewer", icon: Eye, desc: "Read-only access to dashboards." },
+   807→];
+   808→
+   809→const PERMISSIONS = [
+   810→  { id: "dashboard", label: "View dashboard" },
+   811→  { id: "payments", label: "Manage payments" },
+   812→  { id: "wallets", label: "Manage wallets" },
+   813→  { id: "apikeys", label: "Manage API keys" },
+   814→  { id: "users", label: "Manage users" },
+   815→  { id: "billing", label: "View billing" },
+   816→  { id: "compliance", label: "Manage compliance" },
+   817→];
+   818→
+   819→// Matrix: role -> permission -> bool
+   820→const MATRIX: Record<string, Record<string, boolean>> = {
+   821→  owner: Object.fromEntries(PERMISSIONS.map((p) => [p.id, true])),
+   822→  admin: Object.fromEntries(PERMISSIONS.map((p) => [p.id, true])),
+   823→  developer: Object.fromEntries(PERMISSIONS.map((p) => [p.id, ["dashboard", "payments", "wallets", "apikeys"].includes(p.id)])),
+   824→  analyst: Object.fromEntries(PERMISSIONS.map((p) => [p.id, ["dashboard", "billing"].includes(p.id)])),
+   825→  viewer: Object.fromEntries(PERMISSIONS.map((p) => [p.id, p.id === "dashboard"])),
+   826→};
+   827→
+   828→function RolesTab() {
+   829→  return (
+   830→    <Card className="border-border/60 bg-card/60 p-6 backdrop-blur-xl">
+   831→      <div className="mb-5">
+   832→        <h3 className="text-sm font-semibold">Roles & permissions</h3>
+   833→        <p className="text-xs text-muted-foreground">Define what each role can do in your workspace.</p>
+   834→      </div>
+   835→      <div className="overflow-x-auto">
+   836→        <table className="w-full text-sm">
+   837→          <thead>
+   838→            <tr className="border-b border-border/60 text-left text-xs text-muted-foreground">
+   839→              <th className="pb-3 font-medium">Permission</th>
+   840→              {ROLES.map((r) => (
+   841→                <th key={r.id} className="pb-3 text-center font-medium">
+   842→                  <div className="flex flex-col items-center gap-1">
+   843→                    <r.icon className="h-4 w-4 text-muted-foreground" />
+   844→                    <span>{r.label}</span>
+   845→                  </div>
+   846→                </th>
+   847→              ))}
+   848→            </tr>
+   849→          </thead>
+   850→          <tbody>
+   851→            {PERMISSIONS.map((p) => (
+   852→              <tr key={p.id} className="border-b border-border/30">
+   853→                <td className="py-3 text-sm">{p.label}</td>
+   854→                {ROLES.map((r) => (
+   855→                  <td key={r.id} className="py-3 text-center">
+   856→                    {MATRIX[r.id]?.[p.id] ? (
+   857→                      <Check className="mx-auto h-4 w-4 text-emerald-400" />
+   858→                    ) : (
+   859→                      <span className="mx-auto block h-1 w-3 rounded-full bg-muted/60" />
+   860→                    )}
+   861→                  </td>
+   862→                ))}
+   863→              </tr>
+   864→            ))}
+   865→          </tbody>
+   866→        </table>
+   867→      </div>
+   868→      <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+   869→        {ROLES.map((r) => (
+   870→          <div key={r.id} className="rounded-lg border border-border/40 bg-background/40 p-3">
+   871→            <div className="flex items-center gap-2">
+   872→              <r.icon className="h-4 w-4 text-primary" />
+   873→              <p className="text-sm font-medium">{r.label}</p>
+   874→            </div>
+   875→            <p className="mt-1 text-[11px] text-muted-foreground">{r.desc}</p>
+   876→          </div>
+   877→        ))}
+   878→      </div>
+   879→    </Card>
+   880→  );
+   881→}
+   882→

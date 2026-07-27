@@ -186,9 +186,9 @@ export default function WalletsPage() {
           Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)
         ) : (
           <>
-            <StatCard label="Total balance" value={totalEur} change={weightedChange} icon={WalletIcon} accent="blue" format={(n) => formatCurrency(n, "EUR", { compact: true })} />
-            <StatCard label="Available" value={availableEur} icon={Coins} accent="green" format={(n) => formatCurrency(n, "EUR", { compact: true })} />
-            <StatCard label="Reserved" value={reservedEur} icon={Lock} accent="amber" format={(n) => formatCurrency(n, "EUR", { compact: true })} />
+            <StatCard label="Total balance" value={totalEur} change={weightedChange} icon={WalletIcon} accent="blue" format={(n) => formatCurrency(n, "EUR")} />
+            <StatCard label="Available" value={availableEur} icon={Coins} accent="green" format={(n) => formatCurrency(n, "EUR")} />
+            <StatCard label="Reserved" value={reservedEur} icon={Lock} accent="amber" format={(n) => formatCurrency(n, "EUR")} />
             <StatCard label="24h change" value={weightedChange} icon={Activity} accent="violet" format={(n) => `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`} />
           </>
         )}
@@ -238,15 +238,15 @@ export default function WalletsPage() {
                     </div>
 
                     <p className="mt-3 font-mono text-2xl font-semibold tabular-nums">
-                      {formatCurrency(w.balance, w.currency, { compact: w.balance >= 100000 })}
+                      {formatCurrency(w.balance, w.currency)}
                     </p>
 
                     <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
                       <span>
-                        Avail <span className="font-mono text-foreground/80">{formatCurrency(w.available, w.currency, { compact: true })}</span>
+                        Avail <span className="font-mono text-foreground/80">{formatCurrency(w.available, w.currency)}</span>
                       </span>
                       <span>
-                        Res <span className="font-mono text-foreground/80">{formatCurrency(w.reserved, w.currency, { compact: true })}</span>
+                        Res <span className="font-mono text-foreground/80">{formatCurrency(w.reserved, w.currency)}</span>
                       </span>
                     </div>
 
@@ -314,7 +314,7 @@ export default function WalletsPage() {
                               )}
                             >
                               {incoming ? <ArrowDownLeft className="h-3 w-3" /> : <ArrowUpRight className="h-3 w-3" />}
-                              {incoming ? "+" : "−"}{formatCurrency(m.amount, m.currency, { compact: m.amount >= 10000 })}
+                              {incoming ? "+" : "−"}{formatCurrency(m.amount, m.currency)}
                             </span>
                           </TableCell>
                           <TableCell><StatusBadge status={m.status} /></TableCell>
@@ -335,7 +335,7 @@ export default function WalletsPage() {
           {!walletsRes ? (
             <Skeleton className="h-56 w-full" />
           ) : (
-            <DonutChart data={allocationData} height={240} formatter={(v) => formatCurrency(v, "EUR", { compact: true })} />
+            <DonutChart data={allocationData} height={240} formatter={(v) => formatCurrency(v, "EUR")} />
           )}
         </Card>
       </div>

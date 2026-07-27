@@ -233,7 +233,7 @@ export default function WalletsPage() {
                         )}
                       >
                         {w.changePct >= 0 ? <TrendingUp className="h-3 w-3" /> : <Activity className="h-3 w-3" />}
-                        {w.changePct >= 0 ? "+" : ""}{w.changePct}%
+                        {formatCurrency(w.changePct ?? 0, w.currency)}
                       </Badge>
                     </div>
 

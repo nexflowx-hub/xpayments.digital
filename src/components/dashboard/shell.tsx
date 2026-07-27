@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, Bell, Menu, X, ChevronDown, Sun, Moon, LogOut, User as UserIcon,
   Settings, CreditCard, Globe, Check, Command, Sparkles, PanelLeftClose,
-  PanelLeft, LifeBuoy, ExternalLink, ShieldCheck, Plus,
+  PanelLeft, LifeBuoy, ExternalLink, ShieldCheck,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/stores/auth";
@@ -50,7 +50,7 @@ function Logo({ compact = false }: { compact?: boolean }) {
 function WorkspaceSwitcher({ compact }: { compact?: boolean }) {
   const user = useAuth((s) => s.user);
   const t = useT();
-  const [workspace, setWorkspace] = React.useState(user?.company ?? "Nimbus Labs");
+  const [workspace] = React.useState(user?.company ?? "XPayments");
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -75,23 +75,10 @@ function WorkspaceSwitcher({ compact }: { compact?: boolean }) {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-60">
-        <DropdownMenuLabel className="text-xs text-muted-foreground">Workspaces</DropdownMenuLabel>
-        <DropdownMenuItem onClick={() => setWorkspace("Nimbus Labs")}>
-          <div className="mr-2 grid h-6 w-6 place-items-center rounded bg-primary/20 text-[10px] font-semibold text-primary">N</div>
-          Nimbus Labs
-          <Check className="ml-auto h-3.5 w-3.5" />
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setWorkspace("Quanta Pay")}>
-          <div className="mr-2 grid h-6 w-6 place-items-center rounded bg-emerald-500/20 text-[10px] font-semibold text-emerald-400">Q</div>
-          Quanta Pay
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setWorkspace("Vertex Commerce")}>
-          <div className="mr-2 grid h-6 w-6 place-items-center rounded bg-violet-500/20 text-[10px] font-semibold text-violet-400">V</div>
-          Vertex Commerce
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem>
-          <Plus className="mr-2 h-4 w-4" /> New workspace
+        <DropdownMenuLabel className="text-xs text-muted-foreground">Workspace</DropdownMenuLabel>
+        <DropdownMenuItem disabled>
+          <div className="mr-2 grid h-6 w-6 place-items-center rounded bg-primary/20 text-[10px] font-semibold text-primary">X</div>
+          {workspace}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

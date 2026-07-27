@@ -104,7 +104,7 @@ function buildUptimeSeries() {
 export default function AdminHealthPage() {
   const t = useT();
   const { data: health, isLoading } = useAdminHealth();
-  const uptimeSeries = React.useMemo(buildUptimeSeries, []);
+  const uptimeSeries = React.useMemo(() => buildUptimeSeries(), []);
 
   const overall = health?.status ?? "operational";
   const uptime = health?.uptime ?? 99.99;

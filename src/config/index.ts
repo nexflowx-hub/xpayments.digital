@@ -19,6 +19,7 @@ import {
   Store as StoreIcon,
   Settings,
   LifeBuoy,
+  TrendingUp, CalendarClock, Send,
   Receipt,
   Building2,
   ScrollText,
@@ -62,6 +63,10 @@ export const merchantNav: NavSection[] = [
       { id: "wallets", label: "Wallets", tKey: "nav.wallets", icon: Wallet },
       { id: "fx", label: "FX", tKey: "nav.fx", icon: ArrowLeftRight },
       { id: "treasury", label: "Treasury", tKey: "nav.treasury", icon: Banknote },
+      { id: "finance-flow", label: "Financial Flow", tKey: "nav.financeFlow", icon: TrendingUp },
+      { id: "finance-releases", label: "Releases", tKey: "nav.financeReleases", icon: CalendarClock },
+      { id: "finance-payouts", label: "Payouts & Exits", tKey: "nav.financePayouts", icon: Send },
+      { id: "finance-stores", label: "By Store", tKey: "nav.financeStores", icon: Building2 },
     ],
   },
   {

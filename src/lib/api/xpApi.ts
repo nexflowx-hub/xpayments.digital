@@ -7,10 +7,6 @@ import type {
   AuthSession,
   CurrencyCode,
   Customer,
-  FinancialChartPoint,
-  FinancialFilters,
-  FinancialMovement,
-  FinancialSummary,
   FinanceOverview,
   FinanceReleasesResponse,
   FinanceStoresResponse,
@@ -21,13 +17,8 @@ import type {
   Paginated,
   PaymentLink,
   Product,
-  PayoutStatement,
-  RegisterPayload,
-  Release,
   RiskProfile,
   Store,
-  StoreFinancials,
-  Subscription,
   SystemHealth,
   Transaction,
   TreasuryOverview,
@@ -319,7 +310,7 @@ export const merchant = {
 export const xpApi = {
   auth, analytics, transactions, wallets, risk, customers, products, stores,
   paymentLinks, invoices, subscriptions, apiKeys, webhooks, treasury, checkout,
-  kyc, admin, financial, financeV4, merchant,
+  kyc, admin, financeV4, merchant,
 };
 
 export type XpApi = typeof xpApi;

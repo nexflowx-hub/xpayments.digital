@@ -53,12 +53,12 @@ export function StatusBadge({ status, className }: { status: string; className?:
 }
 
 // ---- CurrencyBadge ----
-export function CurrencyBadge({ currency, amount, compact }: { currency: CurrencyCode; amount: number; compact?: boolean }) {
+export function CurrencyBadge({ currency, amount }: { currency: CurrencyCode; amount: number }) {
   const c = CURRENCIES.find((x) => x.code === currency);
   return (
     <span className="inline-flex items-center gap-1.5 font-mono text-sm tabular-nums">
       <span className="text-xs text-muted-foreground">{c?.flag}</span>
-      {formatCurrency(amount, currency, { compact })}
+      {formatCurrency(amount, currency)}
     </span>
   );
 }
@@ -129,6 +129,7 @@ export function Sparkline({
   className?: string;
   height?: number;
 }) {
+  const id = React.useId();
   if (!data.length) return null;
   const w = 120;
   const h = height;

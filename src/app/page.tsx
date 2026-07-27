@@ -57,7 +57,7 @@ export default function Home() {
   const [mounted, setMounted] = React.useState(false);
   const [wasAuthenticated, setWasAuthenticated] = React.useState(false);
 
-  React.useEffect(() => { hydrate(); detectLocale(); setMounted(true); /* eslint-disable-next-line */ }, []);
+  React.useEffect(() => { hydrate(); detectLocale(); setMounted(true); }, []);
 
   React.useEffect(() => { if (isAuthenticated) setWasAuthenticated(true); }, [isAuthenticated]);
 

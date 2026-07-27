@@ -98,14 +98,17 @@ const lazy = (loader: () => Promise<{ default: React.ComponentType }>) =>
   dynamic(loader, { loading: () => <PageFallback />, ssr: false });
 
 const merchantPages: Record<string, React.ComponentType> = {
-  dashboard: lazy(() => import("@/components/merchant/financial-dashboard")),
+  dashboard: lazy(() => import("@/components/merchant/dashboard")),
   analytics: lazy(() => import("@/components/merchant/analytics")),
   risk: lazy(() => import("@/components/merchant/risk")),
   payments: lazy(() => import("@/components/merchant/payments")),
   wallets: lazy(() => import("@/components/merchant/wallets")),
   fx: lazy(() => import("@/components/merchant/fx")),
   treasury: lazy(() => import("@/components/merchant/treasury")),
-  "financial-flow": lazy(() => import("@/components/merchant/financial-flow")),
+  "finance-flow": lazy(() => import("@/components/merchant/finance-flow")),
+  "finance-releases": lazy(() => import("@/components/merchant/finance-releases")),
+  "finance-payouts": lazy(() => import("@/components/merchant/finance-payouts")),
+  "finance-stores": lazy(() => import("@/components/merchant/finance-stores")),
   stores: lazy(() => import("@/components/merchant/stores")),
   products: lazy(() => import("@/components/merchant/products")),
   customers: lazy(() => import("@/components/merchant/customers")),

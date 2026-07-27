@@ -104,7 +104,7 @@ const TIME_RANGES = ["Live", "Last 15m", "Last 1h", "Last 6h", "Last 24h"];
 
 export default function AdminLogsPage() {
   const t = useT();
-  const allLogs = React.useMemo(buildLogs, []);
+  const allLogs = React.useMemo(() => buildLogs(), []);
   const [search, setSearch] = React.useState("");
   const [level, setLevel] = React.useState("all");
   const [service, setService] = React.useState("all");

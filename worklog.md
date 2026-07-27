@@ -135,3 +135,41 @@ Stage Summary:
 - Build passes, lint clean
 - Pushed to main on GitHub: nexflowx-hub/xpayments.digital
 
+---
+Task ID: HOTFIX-1
+Agent: Main orchestrator
+Task: Production hotfix — restore Finance V4 architecture, remove /financial/* phantom endpoints
+
+Work Log:
+- Created branch fix/restore-finance-v4-production from main
+- Updated FinanceOverview type: nested sales (today/week/month/allTime), wallet (id/pending/available/reserved), payouts, projectedAvailable, nullable nextRelease
+- Updated PayoutStatementV4: added processing/failed statuses, paidOn, externalReference
+- Updated PayoutStatementsResponse: added processingCount
+- Removed entire financial namespace from xpApi.ts (6 endpoints)
+- Removed 6 financial hooks from queries.ts (useFinancialSummary, useFinancialChart, useReleases, usePayouts, useFinancialMovements, useFinancialByStore)
+- Removed 10+ unused types (FinancialSummary, FinancialChartPoint, Release, FinancialMovement, StoreFinancials, FinancialFilters, PayoutStatement, etc.)
+- Rewrote dashboard.tsx: consumes only useFinanceOverview(), shows 11+ KPIs
+- Created finance-flow.tsx: combined overview with all 4 endpoints
+- Created finance-releases.tsx: dedicated releases page
+- Created finance-payouts.tsx: dedicated payouts page with status filtering
+- Created finance-stores.tsx: dedicated per-store finance breakdown
+- Updated view-router: dashboard -> dashboard (not financial-dashboard), added 4 finance routes
+- Updated config: added Financial Flow, Releases, Payouts & Exits, By Store to Money Movement
+- Updated i18n: added nav keys in en/pt/fr
+- Fixed Treasury: sales.allTime.* instead of flat sales.*, wallet.pending shown
+- Fixed Stores: no legacy revenue fallback, shows "Sem atividade financeira registrada"
+- Removed ignoreBuildErrors and ignoreDuringBuilds from next.config.ts
+- Fixed 4 pre-existing lint errors (layout, page, admin-health, admin-logs, badges)
+- Removed Nimbus Labs from shell.tsx workspace switcher
+- Removed all compact:true references from merchant pages
+- Verified zero /financial/* references
+
+Stage Summary:
+- Lint: CLEAN (0 errors)
+- TypeScript: 0 errors (npx tsc --noEmit)
+- Build: SUCCESS
+- Zero /financial/* references
+- Zero Math.random, bookBalance, Nimbus Labs, compact:true
+- Branch pushed: fix/restore-finance-v4-production
+- Vercel preview deployment triggered
+- NO merge to main — awaiting validation

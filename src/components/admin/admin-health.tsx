@@ -14,7 +14,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { cn, timeAgo, formatDate } from "@/lib/utils";
+import { cn, timeAgo, formatDate, formatDateFull } from "@/lib/utils";
 
 type SvcStatus = "operational" | "degraded" | "outage";
 
@@ -241,8 +241,8 @@ export default function AdminHealthPage() {
                   )}
                 </div>
                 <p className="mt-0.5 text-[10px] text-muted-foreground">
-                  {inc.service} · {formatDate(inc.startedAt, { withTime: true })}
-                  {inc.resolvedAt && ` → ${formatDate(inc.resolvedAt, { withTime: true })}`}
+                  {inc.service} · {formatDateFull(inc.startedAt, { withTime: true })}
+                  {inc.resolvedAt && ` → ${formatDateFull(inc.resolvedAt, { withTime: true })}`}
                 </p>
                 <p className="mt-1 text-[11px] text-muted-foreground line-clamp-2">{inc.updates[inc.updates.length - 1].message}</p>
               </div>

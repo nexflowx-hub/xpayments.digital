@@ -28,6 +28,8 @@ import type {
   WalletsResponse,
   Webhook,
   DataTableFilters,
+  RegisterPayload,
+  Subscription,
 } from "@/types";
 
 /**

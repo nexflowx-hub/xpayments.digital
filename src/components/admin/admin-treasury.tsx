@@ -35,7 +35,7 @@ export default function AdminTreasuryPage() {
   const { data: treasuryData, isLoading } = useAdminTreasury();
 
   const totalBalances = (treasuryData?.balances ?? []).reduce((s, b) => s + b.amount, 0) || 1;
-  const reservePct = t ? (treasuryData.reserve / treasuryData.totalLiquidity) * 100 : 0;
+  const reservePct = treasuryData ? (treasuryData.reserve / treasuryData.totalLiquidity) * 100 : 0;
 
   return (
     <div className="flex flex-col gap-6">
@@ -65,31 +65,31 @@ export default function AdminTreasuryPage() {
             <StatCard
               label="Total liquidity"
               value={treasuryData?.totalLiquidity ?? 0}
-              change={t?.liquidityChange}
+              change={treasuryData?.liquidityChange}
               icon={Landmark}
               accent="blue"
-              format={(n) => formatCurrency(n, "EUR", { compact: true })}
+              format={(n) => formatCurrency(n, "EUR")}
             />
             <StatCard
               label="Reserve"
               value={treasuryData?.reserve ?? 0}
               icon={PiggyBank}
               accent="violet"
-              format={(n) => formatCurrency(n, "EUR", { compact: true })}
+              format={(n) => formatCurrency(n, "EUR")}
             />
             <StatCard
               label="Pending payouts"
               value={treasuryData?.pendingPayouts ?? 0}
               icon={Banknote}
               accent="amber"
-              format={(n) => formatCurrency(n, "EUR", { compact: true })}
+              format={(n) => formatCurrency(n, "EUR")}
             />
             <StatCard
               label="Net flow (30d)"
               value={treasuryData?.netFlow ?? 0}
               icon={TrendingUp}
               accent="green"
-              format={(n) => formatCurrency(n, "EUR", { compact: true })}
+              format={(n) => formatCurrency(n, "EUR")}
             />
           </>
         )}
@@ -126,7 +126,7 @@ export default function AdminTreasuryPage() {
               xKey="date"
               stacked
               height={260}
-              formatter={(v) => formatCurrency(v, "EUR", { compact: true })}
+              formatter={(v) => formatCurrency(v, "EUR")}
             />
           )}
         </Card>
@@ -147,7 +147,7 @@ export default function AdminTreasuryPage() {
             <AreaTrend
               data={treasuryData?.settlementSeries ?? []}
               color={CHART_COLORS[2]}
-              formatter={(v) => formatCurrency(v, "EUR", { compact: true })}
+              formatter={(v) => formatCurrency(v, "EUR")}
               height={260}
             />
           )}
@@ -193,7 +193,7 @@ export default function AdminTreasuryPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-right font-mono text-xs tabular-nums">
-                        {formatCurrency(b.amount, b.currency, { compact: true })}
+                        {formatCurrency(b.amount, b.currency)}
                       </TableCell>
                       <TableCell className="text-right">
                         <span
@@ -243,7 +243,7 @@ export default function AdminTreasuryPage() {
               <div>
                 <p className="text-xs text-muted-foreground">Reserved</p>
                 <p className="mt-1 text-2xl font-semibold tabular-nums">
-                  {formatCurrency(treasuryData.reserve, "EUR", { compact: true })}
+                  {formatCurrency(treasuryData.reserve, "EUR")}
                 </p>
                 <p className="text-[10px] text-muted-foreground">
                   {formatPercent(reservePct)} of total liquidity
@@ -277,13 +277,13 @@ export default function AdminTreasuryPage() {
                 <div>
                   <p className="text-[10px] text-muted-foreground">Available</p>
                   <p className="font-mono text-sm font-semibold">
-                    {formatCurrency(treasuryData.totalLiquidity - treasuryData.reserve, "EUR", { compact: true })}
+                    {formatCurrency(treasuryData.totalLiquidity - treasuryData.reserve, "EUR")}
                   </p>
                 </div>
                 <div>
                   <p className="text-[10px] text-muted-foreground">Deployed</p>
                   <p className="font-mono text-sm font-semibold text-violet-400">
-                    {formatCurrency(treasuryData.reserve, "EUR", { compact: true })}
+                    {formatCurrency(treasuryData.reserve, "EUR")}
                   </p>
                 </div>
               </div>
@@ -323,7 +323,7 @@ export default function AdminTreasuryPage() {
                 <TableCell className="font-medium">{p.merchant}</TableCell>
                 <TableCell className="text-xs text-muted-foreground">{p.beneficiary}</TableCell>
                 <TableCell className="text-right">
-                  <CurrencyBadge currency={p.currency} amount={p.amount} compact />
+                  <CurrencyBadge currency={p.currency} amount={p.amount} />
                 </TableCell>
                 <TableCell className="text-right text-xs text-muted-foreground">
                   {timeAgo(p.createdAt)}

@@ -219,10 +219,10 @@ export default function AdminMerchantsPage() {
                   <TableCell><StatusBadge status={m.kycStatus} /></TableCell>
                   <TableCell><RiskCell score={m.riskScore} /></TableCell>
                   <TableCell className="text-right font-mono text-xs tabular-nums">
-                    {formatCurrency(m.revenue, "EUR", { compact: true })}
+                    {formatCurrency(m.revenue, "EUR")}
                   </TableCell>
                   <TableCell className="text-right font-mono text-xs tabular-nums">
-                    {formatCurrency(m.volume, "EUR", { compact: true })}
+                    {formatCurrency(m.volume, "EUR")}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {formatDate(m.createdAt)}

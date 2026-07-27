@@ -320,7 +320,7 @@ export default function AdminRiskPage() {
                   </TableCell>
                   <TableCell><StatusBadge status={m.status} /></TableCell>
                   <TableCell className="text-right font-mono text-xs tabular-nums">
-                    {formatCurrency(m.revenue, "EUR", { compact: true })}
+                    {formatCurrency(m.revenue, "EUR")}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">

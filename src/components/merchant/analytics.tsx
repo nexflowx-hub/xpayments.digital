@@ -103,11 +103,11 @@ export default function AnalyticsPage() {
           Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)
         ) : (
           <>
-            <StatCard label="Revenue" value={a.revenue} change={a.revenueChange} icon={DollarSign} accent="blue" format={(n) => formatCurrency(n, "EUR")} />
-            <StatCard label="Volume" value={a.volume} change={a.volumeChange} icon={TrendingUp} accent="green" format={(n) => formatCurrency(n, "EUR")} />
-            <StatCard label="Conversion" value={a.conversion} change={a.conversionChange} icon={Target} accent="violet" format={(n) => formatPercent(n)} />
-            <StatCard label="Approval" value={a.approvalRate} change={a.approvalChange} icon={ShieldCheck} accent="green" format={(n) => formatPercent(n)} />
-            <StatCard label="Risk score" value={a.riskScore} change={a.riskChange} icon={Activity} accent="amber" format={(n) => Math.round(n).toString()} />
+            <StatCard label="Revenue" value={a.revenue ?? 0} change={a.revenueChange ?? 0} icon={DollarSign} accent="blue" format={(n) => formatCurrency(n, "EUR")} />
+            <StatCard label="Volume" value={a.volume ?? 0} change={a.volumeChange ?? 0} icon={TrendingUp} accent="green" format={(n) => formatCurrency(n, "EUR")} />
+            <StatCard label="Conversion" value={a.conversion ?? 0} change={a.conversionChange ?? 0} icon={Target} accent="violet" format={(n) => formatPercent(n)} />
+            <StatCard label="Approval" value={a.approvalRate ?? 0} change={a.approvalChange ?? 0} icon={ShieldCheck} accent="green" format={(n) => formatPercent(n)} />
+            <StatCard label="Risk score" value={a.riskScore ?? 0} change={a.riskChange ?? 0} icon={Activity} accent="amber" format={(n) => Math.round(n).toString()} />
           </>
         )}
       </div>
@@ -205,7 +205,7 @@ export default function AnalyticsPage() {
               <p className="text-xs text-muted-foreground">Visits → Initiated → Authenticated → Captured</p>
             </div>
             <Badge variant="outline" className="gap-1 border-violet-500/25 bg-violet-500/12 text-violet-400">
-              <Target className="h-3 w-3" /> {a ? formatPercent(a.conversion) : "—"}
+              <Target className="h-3 w-3" /> {a ? formatPercent(a.conversion ?? 0) : "—"}
             </Badge>
           </div>
           <div className="flex flex-col gap-3">

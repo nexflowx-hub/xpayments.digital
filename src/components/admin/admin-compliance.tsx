@@ -14,7 +14,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { cn, formatDate, timeAgo } from "@/lib/utils";
+import { cn, formatDate, formatDateFull, timeAgo } from "@/lib/utils";
 
 // ---- Mock sanctions screenings ----
 interface Screening {
@@ -259,7 +259,7 @@ export default function AdminCompliancePage() {
                       <span className="text-muted-foreground">on</span>{" "}
                       <span className="font-mono text-primary">{a.resource}</span>
                     </p>
-                    <p className="text-[10px] text-muted-foreground">{formatDate(a.timestamp, { withTime: true })} · {a.ip}</p>
+                    <p className="text-[10px] text-muted-foreground">{formatDateFull(a.timestamp, { withTime: true })} · {a.ip}</p>
                   </div>
                 </div>
               );

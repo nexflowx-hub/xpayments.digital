@@ -351,7 +351,7 @@ export default function FxPage() {
                       <span className="text-xs font-medium">{w.label}</span>
                     </div>
                     <span className="font-mono text-xs font-semibold tabular-nums">
-                      {formatCurrency(w.balance, w.currency, { compact: w.balance >= 100000 })}
+                      {formatCurrency(w.balance, w.currency)}
                     </span>
                   </div>
                 ))}
@@ -401,7 +401,7 @@ export default function FxPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="py-2.5 text-right font-mono text-xs tabular-nums">
-                        {formatCurrency(s.amount, s.currency, { compact: s.amount >= 10000 })}
+                        {formatCurrency(s.amount, s.currency)}
                       </TableCell>
                       <TableCell className="py-2.5"><StatusBadge status={s.status} /></TableCell>
                       <TableCell className="py-2.5 text-right text-xs text-muted-foreground">{timeAgo(s.createdAt)}</TableCell>

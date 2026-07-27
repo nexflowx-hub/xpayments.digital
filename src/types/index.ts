@@ -539,7 +539,6 @@ export interface PayoutStatementsResponse {
     scheduledCount: number;
     draftCount: number;
     processingCount: number;
-    processingCount: number;
   };
 }
 

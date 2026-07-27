@@ -138,7 +138,7 @@ export default function AdminOverviewPage() {
             change={18.4}
             icon={DollarSign}
             accent="green"
-            format={(n) => formatCurrency(n, "EUR", { compact: true })}
+            format={(n) => formatCurrency(n, "EUR")}
           />
         )}
         {tLoading ? (
@@ -150,7 +150,7 @@ export default function AdminOverviewPage() {
             change={treasury?.liquidityChange}
             icon={Landmark}
             accent="violet"
-            format={(n) => formatCurrency(n, "EUR", { compact: true })}
+            format={(n) => formatCurrency(n, "EUR")}
           />
         )}
         {hLoading ? (
@@ -185,7 +185,7 @@ export default function AdminOverviewPage() {
           ) : (
             <AreaTrend
               data={revenue.series}
-              formatter={(v) => formatCurrency(v, "EUR", { compact: true })}
+              formatter={(v) => formatCurrency(v, "EUR")}
               height={260}
             />
           )}
@@ -319,7 +319,7 @@ export default function AdminOverviewPage() {
               dataKey="throughput"
               xKey="name"
               height={220}
-              formatter={(v) => `${formatNumber(v, { compact: true })}/m`}
+              formatter={(v) => `${formatNumber(v)}/m`}
             />
           )}
         </Card>
@@ -378,7 +378,7 @@ export default function AdminOverviewPage() {
                       <RiskCell score={m.riskScore} />
                     </td>
                     <td className="py-2.5 text-right font-mono tabular-nums">
-                      {formatCurrency(m.revenue, "EUR", { compact: true })}
+                      {formatCurrency(m.revenue, "EUR")}
                     </td>
                     <td className="py-2.5 text-right text-xs text-muted-foreground">
                       {timeAgo(m.createdAt)}

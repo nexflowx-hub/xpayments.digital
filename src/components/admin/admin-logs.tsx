@@ -16,7 +16,7 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from "@/components/ui/dialog";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate, formatDateFull } from "@/lib/utils";
 
 type LogLevel = "info" | "warn" | "error" | "debug";
 
@@ -265,7 +265,7 @@ export default function AdminLogsPage() {
               <span className="text-primary">{selected?.service}</span>
             </DialogTitle>
             <DialogDescription className="font-mono text-xs">
-              {selected?.requestId} · {selected && formatDate(selected.timestamp, { withTime: true })}
+              {selected?.requestId} · {selected && formatDateFull(selected.timestamp, { withTime: true })}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">

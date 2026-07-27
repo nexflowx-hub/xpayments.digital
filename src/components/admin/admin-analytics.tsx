@@ -101,7 +101,7 @@ export default function AdminAnalyticsPage() {
           Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)
         ) : (
           <>
-            <StatCard label="Platform volume" value={totalVolume} change={analytics?.volumeChange ?? 0} icon={DollarSign} accent="blue" format={(n) => formatCurrency(n, "EUR", { compact: true })} />
+            <StatCard label="Platform volume" value={totalVolume} change={analytics?.volumeChange ?? 0} icon={DollarSign} accent="blue" format={(n) => formatCurrency(n, "EUR")} />
             <StatCard label="Merchants" value={merchants.length} change={6.4} icon={Users} accent="violet" format={(n) => formatNumber(n)} />
             <StatCard label="Countries" value={countries} change={1.2} icon={Globe2} accent="green" format={(n) => formatNumber(n)} />
             <StatCard label="Avg approval" value={analytics?.approvalRate ?? 0} change={analytics?.approvalChange ?? 0} icon={CheckCircle2} accent="green" format={(n) => formatPercent(n)} />
@@ -122,7 +122,7 @@ export default function AdminAnalyticsPage() {
             </Badge>
           </div>
           {mLoading ? <Skeleton className="h-60 w-full" /> : (
-            <AreaTrend data={merchantGrowth} formatter={(v) => formatNumber(v, { compact: true })} height={260} />
+            <AreaTrend data={merchantGrowth} formatter={(v) => formatNumber(v)} height={260} />
           )}
         </Card>
 
@@ -132,7 +132,7 @@ export default function AdminAnalyticsPage() {
             <p className="text-xs text-muted-foreground">Platform settlement currencies</p>
           </div>
           {aLoading ? <Skeleton className="h-60 w-full" /> : (
-            <DonutChart data={volumeByCurrency} height={260} formatter={(v) => formatCurrency(v, "EUR", { compact: true })} />
+            <DonutChart data={volumeByCurrency} height={260} formatter={(v) => formatCurrency(v, "EUR")} />
           )}
         </Card>
       </div>
@@ -150,7 +150,7 @@ export default function AdminAnalyticsPage() {
               dataKey="value"
               xKey="name"
               height={240}
-              formatter={(v) => formatCurrency(v, "EUR", { compact: true })}
+              formatter={(v) => formatCurrency(v, "EUR")}
             />
           )}
         </Card>
@@ -166,7 +166,7 @@ export default function AdminAnalyticsPage() {
               dataKey="value"
               xKey="name"
               height={240}
-              formatter={(v) => formatCurrency(v, "EUR", { compact: true })}
+              formatter={(v) => formatCurrency(v, "EUR")}
             />
           )}
         </Card>

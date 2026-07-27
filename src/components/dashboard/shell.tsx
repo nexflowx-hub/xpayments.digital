@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Search, Bell, Menu, X, ChevronDown, Sun, Moon, LogOut, User as UserIcon,
   Settings, CreditCard, Globe, Check, Command, Sparkles, PanelLeftClose,
-  PanelLeft, LifeBuoy, ExternalLink, ShieldCheck,
+  PanelLeft, LifeBuoy, ExternalLink, ShieldCheck, Plus,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/stores/auth";
@@ -204,7 +204,7 @@ function SidebarBody({
   );
 }
 
-function TopBar({ onMenu }: { onMenu: () => void }) {
+function TopBar({ onMenu, onXpiaOpen }: { onMenu: () => void; onXpiaOpen: () => void }) {
   const { theme, setTheme } = useTheme();
   const user = useAuth((s) => s.user);
   const logout = useAuth((s) => s.logout);
@@ -241,7 +241,7 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" /> {t("common.live")}
           </span>
         </Button>
-        <Button variant="ghost" size="icon" onClick={() => setXpiaOpen(true)} aria-label="XpIA Assistant" title="Chat with XpIA">
+        <Button variant="ghost" size="icon" onClick={onXpiaOpen} aria-label="XpIA Assistant" title="Chat with XpIA">
           <Sparkles className="h-[18px] w-[18px] text-primary" />
         </Button>
         <LanguageSwitcher />
@@ -434,7 +434,7 @@ export function DashboardShell({
       </Sheet>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <TopBar onMenu={() => setSidebarOpen(true)} />
+        <TopBar onMenu={() => setSidebarOpen(true)} onXpiaOpen={() => setXpiaOpen(true)} />
         <main className="scrollbar-thin flex-1 overflow-y-auto">
           <AnimatePresence mode="wait">
             <motion.div

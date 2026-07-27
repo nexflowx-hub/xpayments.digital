@@ -36,7 +36,7 @@ const registerSchema = z.object({
   password: z.string().min(8, "Min 8 characters"),
   companyName: z.string().min(2, "Enter your organization name"),
   terms: z.literal(true, {
-    errorMap: () => ({ message: "You must accept the terms" }),
+    message: "You must accept the terms",
   }),
 });
 type RegisterValues = z.infer<typeof registerSchema>;
@@ -203,12 +203,13 @@ export function AuthScreen() {
     const formData = new FormData(e.currentTarget);
     const token = (formData.get("token") as string) || "";
     const password = (formData.get("password") as string) || "";
+    const emailAddr = (formData.get("email") as string) || "";
     setLoading(true);
     try {
       if (isReset) {
         await xpApi.auth.reset(token, password); // email field carries the reset token
       } else {
-        await xpApi.auth.forgot(email);
+        await xpApi.auth.forgot(emailAddr);
       }
       toast.success(t("auth.resetSent"), { description: t("auth.resetSentDesc") });
       setAppView("login");
@@ -367,7 +368,7 @@ export function AuthScreen() {
                           <PasswordInput show={showPwd} onToggle={() => setShowPwd((s) => !s)} autoComplete="new-password" {...registerForm.register("password")} />
                         </Field>
                         <div className="flex items-start gap-2">
-                          <Checkbox id="terms" onCheckedChange={(v) => registerForm.setValue("terms", v === true)} />
+                          <Checkbox id="terms" onCheckedChange={(v) => { if (v === true) registerForm.setValue("terms", true); }} />
                           <label htmlFor="terms" className="text-xs leading-relaxed text-muted-foreground">
                             I agree to the <a href="#" onClick={(e) => e.preventDefault()} className="text-primary hover:underline">Terms</a> and <a href="#" onClick={(e) => e.preventDefault()} className="text-primary hover:underline">Privacy Policy</a>.
                           </label>

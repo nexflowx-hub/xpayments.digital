@@ -222,6 +222,20 @@ function series(days: number, base: number, vol: number) {
 }
 
 export const mockAnalytics: AnalyticsOverview = {
+  wallet: {
+    totalBalance: 3182940.66,
+    availableBalance: 2744740.66,
+    currencies: 5,
+  },
+  transactions: {
+    today: 342,
+    month: 8412,
+    total: 198340,
+    successRate: 96.8,
+    volumeToday: 524800,
+    volumeMonth: 18920000,
+  },
+  recentTransactions: [],
   revenue: 4289340.12,
   revenueChange: 18.4,
   volume: 18920000.0,

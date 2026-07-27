@@ -94,7 +94,7 @@ export default function MerchantOverview() {
     {
       label: "Wallet total",
       value: formatCurrency(d.wallet.balance, cur),
-      sub: `ID: ${d.wallet.id ?? -?-}`,
+      sub: `ID: ${d.wallet.id ?? "—"}`,
       icon: WalletIcon,
       accent: "primary",
     },

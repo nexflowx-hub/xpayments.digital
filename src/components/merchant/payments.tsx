@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/pagination";
 import { Separator } from "@/components/ui/separator";
 import {
-  formatCurrency, formatDate, timeAgo, cn,
+  formatCurrency, formatDateFull, formatDate, timeAgo, cn,
 } from "@/lib/utils";
 import { CURRENCIES, PAYMENT_METHODS, COUNTRY_LIST } from "@/config";
 import type { DataTableFilters, Transaction } from "@/types";
@@ -250,7 +250,7 @@ export default function PaymentsPage() {
                     <TableCell className="py-3 text-center"><RiskPill score={t.riskScore} /></TableCell>
                     <TableCell className="py-3 text-xs text-muted-foreground">{t.gateway}</TableCell>
                     <TableCell className="py-3 text-right text-xs text-muted-foreground">
-                      {formatDate(t.createdAt, { withTime: true })}
+                      {formatDateFull(t.createdAt, { withTime: true })}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -305,7 +305,7 @@ export default function PaymentsPage() {
                 </div>
                 <SheetTitle className="text-lg">Payment details</SheetTitle>
                 <SheetDescription>
-                  Captured on {formatDate(selected.createdAt, { withTime: true })} · {selected.gateway}
+                  Captured on {formatDateFull(selected.createdAt, { withTime: true })} · {selected.gateway}
                 </SheetDescription>
               </SheetHeader>
 
@@ -388,7 +388,7 @@ export default function PaymentsPage() {
                             <p className="text-sm font-medium">{ev.label}</p>
                             {ev.detail && <p className="text-xs text-muted-foreground">{ev.detail}</p>}
                           </div>
-                          <span className="text-[11px] text-muted-foreground">{formatDate(ev.createdAt, { withTime: true })}</span>
+                          <span className="text-[11px] text-muted-foreground">{formatDateFull(ev.createdAt, { withTime: true })}</span>
                         </div>
                       </li>
                     ))}

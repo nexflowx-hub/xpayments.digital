@@ -357,7 +357,6 @@ export default function SubscriptionsPage() {
                       ? viewTarget.amount
                       : viewTarget.amount * 12,
                     viewTarget.currency,
-                    { compact: true },
                   )}
                 </p>
               </div>

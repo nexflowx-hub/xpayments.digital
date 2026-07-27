@@ -104,21 +104,21 @@ export default function AdminRevenuePage() {
               change={growth}
               icon={DollarSign}
               accent="green"
-              format={(n) => formatCurrency(n, "EUR", { compact: true })}
+              format={(n) => formatCurrency(n, "EUR")}
             />
             <StatCard
               label="MRR (annualized ÷12)"
               value={mrr}
               icon={TrendingUp}
               accent="blue"
-              format={(n) => formatCurrency(n, "EUR", { compact: true })}
+              format={(n) => formatCurrency(n, "EUR")}
             />
             <StatCard
               label="Avg per merchant"
               value={avgPerMerchant}
               icon={Users}
               accent="violet"
-              format={(n) => formatCurrency(n, "EUR", { compact: true })}
+              format={(n) => formatCurrency(n, "EUR")}
             />
             <StatCard
               label="Growth (YoY)"
@@ -149,7 +149,7 @@ export default function AdminRevenuePage() {
         ) : (
           <AreaTrend
             data={revenue.series}
-            formatter={(v) => formatCurrency(v, "EUR", { compact: true })}
+            formatter={(v) => formatCurrency(v, "EUR")}
             height={300}
           />
         )}
@@ -184,7 +184,7 @@ export default function AdminRevenuePage() {
                     <div className="flex items-center justify-between">
                       <span className="truncate text-xs font-medium">{m.name}</span>
                       <span className="font-mono text-xs font-semibold tabular-nums">
-                        {formatCurrency(m.revenue, "EUR", { compact: true })}
+                        {formatCurrency(m.revenue, "EUR")}
                       </span>
                     </div>
                     <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-muted">
@@ -231,7 +231,7 @@ export default function AdminRevenuePage() {
               ]}
               xKey="name"
               height={260}
-              formatter={(v) => formatCurrency(v, "EUR", { compact: true })}
+              formatter={(v) => formatCurrency(v, "EUR")}
             />
           )}
         </Card>
@@ -270,7 +270,7 @@ export default function AdminRevenuePage() {
                     </div>
                   </div>
                   <span className="w-20 shrink-0 text-right font-mono text-xs font-semibold tabular-nums">
-                    {formatCurrency(c.value, "EUR", { compact: true })}
+                    {formatCurrency(c.value, "EUR")}
                   </span>
                 </div>
               ))}
@@ -292,7 +292,7 @@ export default function AdminRevenuePage() {
             <DonutChart
               data={byCurrency}
               height={260}
-              formatter={(v) => formatCurrency(v, "EUR", { compact: true })}
+              formatter={(v) => formatCurrency(v, "EUR")}
             />
           )}
         </Card>

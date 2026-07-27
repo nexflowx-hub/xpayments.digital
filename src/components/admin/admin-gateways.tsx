@@ -123,7 +123,7 @@ export default function AdminGatewaysPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Total gateways" value={total} icon={Network} accent="blue" />
         <StatCard label="Operational" value={operational} change={2.1} icon={Server} accent="green" format={(n) => `${Math.round(n)}/${total}`} />
-        <StatCard label="Volume (30d)" value={totalVolume} change={8.4} icon={TrendingUp} accent="violet" format={(n) => formatCurrency(n, "EUR", { compact: true })} />
+        <StatCard label="Volume (30d)" value={totalVolume} change={8.4} icon={TrendingUp} accent="violet" format={(n) => formatCurrency(n, "EUR")} />
         <StatCard label="Avg latency" value={avgLatency} change={-4.2} icon={Gauge} accent="amber" format={(n) => `${Math.round(n)}ms`} />
       </div>
 
@@ -162,7 +162,7 @@ export default function AdminGatewaysPage() {
                     </td>
                     <td className="py-3"><StatusBadge status={g.status} /></td>
                     <td className="py-3 font-mono text-xs tabular-nums">{g.uptime.toFixed(2)}%</td>
-                    <td className="py-3 text-right font-mono text-xs tabular-nums">{formatCurrency(g.volume, "EUR", { compact: true })}</td>
+                    <td className="py-3 text-right font-mono text-xs tabular-nums">{formatCurrency(g.volume, "EUR")}</td>
                     <td className={cn("py-3 text-right font-mono text-xs tabular-nums", g.latency > 200 ? "text-amber-400" : "text-foreground")}>{g.latency}ms</td>
                     <td className="py-3 text-xs text-muted-foreground">{g.region}</td>
                     <td className="py-3 w-24">
@@ -202,7 +202,7 @@ export default function AdminGatewaysPage() {
             <h3 className="text-sm font-semibold">Traffic distribution</h3>
             <p className="text-xs text-muted-foreground">Volume share by gateway</p>
           </div>
-          <DonutChart data={trafficDonut} height={280} formatter={(v) => formatCurrency(v, "EUR", { compact: true })} />
+          <DonutChart data={trafficDonut} height={280} formatter={(v) => formatCurrency(v, "EUR")} />
           <div className="mt-4 flex flex-col gap-2">
             {GATEWAYS.map((g, i) => (
               <div key={g.id} className="flex items-center justify-between text-xs">

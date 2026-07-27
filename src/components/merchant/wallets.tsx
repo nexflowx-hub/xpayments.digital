@@ -49,7 +49,7 @@ function genSpark(seed: number, positive: boolean): number[] {
   return arr;
 }
 
-const movementTypeLabel: Record<WalletMovement["type"], string> = {
+const movementTypeLabel: Record<string, string> = {
   deposit: "Deposit", withdraw: "Withdraw", swap: "Swap",
   payment: "Payment", fee: "Fee", payout: "Payout",
 };
@@ -69,7 +69,7 @@ export default function WalletsPage() {
   const availableEur = wallets.reduce((s, w) => s + w.available * EUR_RATES[w.currency], 0);
   const reservedEur = wallets.reduce((s, w) => s + w.reserved * EUR_RATES[w.currency], 0);
   const weightedChange = totalEur
-    ? wallets.reduce((s, w) => s + w.changePct * (w.balance * EUR_RATES[w.currency]), 0) / totalEur
+    ? wallets.reduce((s, w) => s + (w.changePct ?? 0) * (w.balance * EUR_RATES[w.currency]), 0) / totalEur
     : 0;
 
   const [depositOpen, setDepositOpen] = React.useState(false);
@@ -96,7 +96,7 @@ export default function WalletsPage() {
 
   const walletById = React.useMemo(() => {
     const m = new Map<string, Wallet>();
-    wallets.forEach((w) => m.set(w.id, w));
+    wallets.forEach((w) => m.set(w.id ?? "", w));
     return m;
   }, [wallets]);
 
@@ -200,7 +200,7 @@ export default function WalletsPage() {
           ? Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-44 rounded-xl" />)
           : wallets.map((w, i) => {
               const c = CURRENCIES.find((x) => x.code === w.currency);
-              const spark = genSpark(i + 1, w.changePct >= 0);
+              const spark = genSpark(i + 1, (w.changePct ?? 0) >= 0);
               return (
                 <motion.div key={w.id} {...fadeUp} transition={{ ...fadeUp.transition, delay: i * 0.04 }}>
                   <Card className="relative overflow-hidden border-border/60 bg-card/60 p-5 backdrop-blur-xl">
@@ -227,12 +227,12 @@ export default function WalletsPage() {
                         variant="outline"
                         className={cn(
                           "gap-1 font-medium",
-                          w.changePct >= 0
+                          (w.changePct ?? 0) >= 0
                             ? "border-emerald-500/25 bg-emerald-500/12 text-emerald-400"
                             : "border-rose-500/25 bg-rose-500/12 text-rose-400"
                         )}
                       >
-                        {w.changePct >= 0 ? <TrendingUp className="h-3 w-3" /> : <Activity className="h-3 w-3" />}
+                        {(w.changePct ?? 0) >= 0 ? <TrendingUp className="h-3 w-3" /> : <Activity className="h-3 w-3" />}
                         {formatCurrency(w.changePct ?? 0, w.currency)}
                       </Badge>
                     </div>
@@ -289,7 +289,7 @@ export default function WalletsPage() {
                       </TableRow>
                     ))
                   : movements.slice(0, 12).map((m) => {
-                      const w = walletById.get(m.walletId);
+                      const w = walletById.get(m.walletId ?? "");
                       const incoming = m.direction === "in";
                       return (
                         <TableRow key={m.id} className="border-border/30">
@@ -304,7 +304,7 @@ export default function WalletsPage() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <span className="text-xs capitalize">{movementTypeLabel[m.type]}</span>
+                            <span className="text-xs capitalize">{movementTypeLabel[m.type ?? "payment"]}</span>
                           </TableCell>
                           <TableCell className="text-right">
                             <span

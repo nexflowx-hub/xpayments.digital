@@ -71,6 +71,7 @@ export default function TreasuryPage() {
                 </div>
               </div>
               <p className="mt-3 text-2xl font-semibold tracking-tight">{dv(overview?.wallet?.balance, cur)}</p>
+              <p className="mt-1 text-[10px] text-muted-foreground">{dv(overview?.wallet?.pending, cur)} pendente</p>
             </Card>
             <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
               <div className="flex items-center justify-between">
@@ -81,14 +82,14 @@ export default function TreasuryPage() {
               </div>
               <p className="mt-3 text-2xl font-semibold tracking-tight">{dv(overview?.wallet?.available, cur)}</p>
             </Card>
-            <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+              <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium text-muted-foreground">Vendas brutas acumuladas</p>
                 <div className="rounded-lg bg-emerald-500/10 p-1.5 text-emerald-400">
                   <TrendingUp className="h-4 w-4" />
                 </div>
               </div>
-              <p className="mt-3 text-2xl font-semibold tracking-tight">{dv(overview?.sales?.gross, cur)}</p>
+              <p className="mt-3 text-2xl font-semibold tracking-tight">{dv(overview?.sales?.allTime?.gross, cur)}</p>
             </Card>
             <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
               <div className="flex items-center justify-between">
@@ -97,7 +98,7 @@ export default function TreasuryPage() {
                   <ArrowRightLeft className="h-4 w-4" />
                 </div>
               </div>
-              <p className="mt-3 text-2xl font-semibold tracking-tight">{dv(overview?.sales?.fees, cur)}</p>
+              <p className="mt-3 text-2xl font-semibold tracking-tight">{dv(overview?.sales?.allTime?.fees, cur)}</p>
             </Card>
             <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
               <div className="flex items-center justify-between">
@@ -106,7 +107,7 @@ export default function TreasuryPage() {
                   <TrendingUp className="h-4 w-4" />
                 </div>
               </div>
-              <p className="mt-3 text-2xl font-semibold tracking-tight">{dv(overview?.sales?.net, cur)}</p>
+              <p className="mt-3 text-2xl font-semibold tracking-tight">{dv(overview?.sales?.allTime?.net, cur)}</p>
             </Card>
           </>
         )}

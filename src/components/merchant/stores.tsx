@@ -16,7 +16,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatCurrency, formatDate, formatNumber } from "@/lib/utils";
+import { formatCurrency, formatNumber } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
 import type { Store, FinanceStore } from "@/types";
 
@@ -63,8 +63,6 @@ export default function StoresPage() {
 
   const totalStores = enriched.length;
   const active = enriched.filter((e) => e.store.status === "active").length;
-  const totalGross = enriched.reduce((sum, e) => sum + (e.finance?.gross ?? 0), 0);
-  const totalNet = enriched.reduce((sum, e) => sum + (e.finance?.net ?? 0), 0);
 
   if (sError) {
     return (
@@ -111,17 +109,17 @@ export default function StoresPage() {
             </Card>
             <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-muted-foreground">Vendas brutas totais</p>
+                <p className="text-sm font-medium text-muted-foreground">Stores com dados</p>
                 <div className="rounded-lg bg-emerald-500/10 p-1.5 text-emerald-400"><StoreIcon className="h-4 w-4" /></div>
               </div>
-              <p className="mt-3 text-2xl font-semibold tracking-tight">{dv(totalGross, "EUR")}</p>
+              <p className="mt-3 text-2xl font-semibold tracking-tight">{formatNumber(enriched.filter((e) => e.finance).length)}</p>
             </Card>
             <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-medium text-muted-foreground">Vendas líquidas totais</p>
-                <div className="rounded-lg bg-emerald-500/10 p-1.5 text-emerald-400"><CheckCircle2 className="h-4 w-4" /></div>
+                <p className="text-sm font-medium text-muted-foreground">Sem atividade financeira</p>
+                <div className="rounded-lg bg-amber-500/10 p-1.5 text-amber-400"><CheckCircle2 className="h-4 w-4" /></div>
               </div>
-              <p className="mt-3 text-2xl font-semibold tracking-tight">{dv(totalNet, "EUR")}</p>
+              <p className="mt-3 text-2xl font-semibold tracking-tight">{formatNumber(enriched.filter((e) => !e.finance).length)}</p>
             </Card>
           </>
         )}
@@ -209,19 +207,8 @@ export default function StoresPage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="mt-5 grid grid-cols-3 gap-2">
-                      <div>
-                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Produtos</p>
-                        <p className="mt-1 font-mono text-sm font-semibold tabular-nums">{formatNumber(s.products)}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Receita</p>
-                        <p className="mt-1 font-mono text-sm font-semibold tabular-nums">{formatCurrency(s.revenue, s.currency)}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Criada em</p>
-                        <p className="mt-1 text-xs font-medium">{formatDate(s.createdAt)}</p>
-                      </div>
+                    <div className="mt-5 rounded-lg border border-dashed border-border/60 bg-muted/20 px-4 py-6 text-center">
+                      <p className="text-xs text-muted-foreground">Sem atividade financeira registrada</p>
                     </div>
                   )}
 

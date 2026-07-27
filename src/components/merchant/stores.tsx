@@ -9,7 +9,7 @@ import {
   ExternalLink,
   MessageCircle,
 } from "lucide-react";
-import { useStores, useFinanceStores } from "hooks/queries";
+import { useStores, useFinanceStores } from "@/hooks/queries";
 import { PageHeader, ErrorState } from "@/components/shared";
 import { StatusBadge } from "@/components/shared/badges";
 import { Card } from "@/components/ui/card";

@@ -218,28 +218,28 @@ export default function InvoicesPage() {
               value={totalInvoiced}
               icon={DollarSign}
               accent="blue"
-              format={(n) => formatCurrency(n, "EUR", { compact: true })}
+              format={(n) => formatCurrency(n, "EUR")}
             />
             <StatCard
               label="Paid"
               value={paidTotal}
               icon={CheckCircle2}
               accent="green"
-              format={(n) => formatCurrency(n, "EUR", { compact: true })}
+              format={(n) => formatCurrency(n, "EUR")}
             />
             <StatCard
               label="Outstanding"
               value={outstanding}
               icon={Clock}
               accent="violet"
-              format={(n) => formatCurrency(n, "EUR", { compact: true })}
+              format={(n) => formatCurrency(n, "EUR")}
             />
             <StatCard
               label="Overdue"
               value={overdue}
               icon={AlertTriangle}
               accent="rose"
-              format={(n) => formatCurrency(n, "EUR", { compact: true })}
+              format={(n) => formatCurrency(n, "EUR")}
             />
           </>
         )}

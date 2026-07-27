@@ -113,8 +113,8 @@ export default function CustomersPage() {
         ) : (
           <>
             <StatCard label="Total customers" value={stats.total} icon={Users} accent="blue" format={(n) => formatNumber(n)} />
-            <StatCard label="Total LTV" value={stats.totalLtv} icon={WalletIcon} accent="green" format={(n) => formatCurrency(n, "EUR", { compact: true })} />
-            <StatCard label="Avg order" value={stats.avgOrder} icon={ShoppingBag} accent="violet" format={(n) => formatCurrency(n, "EUR", { compact: true })} />
+            <StatCard label="Total LTV" value={stats.totalLtv} icon={WalletIcon} accent="green" format={(n) => formatCurrency(n, "EUR")} />
+            <StatCard label="Avg order" value={stats.avgOrder} icon={ShoppingBag} accent="violet" format={(n) => formatCurrency(n, "EUR")} />
             <StatCard label="VIP customers" value={stats.vip} icon={Crown} accent="amber" format={(n) => formatNumber(n)} />
           </>
         )}
@@ -146,7 +146,7 @@ export default function CustomersPage() {
               xKey="name"
               color="oklch(0.78 0.16 78)"
               height={240}
-              formatter={(v) => formatCurrency(v, "EUR", { compact: true })}
+              formatter={(v) => formatCurrency(v, "EUR")}
             />
           )}
         </Card>
@@ -227,8 +227,8 @@ export default function CustomersPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="py-3 text-right font-mono text-xs tabular-nums">{c.orders}</TableCell>
-                      <TableCell className="py-3 text-right font-mono text-xs tabular-nums">{formatCurrency(c.avgOrder, "EUR", { compact: true })}</TableCell>
-                      <TableCell className="py-3 text-right font-mono text-sm font-semibold tabular-nums">{formatCurrency(c.ltv, "EUR", { compact: true })}</TableCell>
+                      <TableCell className="py-3 text-right font-mono text-xs tabular-nums">{formatCurrency(c.avgOrder, "EUR")}</TableCell>
+                      <TableCell className="py-3 text-right font-mono text-sm font-semibold tabular-nums">{formatCurrency(c.ltv, "EUR")}</TableCell>
                       <TableCell className="py-3"><StatusBadge status={c.status} /></TableCell>
                       <TableCell className="py-3 text-right text-xs text-muted-foreground">{timeAgo(c.lastSeen)}</TableCell>
                     </TableRow>
@@ -261,7 +261,7 @@ export default function CustomersPage() {
                 <div className="grid grid-cols-3 gap-2">
                   <div className="rounded-lg border border-border/40 bg-background/40 px-3 py-2.5">
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground">LTV</p>
-                    <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums">{formatCurrency(selected.ltv, "EUR", { compact: true })}</p>
+                    <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums">{formatCurrency(selected.ltv, "EUR")}</p>
                   </div>
                   <div className="rounded-lg border border-border/40 bg-background/40 px-3 py-2.5">
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Orders</p>
@@ -269,7 +269,7 @@ export default function CustomersPage() {
                   </div>
                   <div className="rounded-lg border border-border/40 bg-background/40 px-3 py-2.5">
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Avg order</p>
-                    <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums">{formatCurrency(selected.avgOrder, "EUR", { compact: true })}</p>
+                    <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums">{formatCurrency(selected.avgOrder, "EUR")}</p>
                   </div>
                 </div>
 

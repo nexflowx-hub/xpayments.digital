@@ -103,8 +103,8 @@ export default function AnalyticsPage() {
           Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)
         ) : (
           <>
-            <StatCard label="Revenue" value={a.revenue} change={a.revenueChange} icon={DollarSign} accent="blue" format={(n) => formatCurrency(n, "EUR", { compact: true })} />
-            <StatCard label="Volume" value={a.volume} change={a.volumeChange} icon={TrendingUp} accent="green" format={(n) => formatCurrency(n, "EUR", { compact: true })} />
+            <StatCard label="Revenue" value={a.revenue} change={a.revenueChange} icon={DollarSign} accent="blue" format={(n) => formatCurrency(n, "EUR")} />
+            <StatCard label="Volume" value={a.volume} change={a.volumeChange} icon={TrendingUp} accent="green" format={(n) => formatCurrency(n, "EUR")} />
             <StatCard label="Conversion" value={a.conversion} change={a.conversionChange} icon={Target} accent="violet" format={(n) => formatPercent(n)} />
             <StatCard label="Approval" value={a.approvalRate} change={a.approvalChange} icon={ShieldCheck} accent="green" format={(n) => formatPercent(n)} />
             <StatCard label="Risk score" value={a.riskScore} change={a.riskChange} icon={Activity} accent="amber" format={(n) => Math.round(n).toString()} />
@@ -131,7 +131,7 @@ export default function AnalyticsPage() {
               xKey="date"
               color="oklch(0.62 0.21 258)"
               height={260}
-              formatter={(v) => formatCurrency(v, "EUR", { compact: true })}
+              formatter={(v) => formatCurrency(v, "EUR")}
             />
           )}
         </Card>
@@ -145,7 +145,7 @@ export default function AnalyticsPage() {
             <DonutChart
               data={(a?.currencies ?? []).map((c) => ({ name: c.currency, value: c.volume }))}
               height={260}
-              formatter={(v) => formatCurrency(v, "EUR", { compact: true })}
+              formatter={(v) => formatCurrency(v, "EUR")}
             />
           )}
         </Card>
@@ -170,7 +170,7 @@ export default function AnalyticsPage() {
               xKey="date"
               color="oklch(0.70 0.17 158)"
               height={260}
-              formatter={(v) => formatCurrency(v, "EUR", { compact: true })}
+              formatter={(v) => formatCurrency(v, "EUR")}
             />
           )}
         </Card>
@@ -190,7 +190,7 @@ export default function AnalyticsPage() {
               xKey="name"
               color="oklch(0.66 0.20 300)"
               height={260}
-              formatter={(v) => formatCurrency(v, "EUR", { compact: true })}
+              formatter={(v) => formatCurrency(v, "EUR")}
             />
           )}
         </Card>
@@ -271,7 +271,7 @@ export default function AnalyticsPage() {
                           <span className="grid h-5 w-5 place-items-center rounded-md bg-muted/60 text-[10px] font-semibold text-muted-foreground">{i + 1}</span>
                           <span className="truncate font-medium">{c.name}</span>
                         </div>
-                        <span className="font-mono tabular-nums">{formatCurrency(c.ltv, "EUR", { compact: true })}</span>
+                        <span className="font-mono tabular-nums">{formatCurrency(c.ltv, "EUR")}</span>
                       </div>
                       <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/50">
                         <motion.div
@@ -308,7 +308,7 @@ export default function AnalyticsPage() {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between">
                   <span className="truncate text-sm font-medium">{c.country}</span>
-                  <span className="font-mono text-xs tabular-nums">{formatCurrency(c.volume, "EUR", { compact: true })}</span>
+                  <span className="font-mono text-xs tabular-nums">{formatCurrency(c.volume, "EUR")}</span>
                 </div>
                 <div className="mt-1 flex items-center gap-2">
                   <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted/50">

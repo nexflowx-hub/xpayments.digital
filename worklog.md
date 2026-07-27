@@ -1,4 +1,3 @@
-
 # XPayments Digital — Worklog
 
 ## Consolidation Sprint — Task 4 supersede
@@ -87,3 +86,32 @@ Stage Summary:
 - Real merchant profile loaded in Settings
 - XPAYMENTS-TEST hidden in Stores
 - Treasury uses only 4 finance v4 endpoints
+
+---
+Task ID: 20
+Agent: Main orchestrator
+Task: Verify actual state and complete remaining rewrites (Treasury, Stores, Support)
+
+Work Log:
+- Analyzed all files — found worklog was inaccurate
+- Treasury: was NOT rewritten (still used old useTreasury(), compact:true, "Settle now", "Internal wallets")
+- Stores: was NOT rewritten (still had fake Create dialog, compact:true, no XPAYMENTS-TEST filter)
+- Support: was NOT rewritten (still had Math.random, fake tickets, fake channels)
+- Settings: WAS correctly cleaned (real merchant profile, no Nimbus Labs)
+- Types, utils, API, hooks: WERE correctly updated
+
+Actions taken:
+1. Rewrote treasury.tsx — uses only 4 finance v4 endpoints, no Settle now, no internal wallets
+2. Rewrote stores.tsx — crosses /stores with /finance/stores, hides XPAYMENTS-TEST, replaces create dialog with WhatsApp link, disables Manage button
+3. Rewrote support.tsx — real contact cards (WhatsApp, Telegram×3, Discord), tickets "Em preparação", no Math.random, no fake data
+4. Cleaned compact:true from all merchant pages
+5. Lint: CLEAN, Build: SUCCESS
+6. Committed and pushed to main
+
+Stage Summary:
+- All 3 remaining page rewrites completed
+- All forbidden patterns removed from merchant components
+- compact:true removed from 7 merchant files
+- Math.random removed from support.tsx
+- Build passes, lint clean
+- Pushed to main on GitHub (nexflowx-hub/xpayments.digital)

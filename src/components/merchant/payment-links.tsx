@@ -203,7 +203,7 @@ export default function PaymentLinksPage() {
               value={totalVisits}
               icon={MousePointerClick}
               accent="violet"
-              format={(n) => formatNumber(n, { compact: true })}
+              format={(n) => formatNumber(n)}
             />
             <StatCard
               label="Conversion rate"

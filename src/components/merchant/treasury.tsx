@@ -3,323 +3,370 @@
 import * as React from "react";
 import { motion } from "framer-motion";
 import {
-  Banknote, PiggyBank, ArrowDownToLine, Activity, ArrowUpRight, ArrowDownRight,
-  ArrowDownLeft, ArrowUpLeft, RefreshCw, Wallet as WalletIcon, Landmark,
-  CreditCard, Coins,
+  Wallet as WalletIcon, TrendingUp, ArrowDownLeft, ArrowRightLeft,
+  CalendarClock, Send, Building2, RefreshCw, AlertCircle,
 } from "lucide-react";
-import { useTreasury, useWallets, useWalletMovements } from "@/hooks/queries";
-import { PageHeader, StatCard, fadeUp, ErrorState } from "@/components/shared";
-import { AreaTrend, BarTrend } from "@/components/shared/charts";
+import {
+  useFinanceOverview, useFinanceReleases, usePayoutStatements, useFinanceStores,
+} from "@/hooks/queries";
+import { PageHeader, ErrorState, fadeUp } from "@/components/shared";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn, formatCurrency, formatPercent, timeAgo } from "@/lib/utils";
-import { CURRENCIES } from "@/config";
-import type { CurrencyCode, WalletMovement } from "@/types";
+import { cn, formatCurrency, formatDateCivil, formatNumber } from "@/lib/utils";
 import { useT } from "@/lib/i18n";
 
-const movementIcon: Record<WalletMovement["type"], React.ComponentType<{ className?: string }>> = {
-  deposit: ArrowDownLeft,
-  withdraw: ArrowUpRight,
-  swap: RefreshCw,
-  payment: ArrowDownLeft,
-  fee: ArrowUpRight,
-  payout: ArrowUpRight,
-};
-
-const movementColor: Record<WalletMovement["type"], string> = {
-  deposit: "text-emerald-400 bg-emerald-500/10",
-  withdraw: "text-rose-400 bg-rose-500/10",
-  swap: "text-violet-400 bg-violet-500/10",
-  payment: "text-sky-400 bg-sky-500/10",
-  fee: "text-amber-400 bg-amber-500/10",
-  payout: "text-rose-400 bg-rose-500/10",
-};
-
-function walletTypeMeta(type: "fiat" | "crypto" | "card") {
-  if (type === "crypto") return { icon: Coins, label: "Crypto", color: "text-amber-400" };
-  if (type === "card") return { icon: CreditCard, label: "Card", color: "text-violet-400" };
-  return { icon: Landmark, label: "Fiat", color: "text-sky-400" };
+function dv(value: number | undefined | null, cur: string): string {
+  return value === undefined || value === null ? "—" : formatCurrency(value, cur);
 }
 
 export default function TreasuryPage() {
   const t = useT();
-  const { data: treasury, isLoading, isError: tError, refetch: tRefetch } = useTreasury();
-  const { data: wallets } = useWallets();
-  const { data: movements } = useWalletMovements();
+  const cur = "EUR";
 
-  const totalBalances = React.useMemo(
-    () => (treasury?.balances ?? []).reduce((s, b) => s + b.amount, 0),
-    [treasury],
-  );
+  const { data: overview, isLoading: oLoading, isError: oError, refetch: oRefetch } = useFinanceOverview(cur);
+  const { data: releases, isLoading: rLoading } = useFinanceReleases(cur);
+  const { data: payouts, isLoading: pLoading } = usePayoutStatements(cur);
+  const { data: finStores, isLoading: sLoading } = useFinanceStores(cur);
 
-  if (tError) return (
-    <div className="flex flex-col gap-6">
-      <PageHeader title={t("nav.treasury")} description="Liquidez unificada, reservas e fluxo de caixa." />
-      <ErrorState message="Failed to load treasury data. The backend may be unreachable." onRetry={() => tRefetch()} />
-    </div>
-  );
+  const allLoading = oLoading || rLoading || pLoading || sLoading;
+  const hasError = oError;
+
+  if (hasError) {
+    return (
+      <div className="flex flex-col gap-6">
+        <PageHeader title={t("nav.treasury")} description="Liquidez, liberações, payouts e visão por Store." />
+        <ErrorState message="Não foi possível carregar os dados financeiros. O backend pode estar indisponível." onRetry={() => oRefetch()} />
+      </div>
+    );
+  }
+
+  const nextRelease = overview?.nextRelease;
+  const isOverdue = nextRelease?.status === "overdue";
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title={t("nav.treasury")}
-        description="Liquidity, reserves, settlement and cash flow across all wallets."
+        description="Liquidez, liberações, payouts e visão por Store."
         actions={
-          <>
-            <Button variant="outline" size="sm">Export</Button>
-            <Button size="sm" className="gap-1.5"><Banknote className="h-3.5 w-3.5" /> Settle now</Button>
-          </>
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={() => { oRefetch(); }}>
+            <RefreshCw className="h-3.5 w-3.5" /> Atualizar
+          </Button>
         }
       />
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {isLoading || !treasury ? (
-          Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)
+      {/* Wallet + Sales summary */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        {allLoading ? (
+          Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)
         ) : (
           <>
-            <StatCard
-              label="Total liquidity"
-              value={treasury.totalLiquidity}
-              change={treasury.liquidityChange}
-              icon={Banknote}
-              accent="blue"
-              format={(n) => formatCurrency(n, "EUR", { compact: true })}
-            />
-            <StatCard
-              label="Reserve"
-              value={treasury.reserve}
-              icon={PiggyBank}
-              accent="amber"
-              format={(n) => formatCurrency(n, "EUR", { compact: true })}
-            />
-            <StatCard
-              label="Pending payouts"
-              value={treasury.pendingPayouts}
-              icon={ArrowDownToLine}
-              accent="rose"
-              format={(n) => formatCurrency(n, "EUR", { compact: true })}
-            />
-            <StatCard
-              label="Net flow (30d)"
-              value={treasury.netFlow}
-              change={treasury.liquidityChange}
-              icon={Activity}
-              accent="green"
-              format={(n) => formatCurrency(n, "EUR", { compact: true })}
-            />
+            <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-muted-foreground">Saldo total</p>
+                <div className="rounded-lg bg-primary/10 p-1.5 text-primary">
+                  <WalletIcon className="h-4 w-4" />
+                </div>
+              </div>
+              <p className="mt-3 text-2xl font-semibold tracking-tight">{dv(overview?.wallet?.balance, cur)}</p>
+            </Card>
+            <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-muted-foreground">Disponível</p>
+                <div className="rounded-lg bg-emerald-500/10 p-1.5 text-emerald-400">
+                  <ArrowDownLeft className="h-4 w-4" />
+                </div>
+              </div>
+              <p className="mt-3 text-2xl font-semibold tracking-tight">{dv(overview?.wallet?.available, cur)}</p>
+            </Card>
+            <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-muted-foreground">Vendas brutas acumuladas</p>
+                <div className="rounded-lg bg-emerald-500/10 p-1.5 text-emerald-400">
+                  <TrendingUp className="h-4 w-4" />
+                </div>
+              </div>
+              <p className="mt-3 text-2xl font-semibold tracking-tight">{dv(overview?.sales?.gross, cur)}</p>
+            </Card>
+            <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-muted-foreground">Taxas registradas</p>
+                <div className="rounded-lg bg-amber-500/10 p-1.5 text-amber-400">
+                  <ArrowRightLeft className="h-4 w-4" />
+                </div>
+              </div>
+              <p className="mt-3 text-2xl font-semibold tracking-tight">{dv(overview?.sales?.fees, cur)}</p>
+            </Card>
+            <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-muted-foreground">Líquido contabilizado</p>
+                <div className="rounded-lg bg-emerald-500/10 p-1.5 text-emerald-400">
+                  <TrendingUp className="h-4 w-4" />
+                </div>
+              </div>
+              <p className="mt-3 text-2xl font-semibold tracking-tight">{dv(overview?.sales?.net, cur)}</p>
+            </Card>
           </>
         )}
       </div>
 
-      {/* Cash flow + settlement */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2 border-border/60 bg-card/60 p-5 backdrop-blur-xl">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-semibold">Cash flow</h3>
-              <p className="text-xs text-muted-foreground">Daily inflow vs outflow, last 30 days</p>
-            </div>
-            <div className="flex items-center gap-3 text-[11px]">
-              <span className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full" style={{ background: "oklch(0.70 0.17 158)" }} />
-                Inflow
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full" style={{ background: "oklch(0.68 0.20 20)" }} />
-                Outflow
-              </span>
-            </div>
+      {/* Next release + Payouts summary */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {/* Next release card */}
+        <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+          <div className="mb-4 flex items-center gap-2">
+            <CalendarClock className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-semibold">Próxima liberação</h3>
           </div>
-          {isLoading || !treasury ? (
-            <Skeleton className="h-64 w-full" />
+          {allLoading ? (
+            <Skeleton className="h-20 w-full" />
+          ) : nextRelease ? (
+            <div className="rounded-lg border border-border/40 bg-background/40 p-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-2xl font-semibold tracking-tight">{dv(nextRelease.amount, cur)}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {nextRelease.movementCount} movimento{nextRelease.movementCount !== 1 ? "s" : ""} incluído{nextRelease.movementCount !== 1 ? "s" : ""}
+                  </p>
+                </div>
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    isOverdue
+                      ? "border-rose-500/25 bg-rose-500/12 text-rose-400"
+                      : "border-amber-500/25 bg-amber-500/12 text-amber-400"
+                  )}
+                >
+                  {isOverdue ? "Atrasado" : "Esperado"}
+                </Badge>
+              </div>
+              <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+                {isOverdue && <AlertCircle className="h-3.5 w-3.5 text-rose-400" />}
+                <span>Previsto para {formatDateCivil(nextRelease.date)}</span>
+              </div>
+            </div>
           ) : (
-            <BarTrend
-              data={treasury?.cashFlowSeries ?? []}
-              dataKey={[
-                { key: "inflow", color: "oklch(0.70 0.17 158)", name: "Inflow" },
-                { key: "outflow", color: "oklch(0.68 0.20 20)", name: "Outflow" },
-              ]}
-              stacked
-              height={260}
-              formatter={(v) => formatCurrency(v, "EUR", { compact: true })}
-            />
+            <p className="py-4 text-center text-xs text-muted-foreground">Nenhuma liberação programada.</p>
           )}
         </Card>
 
+        {/* Payouts summary */}
         <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
-          <div className="mb-4">
-            <h3 className="text-sm font-semibold">Settlement</h3>
-            <p className="text-xs text-muted-foreground">Net settled volume, last 14 days</p>
+          <div className="mb-4 flex items-center gap-2">
+            <Send className="h-4 w-4 text-primary" />
+            <h3 className="text-sm font-semibold">Resumo de payouts</h3>
           </div>
-          {isLoading || !treasury ? (
-            <Skeleton className="h-64 w-full" />
+          {allLoading ? (
+            <Skeleton className="h-20 w-full" />
+          ) : payouts?.summary ? (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Total pago</p>
+                <p className="mt-1 font-mono text-base font-semibold tabular-nums">{dv(payouts.summary.paidAmount, cur)}</p>
+                <p className="mt-0.5 text-[10px] text-muted-foreground">{payouts.summary.paidCount} pagamento{payouts.summary.paidCount !== 1 ? "s" : ""}</p>
+              </div>
+              <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Agendado</p>
+                <p className="mt-1 font-mono text-base font-semibold tabular-nums">{dv(payouts.summary.scheduledAmount, cur)}</p>
+                <p className="mt-0.5 text-[10px] text-muted-foreground">{payouts.summary.scheduledCount} agendado{payouts.summary.scheduledCount !== 1 ? "s" : ""}</p>
+              </div>
+            </div>
           ) : (
-            <AreaTrend
-              data={treasury?.settlementSeries ?? []}
-              color="oklch(0.66 0.20 300)"
-              height={260}
-              formatter={(v) => formatCurrency(v, "EUR", { compact: true })}
-            />
+            <p className="py-4 text-center text-xs text-muted-foreground">Sem dados de payout.</p>
           )}
         </Card>
       </div>
 
-      {/* Balances table */}
+      {/* Releases calendar */}
       <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-semibold">Currency balances</h3>
-            <p className="text-xs text-muted-foreground">Allocation across fiat and crypto wallets</p>
+            <h3 className="text-sm font-semibold">Calendário de liberações</h3>
+            <p className="text-xs text-muted-foreground">Próximas liberações previstas pelo backend.</p>
+          </div>
+          {releases?.summary && (
+            <Badge variant="outline" className="border-border/60 bg-muted/30">
+              Total líquido: {dv(releases.summary.totalNet, cur)}
+            </Badge>
+          )}
+        </div>
+        {rLoading ? (
+          <div className="flex flex-col gap-2">
+            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+          </div>
+        ) : releases?.items && releases.items.length > 0 ? (
+          <div className="flex flex-col gap-2">
+            {releases.items.map((r, i) => {
+              const overdue = r.status === "overdue";
+              return (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: i * 0.05 }}
+                  className="flex items-center justify-between rounded-lg border border-border/40 bg-background/40 px-4 py-3 transition hover:border-primary/30"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      "rounded-lg p-1.5",
+                      overdue ? "bg-rose-500/10 text-rose-400" : "bg-emerald-500/10 text-emerald-400"
+                    )}>
+                      <CalendarClock className="h-3.5 w-3.5" />
+                    </div>
+                    <div>
+                      <p className="font-mono text-sm font-semibold tabular-nums">{dv(r.amount, cur)}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {r.movementCount} movimento{r.movementCount !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        overdue
+                          ? "border-rose-500/25 bg-rose-500/12 text-rose-400"
+                          : "border-amber-500/25 bg-amber-500/12 text-amber-400"
+                      )}
+                    >
+                      {overdue ? "Atrasado" : "Esperado"}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">{formatDateCivil(r.date)}</span>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        ) : (
+          <p className="py-6 text-center text-xs text-muted-foreground">Nenhuma liberação encontrada.</p>
+        )}
+      </Card>
+
+      {/* Store overview */}
+      <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold">Visão por Store</h3>
+            <p className="text-xs text-muted-foreground">Dados financeiros por unidade de venda.</p>
           </div>
           <Badge variant="outline" className="border-border/60 bg-muted/30">
-            {treasury?.balances.length ?? 0} currencies
+            {finStores?.stores?.length ?? 0} stores
           </Badge>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border/60 text-left text-xs text-muted-foreground">
-                <th className="pb-2 font-medium">Currency</th>
-                <th className="pb-2 text-right font-medium">Amount</th>
-                <th className="pb-2 text-right font-medium">24h</th>
-                <th className="pb-2 font-medium">Share</th>
+                <th className="pb-2 font-medium">Store</th>
+                <th className="pb-2 text-right font-medium">Vendas brutas</th>
+                <th className="pb-2 text-right font-medium">Taxas</th>
+                <th className="pb-2 text-right font-medium">Vendas líquidas</th>
+                <th className="pb-2 text-right font-medium">Pendente</th>
+                <th className="pb-2 text-right font-medium">Líquido contabilizado</th>
               </tr>
             </thead>
             <tbody>
-              {(treasury?.balances ?? []).map((b) => {
-                const c = CURRENCIES.find((x) => x.code === b.currency);
-                const share = totalBalances ? (b.amount / totalBalances) * 100 : 0;
-                const positive = b.changePct >= 0;
-                return (
-                  <tr key={b.currency} className="border-b border-border/30 transition hover:bg-muted/30">
+              {sLoading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <tr key={i}><td colSpan={6}><Skeleton className="my-1 h-10 w-full" /></td></tr>
+                ))
+              ) : finStores?.stores && finStores.stores.length > 0 ? (
+                finStores.stores.map((s) => (
+                  <tr key={s.storeId} className="border-b border-border/30 transition hover:bg-muted/30">
                     <td className="py-3">
                       <div className="flex items-center gap-2">
-                        <span className="grid h-7 w-7 place-items-center rounded-md bg-muted/40 text-sm">{c?.flag}</span>
+                        <div className="grid h-7 w-7 place-items-center rounded-md bg-primary/10 text-xs font-semibold text-primary">
+                          {s.storeCode.slice(-2).toUpperCase()}
+                        </div>
                         <div>
-                          <p className="font-medium">{b.currency}</p>
-                          <p className="text-[10px] text-muted-foreground">{c?.symbol}</p>
+                          <p className="font-medium">{s.storeName}</p>
+                          <p className="font-mono text-[10px] text-muted-foreground">{s.storeCode}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="py-3 text-right font-mono tabular-nums">{formatCurrency(b.amount, b.currency)}</td>
-                    <td className="py-3 text-right">
-                      <span className={cn(
-                        "inline-flex items-center gap-0.5 text-xs font-medium",
-                        positive ? "text-emerald-400" : "text-rose-400",
-                      )}>
-                        {positive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                        {Math.abs(b.changePct ?? 0).toFixed(1)}%
-                      </span>
-                    </td>
-                    <td className="py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="h-1.5 w-32 overflow-hidden rounded-full bg-muted/60">
-                          <div
-                            className="h-full rounded-full bg-primary"
-                            style={{ width: `${share}%` }}
-                          />
-                        </div>
-                        <span className="font-mono text-[11px] text-muted-foreground">{share.toFixed(1)}%</span>
-                      </div>
-                    </td>
+                    <td className="py-3 text-right font-mono tabular-nums">{dv(s.gross, cur)}</td>
+                    <td className="py-3 text-right font-mono tabular-nums">{dv(s.fees, cur)}</td>
+                    <td className="py-3 text-right font-mono tabular-nums">{dv(s.net, cur)}</td>
+                    <td className="py-3 text-right font-mono tabular-nums">{dv(s.pending, cur)}</td>
+                    <td className="py-3 text-right font-mono tabular-nums">{dv(s.operationalBalance, cur)}</td>
                   </tr>
-                );
-              })}
+                ))
+              ) : (
+                <tr><td colSpan={6} className="py-6 text-center text-xs text-muted-foreground">Nenhuma store encontrada.</td></tr>
+              )}
             </tbody>
           </table>
         </div>
       </Card>
 
-      {/* Movements + internal wallets */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2 border-border/60 bg-card/60 p-5 backdrop-blur-xl">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-semibold">Recent movements</h3>
-              <p className="text-xs text-muted-foreground">Deposits, payouts, swaps and fees</p>
-            </div>
-            <Button variant="ghost" size="sm" className="text-xs">View all</Button>
-          </div>
-          <div className="flex flex-col gap-1">
-            {(movements ?? []).slice(0, 8).map((m) => {
-              const Icon = movementIcon[m.type ?? "payment"];
-              const isIn = m.direction === "in";
-              return (
-                <div
-                  key={m.id}
-                  className="flex items-center gap-3 rounded-lg px-2 py-2 transition hover:bg-muted/40"
-                >
-                  <div className={cn("rounded-lg p-1.5", movementColor[m.type])}>
-                    <Icon className="h-3.5 w-3.5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium capitalize">{m.type}</p>
-                    <p className="font-mono text-[10px] text-muted-foreground">{m.reference}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className={cn(
-                      "font-mono text-sm font-semibold tabular-nums",
-                      isIn ? "text-emerald-400" : "text-foreground",
-                    )}>
-                      {isIn ? "+" : "−"}{formatCurrency(m.amount, m.currency)}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground">{timeAgo(m.createdAt)}</p>
-                  </div>
-                </div>
-              );
-            }) ?? Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-10" />)}
-          </div>
-        </Card>
+      {/* Recent payouts */}
+      <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+        <div className="mb-4">
+          <h3 className="text-sm font-semibold">Payouts recentes</h3>
+          <p className="text-xs text-muted-foreground">Últimos extratos de pagamento processados e agendados.</p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border/60 text-left text-xs text-muted-foreground">
+                <th className="pb-2 font-medium">Extrato</th>
+                <th className="pb-2 font-medium">Stores</th>
+                <th className="pb-2 text-right font-medium">Valor</th>
+                <th className="pb-2 font-medium">Agendado</th>
+                <th className="pb-2 font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pLoading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <tr key={i}><td colSpan={5}><Skeleton className="my-1 h-10 w-full" /></td></tr>
+                ))
+              ) : payouts?.items && payouts.items.length > 0 ? (
+                payouts.items.slice(0, 10).map((p) => {
+                  const statusCls: Record<string, string> = {
+                    paid: "border-emerald-500/25 bg-emerald-500/12 text-emerald-400",
+                    scheduled: "border-amber-500/25 bg-amber-500/12 text-amber-400",
+                    draft: "border-border bg-muted/40 text-muted-foreground",
+                    cancelled: "border-rose-500/25 bg-rose-500/12 text-rose-400",
+                  };
+                  const statusLabel: Record<string, string> = {
+                    paid: "Pago",
+                    scheduled: "Agendado",
+                    draft: "Rascunho",
+                    cancelled: "Cancelado",
+                  };
+                  return (
+                    <tr key={p.id} className="border-b border-border/30 transition hover:bg-muted/30">
+                      <td className="py-3 font-mono text-xs text-primary">{p.statementCode}</td>
+                      <td className="py-3 text-xs text-muted-foreground">
+                        {p.allocations?.map((a) => a.storeName).join(", ") || "—"}
+                      </td>
+                      <td className="py-3 text-right font-mono tabular-nums">{dv(p.amount, cur)}</td>
+                      <td className="py-3 text-xs text-muted-foreground">{formatDateCivil(p.scheduledFor)}</td>
+                      <td className="py-3">
+                        <Badge variant="outline" className={cn("text-[10px]", statusCls[p.status] ?? statusCls.draft)}>
+                          {statusLabel[p.status] ?? p.status}
+                        </Badge>
+                      </td>
+                    </tr>
+                  );
+                })
+              ) : (
+                <tr><td colSpan={5} className="py-6 text-center text-xs text-muted-foreground">Nenhum payout encontrado.</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
 
-        <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
-          <div className="mb-4">
-            <h3 className="flex items-center gap-2 text-sm font-semibold">
-              <WalletIcon className="h-4 w-4 text-primary" />
-              Internal wallets
-            </h3>
-            <p className="text-xs text-muted-foreground">All active balances</p>
-          </div>
-          <div className="flex flex-col gap-2">
-            {(wallets ?? []).slice(0, 6).map((w) => {
-              const meta = walletTypeMeta(w.type);
-              const c = CURRENCIES.find((x) => x.code === w.currency);
-              return (
-                <div
-                  key={w.id}
-                  className="rounded-lg border border-border/40 bg-background/40 p-3 transition hover:border-primary/30"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="grid h-7 w-7 place-items-center rounded-md bg-muted/40 text-sm">{c?.flag}</span>
-                      <div>
-                        <p className="text-xs font-medium">{w.label}</p>
-                        <p className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                          <meta.icon className={cn("h-2.5 w-2.5", meta.color)} />
-                          {meta.label}
-                        </p>
-                      </div>
-                    </div>
-                    <span className={cn(
-                      "text-xs font-medium",
-                      w.changePct >= 0 ? "text-emerald-400" : "text-rose-400",
-                    )}>
-                      {w.changePct >= 0 ? "+" : ""}{w.changePct}%
-                    </span>
-                  </div>
-                  <p className="mt-2 font-mono text-base font-semibold tabular-nums">
-                    {formatCurrency(w.balance, w.currency)}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {formatCurrency(w.available, w.currency)} available · {formatCurrency(w.reserved, w.currency)} reserved
-                  </p>
-                </div>
-              );
-            }) ?? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20" />)}
-          </div>
-        </Card>
-      </div>
+      {/* Generated at footer */}
+      {!allLoading && overview?.generatedAt && (
+        <p className="text-center text-[10px] text-muted-foreground">
+          Dados gerados em {formatDateCivil(overview.generatedAt)} · Fuso: {overview.timezone || "UTC"}
+        </p>
+      )}
     </div>
   );
 }

@@ -119,7 +119,7 @@ export default function SubscriptionsPage() {
               value={mrr}
               icon={TrendingUp}
               accent="blue"
-              format={(n) => formatCurrency(n, "EUR", { compact: true })}
+              format={(n) => formatCurrency(n, "EUR")}
             />
             <StatCard
               label="Churned"
@@ -153,7 +153,7 @@ export default function SubscriptionsPage() {
               variant="outline"
               className="gap-1 border-emerald-500/25 bg-emerald-500/12 text-emerald-400"
             >
-              <Sparkles className="h-3 w-3" /> {formatCurrency(mrr, "EUR", { compact: true })}
+              <Sparkles className="h-3 w-3" /> {formatCurrency(mrr, "EUR")}
             </Badge>
           </div>
           {isLoading ? (
@@ -161,7 +161,7 @@ export default function SubscriptionsPage() {
           ) : (
             <AreaTrend
               data={mrrSeries}
-              formatter={(v) => formatCurrency(v, "EUR", { compact: true })}
+              formatter={(v) => formatCurrency(v, "EUR")}
               height={260}
             />
           )}

@@ -278,7 +278,7 @@ export default function ProductsPage() {
               value={totalSales}
               icon={TrendingUp}
               accent="violet"
-              format={(n) => formatNumber(n, { compact: true })}
+              format={(n) => formatNumber(n)}
             />
             <StatCard
               label="Avg. price"

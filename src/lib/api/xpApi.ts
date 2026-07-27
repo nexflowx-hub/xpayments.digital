@@ -264,30 +264,8 @@ export const admin = {
     requestData<{ total: number; series: { date: string; value: number }[] }>({ url: "admin/revenue", method: "GET" }),
 };
 
-// ---- Financial Evolution ----
-export const financial = {
-  /** GET financial/summary — all KPIs for the dashboard */
-  summary: (params?: { period?: string; from?: string; to?: string }) =>
-    requestData<FinancialSummary>({ url: "financial/summary", method: "GET", params }),
-  /** GET financial/chart — time-series for gross/fees/net */
-  chart: (params: { period?: string; from?: string; to?: string } = {}) =>
-    requestData<FinancialChartPoint[]>({ url: "financial/chart", method: "GET", params }),
-  /** GET financial/releases — release schedule */
-  releases: (filters?: FinancialFilters) =>
-    requestData<Paginated<Release>>({ url: "financial/releases", method: "GET", params: filters as Record<string, unknown> }),
-  /** GET financial/payouts — payout statements */
-  payouts: (filters?: FinancialFilters) =>
-    requestData<Paginated<PayoutStatement>>({ url: "financial/payouts", method: "GET", params: filters as Record<string, unknown> }),
-  /** GET financial/movements — all financial movements */
-  movements: (filters?: FinancialFilters) =>
-    requestData<Paginated<FinancialMovement>>({ url: "financial/movements", method: "GET", params: filters as Record<string, unknown> }),
-  /** GET financial/by-store — per-store breakdown */
-  byStore: (params?: { period?: string; from?: string; to?: string }) =>
-    requestData<StoreFinancials[]>({ url: "financial/by-store", method: "GET", params }),
-};
 
-// ---- Real Finance Endpoints (v4) ----
-export const financeV4 = {
+export const finance = {
   /** GET finance/overview?currency=EUR */
   overview: (currency = "EUR") =>
     requestData<FinanceOverview>({ url: "finance/overview", method: "GET", params: { currency } }),
@@ -310,7 +288,7 @@ export const merchant = {
 export const xpApi = {
   auth, analytics, transactions, wallets, risk, customers, products, stores,
   paymentLinks, invoices, subscriptions, apiKeys, webhooks, treasury, checkout,
-  kyc, admin, financeV4, merchant,
+  kyc, admin, finance, merchant,
 };
 
 export type XpApi = typeof xpApi;

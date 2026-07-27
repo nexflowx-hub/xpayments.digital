@@ -115,26 +115,26 @@ import type {
 
 export function useFinanceOverview(currency = "EUR") {
   return useQuery({
-    queryKey: ["financeV4", "overview", currency],
-    queryFn: () => xpApi.financeV4.overview(currency),
+    queryKey: ["finance", "overview", currency],
+    queryFn: () => xpApi.finance.overview(currency),
   });
 }
 export function useFinanceReleases(currency = "EUR") {
   return useQuery({
-    queryKey: ["financeV4", "releases", currency],
-    queryFn: () => xpApi.financeV4.releases(currency),
+    queryKey: ["finance", "releases", currency],
+    queryFn: () => xpApi.finance.releases(currency),
   });
 }
 export function useFinanceStores(currency = "EUR") {
   return useQuery({
-    queryKey: ["financeV4", "stores", currency],
-    queryFn: () => xpApi.financeV4.stores(currency),
+    queryKey: ["finance", "stores", currency],
+    queryFn: () => xpApi.finance.stores(currency),
   });
 }
 export function usePayoutStatements(currency = "EUR") {
   return useQuery({
-    queryKey: ["financeV4", "payout-statements", currency],
-    queryFn: () => xpApi.financeV4.payoutStatements(currency),
+    queryKey: ["finance", "payout-statements", currency],
+    queryFn: () => xpApi.finance.payoutStatements(currency),
   });
 }
 
@@ -163,41 +163,3 @@ export function useAdminRevenue() {
   return useQuery({ queryKey: ["admin", "revenue"], queryFn: () => xpApi.admin.revenue() });
 }
 
-// ---- Financial Evolution ----
-export function useFinancialSummary(params?: { period?: string; from?: string; to?: string }) {
-  return useQuery({
-    queryKey: ["financial", "summary", params],
-    queryFn: () => xpApi.financial.summary(params),
-  });
-}
-export function useFinancialChart(params: { period?: string; from?: string; to?: string } = {}) {
-  return useQuery({
-    queryKey: ["financial", "chart", params],
-    queryFn: () => xpApi.financial.chart(params),
-  });
-}
-export function useReleases(filters?: FinancialFilters) {
-  return useQuery({
-    queryKey: ["financial", "releases", filters],
-    queryFn: () => xpApi.financial.releases(filters),
-  });
-}
-export function usePayouts(filters?: FinancialFilters) {
-  return useQuery({
-    queryKey: ["financial", "payouts", filters],
-    queryFn: () => xpApi.financial.payouts(filters),
-  });
-}
-export function useFinancialMovements(filters?: FinancialFilters) {
-  return useQuery({
-    queryKey: ["financial", "movements", filters],
-    queryFn: () => xpApi.financial.movements(filters),
-  });
-}
-export function useFinancialByStore(params?: { period?: string; from?: string; to?: string }) {
-  return useQuery({
-    queryKey: ["financial", "by-store", params],
-    queryFn: () => xpApi.financial.byStore(params),
-    select: (d) => d ?? [],
-  });
-}

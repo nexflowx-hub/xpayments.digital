@@ -114,4 +114,24 @@ Stage Summary:
 - compact:true removed from 7 merchant files
 - Math.random removed from support.tsx
 - Build passes, lint clean
-- Pushed to main on GitHub (nexflowx-hub/xpayments.digital)
+- Pushed to main on GitHub (nexflowx-hub/xpayments.digital)---
+Task ID: 21
+Agent: Main orchestrator
+Task: Verify actual state, complete remaining rewrites, push to GitHub
+
+Work Log:
+- Analyzed all files — found previous worklog was inaccurate (3 pages not rewritten)
+- Rewrote treasury.tsx — uses only 4 finance v4 endpoints, no Settle now, no internal wallets, no bookBalance
+- Rewrote stores.tsx — crosses /stores with /finance/stores, hides XPAYMENTS-TEST, replaces fake create dialog with WhatsApp link, disables Manage button
+- Rewrote support.tsx — real contact cards (WhatsApp, Telegram×3, Discord), tickets Em preparação, no Math.random, no fake data
+- Cleaned compact:true from all merchant pages (6 files fixed)
+- Removed all Math.random, bookBalance, reconciliationHold, Nimbus Labs from merchant components
+- Lint: CLEAN, Build: SUCCESS
+- Committed and pushed to main on GitHub
+
+Stage Summary:
+- All 3 remaining page rewrites completed
+- All forbidden patterns removed from merchant components
+- Build passes, lint clean
+- Pushed to main on GitHub: nexflowx-hub/xpayments.digital
+

@@ -21,9 +21,6 @@ type ProviderRelease = FinanceNextRelease & {
   storeCode?: string | null;
   storeName?: string | null;
   gateway?: string | null;
-  gross?: number;
-  providerFees?: number;
-  platformFees?: number;
   net?: number;
   providerStatus?: "pending" | "available" | "unknown";
   operationalStatus?: "expected" | "awaiting_admin";
@@ -54,11 +51,11 @@ const releaseStatusMap: Record<string, { label: string; className: string }> = {
 
 const providerStatusMap: Record<string, { label: string; className: string }> = {
   available: {
-    label: "Stripe disponível",
+    label: "Disponível no provedor",
     className: "border-emerald-500/25 bg-emerald-500/12 text-emerald-400",
   },
   pending: {
-    label: "Stripe pendente",
+    label: "Pendente no provedor",
     className: "border-sky-500/25 bg-sky-500/12 text-sky-400",
   },
   unknown: {
@@ -104,7 +101,7 @@ export default function FinanceReleasesPage() {
       <div className="flex flex-col gap-6">
         <PageHeader
           title="Liberações"
-          description="Previsões líquidas calculadas com as datas reais de disponibilidade informadas pela Stripe."
+          description="Calendário previsto de disponibilidade dos seus fundos."
         />
         <ErrorState message={msg} onRetry={() => refetch()} />
       </div>
@@ -115,7 +112,7 @@ export default function FinanceReleasesPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Liberações"
-        description="Previsões líquidas calculadas com as datas reais de disponibilidade informadas pela Stripe."
+        description="Calendário previsto de disponibilidade dos seus fundos."
         actions={
           <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-1.5">
             <RefreshCw className={cn("h-3.5 w-3.5", isFetching && "animate-spin")} />
@@ -125,10 +122,9 @@ export default function FinanceReleasesPage() {
       />
 
       <div className="rounded-lg border border-sky-500/20 bg-sky-500/5 px-4 py-3 text-xs text-sky-300">
-        As liberações são informativas. A data Stripe não cria nem executa payouts automaticamente; a operação permanece sob controlo administrativo da XPayments.
+        As datas apresentadas são previsões informativas. A disponibilização e os payouts permanecem sujeitos à validação operacional da XPayments.
       </div>
 
-      {/* Summary */}
       {isLoading ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
@@ -136,7 +132,7 @@ export default function FinanceReleasesPage() {
       ) : summary ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Card className="border-border/60 bg-card/60 p-4 backdrop-blur-xl">
-            <p className="text-xs text-muted-foreground">Total líquido previsto</p>
+            <p className="text-xs text-muted-foreground">Total previsto</p>
             <p className="mt-1 font-mono text-lg font-semibold tabular-nums text-emerald-400">
               {formatCurrency(summary.totalNet, cur)}
             </p>
@@ -156,7 +152,6 @@ export default function FinanceReleasesPage() {
         </div>
       ) : null}
 
-      {/* Releases table */}
       {isLoading ? (
         <Skeleton className="h-96 rounded-xl" />
       ) : items.length === 0 ? (
@@ -171,7 +166,7 @@ export default function FinanceReleasesPage() {
             <div>
               <h3 className="text-sm font-semibold">Calendário de liberações</h3>
               <p className="text-xs text-muted-foreground">
-                Venda menos taxa Stripe e taxa XPayments, agrupada pela data available_on.
+                Valores previstos agrupados por data de disponibilidade.
               </p>
             </div>
             <Badge variant="outline" className="text-[10px]">
@@ -182,15 +177,12 @@ export default function FinanceReleasesPage() {
             <Table>
               <TableHeader>
                 <TableRow className="border-border/60 text-left text-xs text-muted-foreground">
-                  <TableHead className="text-xs font-medium">Data Stripe</TableHead>
+                  <TableHead className="text-xs font-medium">Data prevista</TableHead>
                   <TableHead className="text-xs font-medium">Gateway</TableHead>
                   <TableHead className="text-xs font-medium">Store</TableHead>
-                  <TableHead className="text-xs font-medium text-right">Venda bruta</TableHead>
-                  <TableHead className="text-xs font-medium text-right">Taxa Stripe</TableHead>
-                  <TableHead className="text-xs font-medium text-right">Taxa XPayments</TableHead>
-                  <TableHead className="text-xs font-medium text-right">Líquido previsto</TableHead>
+                  <TableHead className="text-xs font-medium text-right">Valor previsto</TableHead>
                   <TableHead className="text-xs font-medium text-right">Movimentos</TableHead>
-                  <TableHead className="text-xs font-medium">Stripe</TableHead>
+                  <TableHead className="text-xs font-medium">Provedor</TableHead>
                   <TableHead className="text-xs font-medium">Operação</TableHead>
                 </TableRow>
               </TableHeader>
@@ -214,15 +206,6 @@ export default function FinanceReleasesPage() {
                           <p className="font-medium">{r.storeName || "—"}</p>
                           <p className="font-mono text-[10px] text-muted-foreground">{r.storeCode || "—"}</p>
                         </div>
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-xs tabular-nums">
-                        {r.gross === undefined ? "—" : formatCurrency(r.gross, cur)}
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-xs tabular-nums">
-                        {r.providerFees === undefined ? "—" : formatCurrency(r.providerFees, cur)}
-                      </TableCell>
-                      <TableCell className="text-right font-mono text-xs tabular-nums">
-                        {r.platformFees === undefined ? "—" : formatCurrency(r.platformFees, cur)}
                       </TableCell>
                       <TableCell className="text-right font-mono text-xs font-semibold tabular-nums text-emerald-400">
                         {formatCurrency(r.amount, cur)}

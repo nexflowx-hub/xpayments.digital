@@ -173,3 +173,27 @@ Stage Summary:
 - Branch pushed: fix/restore-finance-v4-production
 - Vercel preview deployment triggered
 - NO merge to main — awaiting validation
+---
+Task ID: 1-8
+Agent: Lead Frontend Engineer (main)
+Task: Fix Finance V4 UI coherence on branch fix/finance-v4-ui-coherence-20260727
+
+Work Log:
+- Created branch fix/finance-v4-ui-coherence-20260727 from main (d355e3b)
+- Fixed 13 corrupted ? characters in dashboard.tsx (l?quidas→líquidas, L?quido→Líquido, m?s→mês, libera??o→liberação, Per?odo→Período, Dispon?vel→Disponível, Pr?xima→Próxima, Transa??es→Transações, M?s atual→Mês atual)
+- Added nav.financeFlow, nav.financeReleases, nav.financePayouts, nav.financeStores to ALL 4 dictionaries (EN, PT-BR, FR, ES)
+- Replaced formatDateCivil() Date constructor with regex-based timezone-safe parsing
+- Renamed 'Líquido contabilizado' → 'Saldo operacional atual' in dashboard.tsx and treasury.tsx
+- Replaced wallet UUID display with 'Saldo após payouts e ajustes'
+- Rewrote treasury.tsx for independent per-section loading/error handling (removed global oError blocking)
+- Added optional future fields to FinanceNextRelease type (rawAmount, advanceApplied, carryForwardApplied, effectiveAmount, effectiveStatus)
+- Validation passed: lint ✓ | tsc --noEmit ✓ | build ✓ | rg corruption check ✓
+- Pushed branch to GitHub (NO merge to main)
+
+Stage Summary:
+- Commit 2455f0d on fix/finance-v4-ui-coherence-20260727
+- 5 files changed, 238 insertions, 207 deletions
+- All 8 instructions addressed
+- €961.02 payout NOT hidden — documented as backend issue requiring fundingMode compensation
+- Finance V4 contract preserved (finance/overview, finance/releases, finance/stores, payout-statements)
+- No phantom /financial/* endpoints

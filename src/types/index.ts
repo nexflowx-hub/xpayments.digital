@@ -468,6 +468,16 @@ export interface FinanceNextRelease {
   amount: number;
   status: "expected" | "overdue";
   movementCount: number;
+  /** Future: raw amount before advance compensation */
+  rawAmount?: number;
+  /** Future: operational advance already applied to this release */
+  advanceApplied?: number;
+  /** Future: carry-forward amount from previous release */
+  carryForwardApplied?: number;
+  /** Future: effective amount after all adjustments */
+  effectiveAmount?: number;
+  /** Future: effective status reflecting advance compensation */
+  effectiveStatus?: "expected" | "overdue" | "compensated";
 }
 
 export interface FinanceReleasesResponse {

@@ -30,10 +30,10 @@ export default function MerchantOverview() {
       <div className="flex flex-col gap-6">
         <PageHeader
           title="Painel"
-          description="Vis?o geral financeira em tempo real."
+          description="Visão geral financeira em tempo real."
         />
         <ErrorState
-          message="N?o foi poss?vel carregar os dados. O backend pode estar indispon?vel."
+          message="Não foi possível carregar os dados. O backend pode estar indisponível."
           onRetry={() => refetch()}
         />
       </div>
@@ -46,7 +46,7 @@ export default function MerchantOverview() {
       <div className="flex flex-col gap-6">
         <PageHeader
           title="Painel"
-          description="Vis?o geral financeira em tempo real."
+          description="Visão geral financeira em tempo real."
         />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 8 }).map((_, i) => (
@@ -66,47 +66,47 @@ export default function MerchantOverview() {
     {
       label: "Vendas brutas hoje",
       value: formatCurrency(d.sales.today.gross, cur),
-      sub: `${formatNumber(d.sales.today.transactions)} transa??es`,
+      sub: `${formatNumber(d.sales.today.transactions)} transações`,
       icon: DollarSign,
       accent: "emerald",
     },
     {
-      label: "Vendas l?quidas hoje",
+      label: "Vendas líquidas hoje",
       value: formatCurrency(d.sales.today.net, cur),
       sub: `Taxas: ${formatCurrency(d.sales.today.fees, cur)}`,
       icon: TrendingUp,
       accent: "emerald",
     },
     {
-      label: "L?quido da semana",
+      label: "Líquido da semana",
       value: formatCurrency(d.sales.week.net, cur),
-      sub: `${formatNumber(d.sales.week.transactions)} transa??es`,
+      sub: `${formatNumber(d.sales.week.transactions)} transações`,
       icon: BarChart3,
       accent: "primary",
     },
     {
-      label: "L?quido do m?s",
+      label: "Líquido do mês",
       value: formatCurrency(d.sales.month.net, cur),
-      sub: `${formatNumber(d.sales.month.transactions)} transa??es`,
+      sub: `${formatNumber(d.sales.month.transactions)} transações`,
       icon: BarChart3,
       accent: "primary",
     },
     {
       label: "Wallet total",
       value: formatCurrency(d.wallet.balance, cur),
-      sub: `ID: ${d.wallet.id ?? "—"}`,
+      sub: "Saldo após payouts e ajustes",
       icon: WalletIcon,
       accent: "primary",
     },
     {
       label: "Pendente",
       value: formatCurrency(d.wallet.pending, cur),
-      sub: "Aguardando libera??o",
+      sub: "Aguardando liberação",
       icon: Clock,
       accent: "amber",
     },
     {
-      label: "Dispon?vel",
+      label: "Disponível",
       value: formatCurrency(d.wallet.available, cur),
       sub: `Reservado: ${formatCurrency(d.wallet.reserved, cur)}`,
       icon: CircleCheck,
@@ -125,7 +125,7 @@ export default function MerchantOverview() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Painel"
-        description="Vis?o geral financeira em tempo real."
+        description="Visão geral financeira em tempo real."
       />
 
       {/* ---- KPI Grid ---- */}
@@ -191,7 +191,7 @@ export default function MerchantOverview() {
         <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
           <div className="flex items-center gap-2 mb-4">
             <CalendarClock className="h-4 w-4 text-violet-400" />
-            <h3 className="text-sm font-semibold">Pr?xima libera??o</h3>
+            <h3 className="text-sm font-semibold">Próxima liberação</h3>
           </div>
           {d.nextRelease ? (
             <div className="flex flex-col gap-3">
@@ -223,7 +223,7 @@ export default function MerchantOverview() {
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Nenhuma libera??o prevista.
+              Nenhuma liberação prevista.
             </p>
           )}
         </Card>
@@ -235,11 +235,11 @@ export default function MerchantOverview() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border/60 text-left text-xs text-muted-foreground">
-                  <th className="pb-2 font-medium">Per?odo</th>
+                  <th className="pb-2 font-medium">Período</th>
                   <th className="pb-2 text-right font-medium">Vendas brutas</th>
                   <th className="pb-2 text-right font-medium">Taxas registradas</th>
-                  <th className="pb-2 text-right font-medium">Vendas l?quidas</th>
-                  <th className="pb-2 text-right font-medium">Transa??es</th>
+                  <th className="pb-2 text-right font-medium">Vendas líquidas</th>
+                  <th className="pb-2 text-right font-medium">Transações</th>
                 </tr>
               </thead>
               <tbody>
@@ -250,7 +250,7 @@ export default function MerchantOverview() {
                       ...d.sales.today,
                     },
                     {
-                      label: "M?s atual",
+                      label: "Mês atual",
                       ...d.sales.month,
                     },
                   ] as const
@@ -304,7 +304,7 @@ export default function MerchantOverview() {
           </div>
           <div className="rounded-xl border border-border/40 bg-background/40 p-4">
             <p className="text-xs text-muted-foreground">
-              L?quido contabilizado
+              Saldo operacional atual
             </p>
             <p className="mt-1 text-lg font-semibold tabular-nums">
               {formatCurrency(d.wallet.balance, cur)}
@@ -315,7 +315,7 @@ export default function MerchantOverview() {
           </div>
           <div className="rounded-xl border border-border/40 bg-background/40 p-4">
             <p className="text-xs text-muted-foreground">
-              Dispon?vel projetado
+              Disponível projetado
             </p>
             <p className="mt-1 text-lg font-semibold tabular-nums">
               {formatCurrency(d.projectedAvailable, cur)}

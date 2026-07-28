@@ -63,22 +63,16 @@ export function formatDate(iso?: string | null): string {
 }
 
 /**
- * Format an ISO date string in civil (pt-PT) format for financial displays.
- * Handles null/undefined gracefully, returns "—".
+ * Format an ISO date string in civil (DD/MM/YYYY) format for financial displays.
+ * Timezone-safe: parses the date string directly without Date constructor,
+ * so "2026-07-27" always produces "27/07/2026" regardless of browser timezone.
  */
-export function formatDateCivil(iso?: string | null): string {
-  if (!iso) return "—";
-  try {
-    const d = new Date(iso);
-    if (isNaN(d.getTime())) return "—";
-    return d.toLocaleDateString("pt-PT", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
-  } catch {
-    return "—";
-  }
+export function formatDateCivil(value?: string | null): string {
+  if (!value) return "—";
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+  if (!match) return "—";
+  const [, year, month, day] = match;
+  return `${day}/${month}/${year}`;
 }
 
 export function formatDateFull(iso?: string | null, opts?: { withTime?: boolean }): string {

@@ -4,7 +4,7 @@ import * as React from "react";
 import { motion } from "framer-motion";
 import {
   Wallet as WalletIcon, TrendingUp, ArrowDownLeft, ArrowRightLeft,
-  CalendarClock, Send, Building2, RefreshCw, AlertCircle, AlertTriangle,
+  CalendarClock, Send, Building2, RefreshCw, AlertTriangle,
 } from "lucide-react";
 import {
   useFinanceOverview, useFinanceReleases, usePayoutStatements, useFinanceStores,
@@ -44,9 +44,6 @@ export default function TreasuryPage() {
   const { data: releases, isLoading: rLoading, isError: rError, refetch: rRefetch } = useFinanceReleases(cur);
   const { data: payouts, isLoading: pLoading, isError: pError, refetch: pRefetch } = usePayoutStatements(cur);
   const { data: finStores, isLoading: sLoading, isError: sError, refetch: sRefetch } = useFinanceStores(cur);
-
-  const nextRelease = overview?.nextRelease;
-  const isOverdue = nextRelease?.status === "overdue";
 
   const refreshAll = () => { oRefetch(); rRefetch(); pRefetch(); sRefetch(); };
 
@@ -122,76 +119,33 @@ export default function TreasuryPage() {
         </div>
       )}
 
-      {/* ---- Section 2: Next release + Payouts summary ---- */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {/* Next release card (from Overview) */}
-        <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
-          <div className="mb-4 flex items-center gap-2">
-            <CalendarClock className="h-4 w-4 text-primary" />
-            <h3 className="text-sm font-semibold">Próxima liberação</h3>
-          </div>
-          {oLoading ? (
-            <Skeleton className="h-20 w-full" />
-          ) : oError ? (
-            <SectionError message="Erro ao carregar liberação." onRetry={() => oRefetch()} />
-          ) : nextRelease ? (
-            <div className="rounded-lg border border-border/40 bg-background/40 p-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-2xl font-semibold tracking-tight">{dv(nextRelease.amount, cur)}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {nextRelease.movementCount} movimento{nextRelease.movementCount !== 1 ? "s" : ""} incluído{nextRelease.movementCount !== 1 ? "s" : ""}
-                  </p>
-                </div>
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    isOverdue
-                      ? "border-rose-500/25 bg-rose-500/12 text-rose-400"
-                      : "border-amber-500/25 bg-amber-500/12 text-amber-400"
-                  )}
-                >
-                  {isOverdue ? "Atrasado" : "Esperado"}
-                </Badge>
-              </div>
-              <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-                {isOverdue && <AlertCircle className="h-3.5 w-3.5 text-rose-400" />}
-                <span>Previsto para {formatDateCivil(nextRelease.date)}</span>
-              </div>
+      {/* ---- Section 2: Payouts summary ---- */}
+      <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+        <div className="mb-4 flex items-center gap-2">
+          <Send className="h-4 w-4 text-primary" />
+          <h3 className="text-sm font-semibold">Resumo de payouts</h3>
+        </div>
+        {pLoading ? (
+          <Skeleton className="h-20 w-full" />
+        ) : pError ? (
+          <SectionError message="Erro ao carregar payouts." onRetry={() => pRefetch()} />
+        ) : payouts?.summary ? (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Total pago</p>
+              <p className="mt-1 font-mono text-base font-semibold tabular-nums">{dv(payouts.summary.paidAmount, cur)}</p>
+              <p className="mt-0.5 text-[10px] text-muted-foreground">{payouts.summary.paidCount} pagamento{payouts.summary.paidCount !== 1 ? "s" : ""}</p>
             </div>
-          ) : (
-            <p className="py-4 text-center text-xs text-muted-foreground">Nenhuma liberação programada.</p>
-          )}
-        </Card>
-
-        {/* Payouts summary (from Payout Statements) */}
-        <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
-          <div className="mb-4 flex items-center gap-2">
-            <Send className="h-4 w-4 text-primary" />
-            <h3 className="text-sm font-semibold">Resumo de payouts</h3>
-          </div>
-          {pLoading ? (
-            <Skeleton className="h-20 w-full" />
-          ) : pError ? (
-            <SectionError message="Erro ao carregar payouts." onRetry={() => pRefetch()} />
-          ) : payouts?.summary ? (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Total pago</p>
-                <p className="mt-1 font-mono text-base font-semibold tabular-nums">{dv(payouts.summary.paidAmount, cur)}</p>
-                <p className="mt-0.5 text-[10px] text-muted-foreground">{payouts.summary.paidCount} pagamento{payouts.summary.paidCount !== 1 ? "s" : ""}</p>
-              </div>
-              <div className="rounded-lg border border-border/40 bg-background/40 p-3">
-                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Agendado</p>
-                <p className="mt-1 font-mono text-base font-semibold tabular-nums">{dv(payouts.summary.scheduledAmount, cur)}</p>
-                <p className="mt-0.5 text-[10px] text-muted-foreground">{payouts.summary.scheduledCount} agendado{payouts.summary.scheduledCount !== 1 ? "s" : ""}</p>
-              </div>
+            <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Agendado</p>
+              <p className="mt-1 font-mono text-base font-semibold tabular-nums">{dv(payouts.summary.scheduledAmount, cur)}</p>
+              <p className="mt-0.5 text-[10px] text-muted-foreground">{payouts.summary.scheduledCount} agendado{payouts.summary.scheduledCount !== 1 ? "s" : ""}</p>
             </div>
-          ) : (
-            <p className="py-4 text-center text-xs text-muted-foreground">Sem dados de payout.</p>
-          )}
-        </Card>
-      </div>
+          </div>
+        ) : (
+          <p className="py-4 text-center text-xs text-muted-foreground">Sem dados de payout.</p>
+        )}
+      </Card>
 
       {/* ---- Section 3: Releases calendar (from Releases) ---- */}
       <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">

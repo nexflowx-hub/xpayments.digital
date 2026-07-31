@@ -10,6 +10,7 @@ import type {
   FinanceOverview,
   FinanceReleasesResponse,
   FinanceStoresResponse,
+  FxQuote,
   PayoutStatementsResponse,
   MerchantProfile,
   Invoice,
@@ -280,6 +281,9 @@ export const finance = {
   /** GET payout-statements?currency=EUR */
   payoutStatements: (currency = "EUR") =>
     requestData<PayoutStatementsResponse>({ url: "payout-statements", method: "GET", params: { currency } }),
+  /** GET finance/fx-quotes?base=EUR&quotes=BRL,USDT */
+  fxQuotes: (base = "EUR", quotes = "BRL,USDT") =>
+    requestData<FxQuote[]>({ url: "finance/fx-quotes", method: "GET", params: { base, quotes } }),
 };
 
 // ---- Merchant Profile ----

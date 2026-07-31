@@ -127,3 +127,27 @@ export function maskKey(key: string) {
   if (key.length <= 8) return key;
   return `${key.slice(0, 8)}${"•".repeat(20)}${key.slice(-4)}`;
 }
+
+// ---- FX display formatting ----
+
+const fmtBrlCache = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/**
+ * Format an amount in a display currency using the given FX rate.
+ * - BRL: pt-BR locale, 2 decimals.
+ * - USDT: 2-4 decimals (more precision for small values).
+ */
+export function formatFxAmount(eurAmount: number, quoteCurrency: "BRL" | "USDT", rate: number): string {
+  const converted = eurAmount * rate;
+  if (quoteCurrency === "BRL") {
+    return fmtBrlCache.format(converted);
+  }
+  // USDT: adaptive decimals (2-4)
+  const abs = Math.abs(converted);
+  const dp = abs >= 100 ? 2 : abs >= 1 ? 3 : 4;
+  const formatted = converted.toLocaleString("en-US", {
+    minimumFractionDigits: dp,
+    maximumFractionDigits: dp,
+  });
+  return `${formatted} USDT`;
+}

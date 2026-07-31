@@ -552,7 +552,30 @@ export interface PayoutStatementsResponse {
   };
 }
 
-/** GET /merchant/profile */
+/** FX quote returned by GET /finance/fx-quotes?base=EUR&quotes=BRL,USDT */
+export interface FxQuote {
+  baseCurrency: string;
+  quoteCurrency: string;
+  rate: number;
+  source: string;
+  asOf: string;
+}
+
+/** Payout FX snapshot — locked at payout creation time */
+export interface PayoutFxSnapshot {
+  baseCurrency: string;
+  quoteCurrency: "BRL" | "USDT";
+  rate: number;
+  baseAmount: number;
+  convertedAmount: number;
+  source: string;
+  asOf: string;
+  lockedAt: string;
+}
+
+/** User's display currency preference (visual only, not financial) */
+export type DisplayCurrency = "BRL" | "USDT";
+
 export interface MerchantProfile {
   id: string;
   name: string;

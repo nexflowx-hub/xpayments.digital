@@ -109,6 +109,7 @@ import type {
   FinanceOverview,
   FinanceReleasesResponse,
   FinanceStoresResponse,
+  FxQuote,
   PayoutStatementsResponse,
   MerchantProfile,
 } from "@/types";
@@ -135,6 +136,20 @@ export function usePayoutStatements(currency = "EUR") {
   return useQuery({
     queryKey: ["finance", "payout-statements", currency],
     queryFn: () => xpApi.finance.payoutStatements(currency),
+  });
+}
+
+// ---- FX Quotes (limited, display-only) ----
+export function useFxQuotes(opts: { baseCurrency?: string; quoteCurrencies?: string[] } = {}) {
+  const base = opts.baseCurrency ?? "EUR";
+  const quotes = (opts.quoteCurrencies ?? ["BRL", "USDT"]).join(",");
+  return useQuery({
+    queryKey: ["finance", "fx-quotes", base, quotes],
+    queryFn: () => xpApi.finance.fxQuotes(base, quotes),
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
+    retry: 2,
   });
 }
 

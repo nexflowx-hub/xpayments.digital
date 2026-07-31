@@ -4,14 +4,13 @@ import * as React from "react";
 import { motion } from "framer-motion";
 import {
   DollarSign, TrendingUp, Wallet as WalletIcon, Clock,
-  CircleCheck, Send, CalendarClock, BarChart3,
+  CircleCheck, Send, BarChart3,
 } from "lucide-react";
 import { useFinanceOverview } from "@/hooks/queries";
 import { PageHeader, ErrorState, fadeUp } from "@/components/shared";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn, formatCurrency, formatDateCivil, formatNumber } from "@/lib/utils";
+import { cn, formatCurrency, formatNumber } from "@/lib/utils";
 import type { FinanceOverview } from "@/types";
 
 export default function MerchantOverview() {
@@ -185,51 +184,8 @@ export default function MerchantOverview() {
         })}
       </motion.div>
 
-      {/* ---- Next Release + Sales Summary ---- */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* Next release */}
-        <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
-          <div className="flex items-center gap-2 mb-4">
-            <CalendarClock className="h-4 w-4 text-violet-400" />
-            <h3 className="text-sm font-semibold">Próxima liberação</h3>
-          </div>
-          {d.nextRelease ? (
-            <div className="flex flex-col gap-3">
-              <p className="text-2xl font-semibold tabular-nums">
-                {formatCurrency(d.nextRelease.amount, cur)}
-              </p>
-              <div className="flex flex-col gap-1.5 text-xs text-muted-foreground">
-                <span>
-                  Data: {formatDateCivil(d.nextRelease.date)}
-                </span>
-                <span>
-                  Movimentos: {formatNumber(d.nextRelease.movementCount)}
-                </span>
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    "w-fit",
-                    d.nextRelease.status === "expected" &&
-                      "border-emerald-500/25 bg-emerald-500/12 text-emerald-400",
-                    d.nextRelease.status === "overdue" &&
-                      "border-rose-500/25 bg-rose-500/12 text-rose-400",
-                  )}
-                >
-                  {d.nextRelease.status === "expected"
-                    ? "Esperado"
-                    : "Atrasado"}
-                </Badge>
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              Nenhuma liberação prevista.
-            </p>
-          )}
-        </Card>
-
-        {/* Sales summary */}
-        <Card className="lg:col-span-2 border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+      {/* ---- Sales Summary ---- */}
+      <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
           <h3 className="mb-4 text-sm font-semibold">Resumo de vendas</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -278,7 +234,6 @@ export default function MerchantOverview() {
             </table>
           </div>
         </Card>
-      </div>
 
       {/* ---- Payouts summary ---- */}
       <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">

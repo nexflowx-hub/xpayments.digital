@@ -164,6 +164,7 @@ export function useMerchantProfile() {
 // ---- Payout Requests (v1) ----
 import type {
   PayoutFundingOption,
+  PayoutFundingOptionsResponse,
   PayoutRequest,
   PayoutRequestAllocation,
   CreatePayoutRequestPayload,
@@ -182,7 +183,7 @@ export function usePayoutFundingOptions(storeId: string | null, currency = "EUR"
       if (code === "PAYOUT_REQUESTS_DISABLED") return false;
       return failureCount < 2;
     },
-    select: (d) => d ?? [],
+    select: response => response.items ?? [],
   });
 }
 
@@ -200,15 +201,27 @@ export function usePayoutRequests() {
   });
 }
 
-/** Feature-flag check — returns true if PAYOUT_REQUESTS_DISABLED is NOT returned */
+/** Feature-flag check — distinguishes PAYOUT_REQUESTS_DISABLED from real errors */
 export function usePayoutRequestsEnabled() {
-  return useQuery({
+  const query = useQuery({
     queryKey: ["payout-requests", "_enabled"],
     queryFn: () => xpApi.payoutRequests.list(),
     retry: false,
-    select: (_data) => true,
+    select: () => true as const,
     staleTime: 300_000,
   });
+
+  const error = query.error as { code?: string } | undefined;
+  const isFeatureDisabled = error?.code === "PAYOUT_REQUESTS_DISABLED";
+  const isOtherError = query.isError && !isFeatureDisabled;
+
+  return {
+    ...query,
+    isEnabled: !isFeatureDisabled,
+    isFeatureDisabled,
+    isOtherError,
+    error,
+  };
 }
 
 /** Create a payout request draft */

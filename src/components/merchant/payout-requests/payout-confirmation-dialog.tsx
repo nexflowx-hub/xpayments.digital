@@ -2,13 +2,14 @@
 
 import * as React from "react";
 import {
-  ShieldCheck, AlertTriangle, Loader2, CheckCircle2, Eye, EyeOff, X,
+  ShieldCheck, Loader2, CheckCircle2, Eye, EyeOff, AlertTriangle,
 } from "lucide-react";
 import {
   usePreviewPayoutConfirmation,
   useVerifyPayoutManager,
   useConfirmPayoutRequest,
 } from "@/hooks/queries";
+import { useT } from "@/lib/i18n";
 import {
   Dialog,
   DialogContent,
@@ -17,22 +18,21 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { cn, formatCurrency, formatDateCivil } from "@/lib/utils";
 import { toast } from "sonner";
 import type { PayoutRequest, PayoutConfirmationPreview } from "@/types";
 
-function mapConfirmError(code: string | undefined): string {
+function mapConfirmError(code: string | undefined, t: (k: string) => string): string {
   switch (code) {
-    case "PAYOUT_CHALLENGE_EXPIRED": return "A confirmação expirou. Gere um novo preview.";
-    case "PAYOUT_REQUEST_OUTDATED": return "As liberações ou o pedido mudaram. Atualize os dados e gere uma nova confirmação.";
-    case "PAYOUT_REQUEST_VERSION_CONFLICT": return "Este pedido foi alterado noutra sessão. Atualizámos os dados disponíveis.";
-    case "PAYOUT_APPROVAL_DENIED": return "Autorização inválida.";
-    case "PAYOUT_APPROVAL_RATE_LIMITED": return "Muitas tentativas de autorização. Aguarde antes de tentar novamente.";
-    case "PAYOUT_INSUFFICIENT_BALANCE": return "A wallet já não possui saldo suficiente para este payout.";
-    case "PAYOUT_ALREADY_CONFIRMED": return "Este payout já foi confirmado.";
-    case "PAYOUT_APPROVAL_NOT_CONFIGURED": return "A confirmação administrativa está temporariamente indisponível.";
-    default: return "Ocorreu um erro durante a confirmação.";
+    case "PAYOUT_CHALLENGE_EXPIRED": return t("pr.challengeExpired");
+    case "PAYOUT_REQUEST_OUTDATED": return t("pr.outdated");
+    case "PAYOUT_REQUEST_VERSION_CONFLICT": return t("pr.versionConflict");
+    case "PAYOUT_APPROVAL_DENIED": return t("pr.authorizationDenied");
+    case "PAYOUT_APPROVAL_RATE_LIMITED": return t("pr.rateLimited");
+    case "PAYOUT_INSUFFICIENT_BALANCE": return t("pr.insufficientBalance");
+    case "PAYOUT_ALREADY_CONFIRMED": return t("pr.alreadyConfirmed");
+    case "PAYOUT_APPROVAL_NOT_CONFIGURED": return t("pr.approvalNotConfigured");
+    default: return t("pr.authorizationDenied");
   }
 }
 
@@ -40,10 +40,11 @@ interface PayoutConfirmationDialogProps {
   request: PayoutRequest;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess: (statementCode?: string) => void;
+  onSuccess: () => void;
 }
 
 export function PayoutConfirmationDialog({ request, open, onOpenChange, onSuccess }: PayoutConfirmationDialogProps) {
+  const t = useT();
   const [password, setPassword] = React.useState("");
   const [bankConfirmed, setBankConfirmed] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
@@ -55,7 +56,7 @@ export function PayoutConfirmationDialog({ request, open, onOpenChange, onSucces
   const verifyMut = useVerifyPayoutManager();
   const confirmMut = useConfirmPayoutRequest();
 
-  // Clear password on close
+  // Reset all state on close
   React.useEffect(() => {
     if (!open) {
       setPassword("");
@@ -76,11 +77,11 @@ export function PayoutConfirmationDialog({ request, open, onOpenChange, onSucces
     } catch (e) {
       const code = (e as { code?: string })?.code;
       if (code === "PAYOUT_ALREADY_CONFIRMED") {
-        toast.info("Este payout já foi confirmado.");
-        onOpenChange(false);
+        toast.info(t("pr.alreadyConfirmed"));
+        setPhase("done");
         onSuccess();
       } else {
-        toast.error(mapConfirmError(code));
+        toast.error(mapConfirmError(code, t));
       }
       setPhase("idle");
     }
@@ -89,13 +90,14 @@ export function PayoutConfirmationDialog({ request, open, onOpenChange, onSucces
   async function handleVerifyAndConfirm() {
     if (!preview || !password) return;
     setPhase("verifying");
+    setConfirmingRef(true);
     try {
       const verifyRes = await verifyMut.mutateAsync({
         id: request.id,
         payload: { challengeId: preview.challengeId, approvalPassword: password, bankTransferConfirmed: bankConfirmed },
       });
       if (!verifyRes.confirmationReady) {
-        toast.error("Autorização inválida.");
+        toast.error(t("pr.authorizationDenied"));
         setPhase("preview");
         setPassword("");
         return;
@@ -107,27 +109,29 @@ export function PayoutConfirmationDialog({ request, open, onOpenChange, onSucces
           challengeId: preview.challengeId,
           bankTransferConfirmed: bankConfirmed,
         });
-        setPassword("");
         setPhase("done");
-        toast.success("Payout confirmado com sucesso.");
+        toast.success(t("pr.payoutConfirmed"));
         onSuccess();
       } catch (e2) {
         const code = (e2 as { code?: string })?.code;
         if (code === "PAYOUT_ALREADY_CONFIRMED") {
           setPhase("done");
-          toast.success("Payout confirmado.");
+          toast.success(t("pr.payoutConfirmed"));
           onSuccess();
         } else {
-          toast.error(mapConfirmError(code));
+          toast.error(mapConfirmError(code, t));
           setPhase("preview");
-          setPassword("");
         }
+      } finally {
+        setPassword("");
       }
     } catch (e) {
       const code = (e as { code?: string })?.code;
-      toast.error(mapConfirmError(code));
+      toast.error(mapConfirmError(code, t));
       setPhase("preview");
       setPassword("");
+    } finally {
+      setConfirmingRef(false);
     }
   }
 
@@ -139,47 +143,48 @@ export function PayoutConfirmationDialog({ request, open, onOpenChange, onSucces
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ShieldCheck className="h-4 w-4 text-primary" />
-            Confirmar payout
+            {t("pr.confirmPayout")}
           </DialogTitle>
-          <DialogDescription>Revisão final antes do registo contabilístico.</DialogDescription>
+          <DialogDescription>{t("pr.authorizationAndRegister")}</DialogDescription>
         </DialogHeader>
 
         {phase === "done" ? (
           <div className="flex flex-col items-center gap-4 py-8">
             <div className="rounded-full bg-emerald-500/12 p-4"><CheckCircle2 className="h-8 w-8 text-emerald-400" /></div>
             <div className="text-center">
-              <p className="text-sm font-semibold">Payout confirmado</p>
-              <p className="mt-1 text-xs text-muted-foreground">O payout foi registado e a wallet debitada.</p>
+              <p className="text-sm font-semibold">{t("pr.payoutConfirmed")}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{t("pr.payoutRegistered")}</p>
             </div>
-            <Button size="sm" onClick={() => onOpenChange(false)}>Fechar</Button>
+            <Button size="sm" onClick={() => onOpenChange(false)}>{t("common.cancel")}</Button>
           </div>
         ) : phase === "idle" ? (
           <div className="flex flex-col gap-4">
             <div className="rounded-lg border border-border/40 bg-background/40 p-3 text-xs">
               <div className="grid grid-cols-2 gap-1.5">
-                <span className="text-muted-foreground">Store</span>
-                <span className="text-right font-medium">{request.storeName || request.storeCode}</span>
-                <span className="text-muted-foreground">Valor</span>
-                <span className="text-right font-mono font-semibold tabular-nums">{formatCurrency(request.amount, request.currency)}</span>
-                <span className="text-muted-foreground">Moeda</span>
+                <span className="text-muted-foreground">{t("pr.store")}</span>
+                <span className="text-right font-medium">{request.store.name}</span>
+                <span className="text-muted-foreground">{t("pr.reference")}</span>
+                <span className="text-right font-mono text-xs text-primary">{request.requestCode}</span>
+                <span className="text-muted-foreground">{t("pr.total")}</span>
+                <span className="text-right font-mono font-semibold tabular-nums">{formatCurrency(request.requestedAmount, request.currency)}</span>
+                <span className="text-muted-foreground">Currency</span>
                 <span className="text-right">{request.currency}</span>
                 {request.externalReference && (
                   <>
-                    <span className="text-muted-foreground">Referência</span>
+                    <span className="text-muted-foreground">{t("pr.externalRef")}</span>
                     <span className="text-right">{request.externalReference}</span>
                   </>
                 )}
-                <span className="text-muted-foreground">Allocações</span>
+                <span className="text-muted-foreground">{t("pr.allocationCount")}</span>
                 <span className="text-right">{request.allocations.length}</span>
               </div>
             </div>
             <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-300">
-              <p className="font-semibold">Aviso de irreversibilidade contabilística</p>
-              <p className="mt-1">Esta operação debita a wallet e regista o payout. Não pode ser revertida pela interface.</p>
+              <p className="font-semibold">{t("pr.irreversibleWarning")}</p>
             </div>
             <Button className="w-full gap-1.5" onClick={handlePreview} disabled={isBusy}>
               {isBusy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              Gerar confirmação
+              {t("pr.confirmPayout")}
             </Button>
           </div>
         ) : (
@@ -187,20 +192,20 @@ export function PayoutConfirmationDialog({ request, open, onOpenChange, onSucces
             {preview && (
               <div className="rounded-lg border border-border/40 bg-background/40 p-3 text-xs">
                 <div className="grid grid-cols-2 gap-1.5">
-                  <span className="text-muted-foreground">Store</span>
-                  <span className="text-right font-medium">{preview.storeName}</span>
-                  <span className="text-muted-foreground">Valor</span>
-                  <span className="text-right font-mono font-semibold tabular-nums">{formatCurrency(preview.amount, request.currency)}</span>
-                  <span className="text-muted-foreground">Wallet disponível</span>
-                  <span className="text-right font-mono tabular-nums">{formatCurrency(preview.wallet.available, request.currency)}</span>
+                  <span className="text-muted-foreground">{t("pr.store")}</span>
+                  <span className="text-right font-medium">{preview.request.store.name}</span>
+                  <span className="text-muted-foreground">{t("pr.reference")}</span>
+                  <span className="text-right font-mono text-xs text-primary">{preview.request.requestCode}</span>
+                  <span className="text-muted-foreground">{t("pr.total")}</span>
+                  <span className="text-right font-mono font-semibold tabular-nums">{formatCurrency(preview.request.requestedAmount, preview.request.currency)}</span>
                 </div>
                 {preview.allocations.length > 0 && (
                   <div className="mt-2 border-t border-border/30 pt-2">
-                    <p className="mb-1 font-medium">Liberações selecionadas</p>
+                    <p className="mb-1 font-medium">{t("pr.releases")}</p>
                     {preview.allocations.map((a, i) => (
                       <div key={i} className="flex justify-between py-0.5">
                         <span className="text-muted-foreground">{formatDateCivil(a.releaseDate)} · {a.provider}</span>
-                        <span className="font-mono tabular-nums">{formatCurrency(a.amount, request.currency)}</span>
+                        <span className="font-mono tabular-nums">{formatCurrency(a.amount, preview.request.currency)}</span>
                       </div>
                     ))}
                   </div>
@@ -208,9 +213,8 @@ export function PayoutConfirmationDialog({ request, open, onOpenChange, onSucces
               </div>
             )}
 
-            {/* Bank transfer attestation */}
             <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-300">
-              <p>A XPayments não inicia a transferência bancária. Esta confirmação apenas regista contabilisticamente o payout e debita a wallet do merchant.</p>
+              <p>{t("pr.xpNoTransfer")}</p>
             </div>
             <label className="flex items-start gap-2.5 rounded-lg border border-border/40 p-3 transition hover:bg-muted/20 cursor-pointer">
               <input
@@ -219,15 +223,12 @@ export function PayoutConfirmationDialog({ request, open, onOpenChange, onSucces
                 onChange={(e) => setBankConfirmed(e.target.checked)}
                 className="mt-0.5 h-4 w-4 rounded border-border"
               />
-              <span className="text-xs leading-relaxed">
-                Confirmo que a transferência bancária correspondente já foi executada fora da XPayments.
-              </span>
+              <span className="text-xs leading-relaxed">{t("pr.bankTransferExecuted")}</span>
             </label>
 
-            {/* Password */}
             {preview?.approvalPasswordRequired && (
               <div>
-                <label className="mb-1 block text-xs font-medium text-muted-foreground">Senha do gerente/admin</label>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("pr.managerPassword")}</label>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
@@ -251,15 +252,15 @@ export function PayoutConfirmationDialog({ request, open, onOpenChange, onSucces
             )}
 
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => { setPhase("idle"); setPassword(""); }} disabled={isBusy}>Cancelar</Button>
+              <Button variant="outline" size="sm" onClick={() => { setPhase("idle"); setPassword(""); }} disabled={isBusy}>{t("common.cancel")}</Button>
               <Button
                 size="sm"
                 className="gap-1.5"
                 disabled={!bankConfirmed || (preview?.approvalPasswordRequired && !password) || isBusy || confirmingRef}
-                onClick={() => { setConfirmingRef(true); handleVerifyAndConfirm(); }}
+                onClick={() => handleVerifyAndConfirm()}
               >
                 {isBusy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                <ShieldCheck className="h-3.5 w-3.5" /> Autorizar e registar payout
+                <ShieldCheck className="h-3.5 w-3.5" /> {t("pr.authorizationAndRegister")}
               </Button>
             </div>
           </div>

@@ -6,45 +6,14 @@ import {
   TrendingUp, Wallet as WalletIcon, Clock,
   CircleCheck, Send, RefreshCw, ChevronRight,
 } from "lucide-react";
-import { useFinanceOverview, useFxQuotes } from "@/hooks/queries";
-import { PageHeader, ErrorState, fadeUp } from "@/components/shared";
-import { DisplayCurrencySelector } from "@/components/shared/display-currency-selector";
+import { useFinanceOverview } from "@/hooks/queries";
+import { PageHeader, ErrorState } from "@/components/shared";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn, formatCurrency, formatFxAmount, timeAgo } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
 import { useUi } from "@/stores/ui";
-import { useFxStore } from "@/stores/fx";
-import type { FinanceOverview, FxQuote, DisplayCurrency } from "@/types";
-
-/** Resolve the FX rate for the selected display currency */
-function useDisplayFx() {
-  const displayCurrency = useFxStore((s) => s.displayCurrency);
-  const { data: quotes, isLoading, isError, isFetching, dataUpdatedAt } = useFxQuotes();
-  const quote = quotes?.find((q: FxQuote) => q.quoteCurrency === displayCurrency);
-  const rate = quote?.rate;
-  const isStale = dataUpdatedAt ? Date.now() - dataUpdatedAt > 90_000 : false;
-  const source = quote?.source;
-  const asOf = quote?.asOf;
-  return { displayCurrency, rate, isLoading, isError, isFetching, isStale, source, asOf, dataUpdatedAt };
-}
-
-/** Secondary FX value line for a KPI card */
-function FxSecondary({
-  eurValue,
-  fx,
-}: {
-  eurValue: number;
-  fx: ReturnType<typeof useDisplayFx>;
-}) {
-  if (!fx.rate || fx.isError) return null;
-  return (
-    <p className={cn("text-[10px] text-muted-foreground", fx.isStale && "opacity-60")}>
-      ≈ {formatFxAmount(eurValue, fx.displayCurrency, fx.rate)}
-      <span className="ml-1">· Indicativo</span>
-    </p>
-  );
-}
+import type { FinanceOverview } from "@/types";
 
 export default function MerchantOverview() {
   const setMerchantView = useUi((s) => s.setMerchantView);
@@ -55,7 +24,6 @@ export default function MerchantOverview() {
     refetch,
     isFetching,
   } = useFinanceOverview("EUR");
-  const fx = useDisplayFx();
 
   const d: FinanceOverview | null = overview ?? null;
   const cur = d?.currency ?? "EUR";
@@ -71,14 +39,14 @@ export default function MerchantOverview() {
 
   /* KPI definitions — matches finance-flow spec */
   const kpis = d ? [
-    { label: "Vendas brutas do mês", value: d.sales.month.gross, icon: TrendingUp, accent: "emerald", fx: false },
-    { label: "Taxas registadas do mês", value: d.sales.month.fees, icon: TrendingUp, accent: "amber", fx: false },
-    { label: "Líquido do mês", value: d.sales.month.net, icon: TrendingUp, accent: "emerald", fx: false },
-    { label: "Wallet total", value: d.wallet.balance, sub: "Saldo após payouts e ajustes", icon: WalletIcon, accent: "primary", fx: true },
-    { label: "Pendente", value: d.wallet.pending, sub: "Aguardando liberação", icon: Clock, accent: "amber", fx: true },
-    { label: "Disponível", value: d.wallet.available, icon: CircleCheck, accent: "emerald", fx: true },
-    { label: "Payouts pagos", value: d.payouts.paid, sub: `${d.payouts.paidCount} payouts`, icon: Send, accent: "violet", fx: true },
-    { label: "Disponível projetado", value: d.projectedAvailable ?? 0, icon: WalletIcon, accent: "emerald", fx: true },
+    { label: "Vendas brutas do mês", value: d.sales.month.gross, icon: TrendingUp, accent: "emerald", sub: undefined },
+    { label: "Taxas registadas do mês", value: d.sales.month.fees, icon: TrendingUp, accent: "amber", sub: undefined },
+    { label: "Líquido do mês", value: d.sales.month.net, icon: TrendingUp, accent: "emerald", sub: undefined },
+    { label: "Wallet total", value: d.wallet.balance, sub: "Saldo após payouts e ajustes", icon: WalletIcon, accent: "primary" },
+    { label: "Pendente", value: d.wallet.pending, sub: "Aguardando liberação", icon: Clock, accent: "amber" },
+    { label: "Disponível", value: d.wallet.available, sub: undefined, icon: CircleCheck, accent: "emerald" },
+    { label: "Payouts pagos", value: d.payouts.paid, sub: `${d.payouts.paidCount} payouts`, icon: Send, accent: "violet" },
+    { label: "Disponível projetado", value: d.projectedAvailable ?? 0, sub: undefined, icon: WalletIcon, accent: "emerald" },
   ] : [];
 
   return (
@@ -87,23 +55,12 @@ export default function MerchantOverview() {
         title="Painel"
         description="Visão consolidada de vendas, wallet e payouts."
         actions={
-          <div className="flex items-center gap-3">
-            {/* FX rate ticker */}
-            {fx.rate ? (
-              <div className={cn("hidden items-center gap-2 rounded-md border border-border/40 bg-muted/20 px-2.5 py-1 text-[11px] text-muted-foreground sm:flex", fx.isStale && "opacity-60")}>
-                <span>EUR/{fx.displayCurrency} <span className="font-mono font-medium tabular-nums">{fx.rate.toFixed(4)}</span></span>
-                <span className="text-muted-foreground/60">·</span>
-                <span>Atualizado há {fx.dataUpdatedAt ? timeAgo(new Date(fx.dataUpdatedAt).toISOString()) : "—"}</span>
-              </div>
-            ) : null}
-            <DisplayCurrencySelector />
-            <div className="flex items-center gap-1.5">
-              {isFetching && <RefreshCw className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
-              <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-1.5">
-                <RefreshCw className={cn("h-3.5 w-3.5", isFetching && "animate-spin")} />
-                Atualizar
-              </Button>
-            </div>
+          <div className="flex items-center gap-1.5">
+            {isFetching && <RefreshCw className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
+            <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-1.5">
+              <RefreshCw className={cn("h-3.5 w-3.5", isFetching && "animate-spin")} />
+              Atualizar
+            </Button>
           </div>
         }
       />
@@ -147,10 +104,9 @@ export default function MerchantOverview() {
                   <p className="mt-3 text-2xl font-semibold tracking-tight tabular-nums">
                     {formatCurrency(kpi.value, cur)}
                   </p>
-                  {"sub" in kpi && kpi.sub ? (
+                  {kpi.sub ? (
                     <p className="mt-1 text-[10px] text-muted-foreground">{kpi.sub}</p>
                   ) : null}
-                  {kpi.fx && <FxSecondary eurValue={kpi.value} fx={fx} />}
                 </Card>
               </motion.div>
             );

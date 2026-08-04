@@ -603,29 +603,55 @@ export interface PayoutFundingOption {
   providerUnknownCount: number;
 }
 
+export interface PayoutFundingOptionsResponse {
+  currency: string;
+  timezone: string;
+  store: {
+    id: string;
+    code: string;
+    name: string;
+  };
+  walletId: string;
+  items: PayoutFundingOption[];
+  summary: {
+    remainingAmount: number;
+    movementCount: number;
+  };
+  generatedAt: string;
+}
+
 export interface PayoutRequestAllocation {
+  id?: string;
   releaseDate: string;
   provider: string;
   amount: number;
+  snapshotAvailableAmount?: number;
+  snapshotMovementCount?: number;
+  position?: number;
+  metadata?: Record<string, unknown>;
 }
 
 export interface PayoutRequest {
   id: string;
-  code: string;
-  storeId: string;
-  storeName?: string;
-  storeCode?: string;
+  requestCode: string;
+  store: {
+    id: string;
+    code: string;
+    name: string;
+  };
+  walletId: string;
   currency: string;
-  amount: number;
-  externalReference?: string;
-  notes?: string;
-  allocations: PayoutRequestAllocation[];
   status: PayoutRequestStatus;
+  requestedAmount: number;
+  externalReference: string | null;
+  notes: string | null;
+  snapshotHash: string;
   version: number;
-  rejectionReason?: string;
+  requestedAt: string | null;
+  confirmedAt: string | null;
+  confirmedPayoutStatementId: string | null;
+  allocations: PayoutRequestAllocation[];
   createdAt: string;
-  requestedAt?: string;
-  confirmedAt?: string;
   updatedAt: string;
 }
 
@@ -638,7 +664,7 @@ export interface CreatePayoutRequestPayload {
   currency: string;
   externalReference?: string;
   notes?: string;
-  allocations: PayoutRequestAllocation[];
+  allocations: Omit<PayoutRequestAllocation, "id" | "snapshotAvailableAmount" | "snapshotMovementCount" | "position" | "metadata">[];
 }
 
 export interface UpdatePayoutRequestPayload {
@@ -647,24 +673,32 @@ export interface UpdatePayoutRequestPayload {
   currency: string;
   externalReference?: string;
   notes?: string;
-  allocations: PayoutRequestAllocation[];
+  allocations: Omit<PayoutRequestAllocation, "id" | "snapshotAvailableAmount" | "snapshotMovementCount" | "position" | "metadata">[];
 }
 
 export interface PayoutConfirmationPreview {
   challengeId: string;
+  status: string;
   expiresAt: string;
-  request: PayoutRequest;
-  allocations: PayoutRequestAllocation[];
-  amount: number;
-  storeName: string;
-  wallet: {
-    balance: number;
-    available: number;
-    pending: number;
+  request: {
+    id: string;
+    requestCode: string;
+    version: number;
+    status: PayoutRequestStatus;
+    store: {
+      id: string;
+      code: string;
+      name: string;
+    };
+    walletId: string;
+    currency: string;
+    requestedAmount: number;
+    externalReference: string | null;
   };
-  approvalPasswordRequired: boolean;
+  allocations: PayoutRequestAllocation[];
   bankTransferAttestationRequired: boolean;
-  financialImpact: boolean;
+  approvalPasswordRequired: boolean;
+  financialImpact: false;
 }
 
 export interface PayoutManagerVerificationPayload {

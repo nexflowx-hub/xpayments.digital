@@ -2,10 +2,10 @@
 
 import * as React from "react";
 import {
-  ArrowLeft, ArrowRight, Save, Send, ShieldCheck, Store, CalendarClock, Loader2, AlertTriangle, RefreshCw,
+  ArrowLeft, ArrowRight, Save, Send, ShieldCheck, Store, CalendarClock, Loader2, RefreshCw,
 } from "lucide-react";
 import { useFinanceStores, usePayoutFundingOptions, useCreatePayoutRequest, useUpdatePayoutRequest, useRequestPayoutManager } from "@/hooks/queries";
-import { PayoutRequestStatusBadge } from "./payout-request-status-badge";
+import { useT } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,22 +15,16 @@ import { cn, formatCurrency, formatDateCivil } from "@/lib/utils";
 import { toast } from "sonner";
 import type { PayoutFundingOption, PayoutRequestAllocation, PayoutRequest } from "@/types";
 
-const STEPS = ["Store", "Liberações", "Referência"] as const;
+const STEPS = ["store", "releases", "reference"] as const;
 
-const providerStatusMap: Record<string, { label: string; cls: string }> = {
-  available: { label: "Disponível no provider", cls: "border-emerald-500/25 bg-emerald-500/12 text-emerald-400" },
-  pending: { label: "Pendente no provider", cls: "border-sky-500/25 bg-sky-500/12 text-sky-400" },
-  unknown: { label: "A sincronizar", cls: "border-border bg-muted text-muted-foreground" },
-};
-
-function mapError(code: string | undefined): string {
+function mapError(code: string | undefined, t: (k: string) => string): string {
   switch (code) {
     case "PAYOUT_REQUESTS_DISABLED": return "";
-    case "PAYOUT_REQUEST_OUTDATED": return "As liberações ou o pedido mudaram. Atualize os dados e gere uma nova confirmação.";
-    case "PAYOUT_REQUEST_VERSION_CONFLICT": return "Este pedido foi alterado noutra sessão. Atualizámos os dados disponíveis.";
-    case "PAYOUT_APPROVAL_RATE_LIMITED": return "Muitas tentativas de autorização. Aguarde antes de tentar novamente.";
-    case "PAYOUT_APPROVAL_NOT_CONFIGURED": return "A confirmação administrativa está temporariamente indisponível.";
-    default: return "Ocorreu um erro. Tente novamente.";
+    case "PAYOUT_REQUEST_OUTDATED": return t("pr.outdated");
+    case "PAYOUT_REQUEST_VERSION_CONFLICT": return t("pr.versionConflict");
+    case "PAYOUT_APPROVAL_RATE_LIMITED": return t("pr.rateLimited");
+    case "PAYOUT_APPROVAL_NOT_CONFIGURED": return t("pr.approvalNotConfigured");
+    default: return t("pr.authorizationDenied");
   }
 }
 
@@ -38,14 +32,16 @@ interface PayoutRequestBuilderProps {
   editingRequest?: PayoutRequest;
   onSaved: (req: PayoutRequest) => void;
   onCancelled: () => void;
+  onManagerRequested: (req: PayoutRequest) => void;
   onConfirmRequested: (req: PayoutRequest) => void;
 }
 
-export function PayoutRequestBuilder({ editingRequest, onSaved, onCancelled, onConfirmRequested }: PayoutRequestBuilderProps) {
+export function PayoutRequestBuilder({ editingRequest, onSaved, onCancelled, onManagerRequested, onConfirmRequested }: PayoutRequestBuilderProps) {
+  const t = useT();
   const [step, setStep] = React.useState(0);
-  const [storeId, setStoreId] = React.useState<string>(editingRequest?.storeId ?? "");
-  const [externalRef, setExternalRef] = React.useState("");
-  const [notes, setNotes] = React.useState("");
+  const [storeId, setStoreId] = React.useState(editingRequest?.store.id ?? "");
+  const [externalRef, setExternalRef] = React.useState(editingRequest?.externalReference ?? "");
+  const [notes, setNotes] = React.useState(editingRequest?.notes ?? "");
   const [selected, setSelected] = React.useState<Map<string, { option: PayoutFundingOption; amount: number }>>(new Map());
 
   const { data: storesRes, isLoading: storesLoading } = useFinanceStores("EUR");
@@ -56,6 +52,24 @@ export function PayoutRequestBuilder({ editingRequest, onSaved, onCancelled, onC
 
   const stores = storesRes?.stores ?? [];
   const isSaving = createMut.isPending || updateMut.isPending || requestManagerMut.isPending;
+
+  // Rebuild selected map when editing and funding options load
+  React.useEffect(() => {
+    if (!editingRequest || !fundingOptions) return;
+    const map = new Map<string, { option: PayoutFundingOption; amount: number }>();
+    for (const alloc of editingRequest.allocations) {
+      const opt = fundingOptions.find(
+        (o) => o.releaseDate === alloc.releaseDate && o.gateway === alloc.provider,
+      );
+      if (opt) {
+        const key = `${opt.releaseDate}|${opt.gateway}`;
+        map.set(key, { option: opt, amount: alloc.amount });
+      }
+    }
+    if (map.size > 0) {
+      setSelected(map);
+    }
+  }, [editingRequest?.id, fundingOptions]);
 
   const totalSelected = React.useMemo(
     () => Array.from(selected.values()).reduce((sum, v) => sum + v.amount, 0),
@@ -86,82 +100,86 @@ export function PayoutRequestBuilder({ editingRequest, onSaved, onCancelled, onC
     });
   }
 
-  function buildAllocations(): PayoutRequestAllocation[] {
-    return Array.from(selected.entries()).map(([key, v]) => ({
+  function buildAllocations(): Omit<PayoutRequestAllocation, "id" | "snapshotAvailableAmount" | "snapshotMovementCount" | "position" | "metadata">[] {
+    return Array.from(selected.entries()).map(([, v]) => ({
       releaseDate: v.option.releaseDate,
       provider: v.option.gateway,
       amount: v.amount,
     }));
   }
 
-  async function handleSave() {
+  async function saveDraft(): Promise<PayoutRequest | null> {
     const allocations = buildAllocations();
-    if (allocations.length === 0) return;
-    try {
-      if (editingRequest) {
-        const res = await updateMut.mutateAsync({
-          id: editingRequest.id,
-          payload: {
-            expectedVersion: editingRequest.version,
-            storeId,
-            currency: "EUR",
-            externalReference: externalRef || undefined,
-            notes: notes || undefined,
-            allocations,
-          },
-        });
-        onSaved(res);
-        toast.success("Rascunho atualizado.");
-      } else {
-        const res = await createMut.mutateAsync({
+    if (allocations.length === 0) return null;
+    if (editingRequest) {
+      return updateMut.mutateAsync({
+        id: editingRequest.id,
+        payload: {
+          expectedVersion: editingRequest.version,
           storeId,
           currency: "EUR",
           externalReference: externalRef || undefined,
           notes: notes || undefined,
           allocations,
-        });
+        },
+      });
+    }
+    return createMut.mutateAsync({
+      storeId,
+      currency: "EUR",
+      externalReference: externalRef || undefined,
+      notes: notes || undefined,
+      allocations,
+    });
+  }
+
+  async function handleSave() {
+    try {
+      const res = await saveDraft();
+      if (res) {
         onSaved(res);
-        toast.success("Rascunho guardado.");
+        toast.success(t("pr.payoutRegistered"));
       }
     } catch (e) {
       const code = (e as { code?: string })?.code;
-      const msg = mapError(code);
+      const msg = mapError(code, t);
       if (msg) toast.error(msg);
     }
   }
 
   async function handleRequestManager() {
-    let req = editingRequest;
-    if (!req) {
-      const allocations = buildAllocations();
-      if (allocations.length === 0) return;
-      try {
-        req = await createMut.mutateAsync({
-          storeId, currency: "EUR",
-          externalReference: externalRef || undefined,
-          notes: notes || undefined,
-          allocations,
-        });
-      } catch (e) {
-        const code = (e as { code?: string })?.code;
-        const msg = mapError(code);
-        if (msg) toast.error(msg);
-        return;
-      }
-    }
     try {
-      const res = await requestManagerMut.mutateAsync({ id: req.id, expectedVersion: req.version });
-      onSaved(res);
-      toast.success("Pedido encaminhado para validação do gerente.");
-      onConfirmRequested(res);
+      let req = await saveDraft();
+      if (!req) return;
+      req = await requestManagerMut.mutateAsync({ id: req.id, expectedVersion: req.version });
+      toast.success(t("pr.requestForwarded"));
+      onManagerRequested(req);
     } catch (e) {
       const code = (e as { code?: string })?.code;
-      const msg = mapError(code);
+      const msg = mapError(code, t);
+      if (msg) toast.error(msg);
+    }
+  }
+
+  async function handleConfirmPayout() {
+    try {
+      const req = await saveDraft();
+      if (!req) return;
+      onConfirmRequested(req);
+    } catch (e) {
+      const code = (e as { code?: string })?.code;
+      const msg = mapError(code, t);
       if (msg) toast.error(msg);
     }
   }
 
   const fundingDisabledCode = (fundingErrorObj as { code?: string })?.code;
+
+  const providerStatusMap: Record<string, { label: string; cls: string }> = {
+    available: { label: t("pr.providerAvailable"), cls: "border-emerald-500/25 bg-emerald-500/12 text-emerald-400" },
+    pending: { label: t("pr.providerPending"), cls: "border-sky-500/25 bg-sky-500/12 text-sky-400" },
+    unknown: { label: t("pr.providerUnknown"), cls: "border-border bg-muted text-muted-foreground" },
+  };
 
   return (
     <div className="flex flex-col gap-5">
@@ -180,7 +198,7 @@ export function PayoutRequestBuilder({ editingRequest, onSaved, onCancelled, onC
               <span className={cn("grid h-5 w-5 place-items-center rounded-full text-[10px] font-semibold", i === step ? "bg-primary text-primary-foreground" : i < step ? "bg-emerald-500/20 text-emerald-400" : "bg-muted text-muted-foreground")}>
                 {i < step ? "✓" : i + 1}
               </span>
-              {s}
+              {t(`pr.${s}`)}
             </button>
             {i < STEPS.length - 1 && <div className="h-px flex-1 bg-border/60" />}
           </React.Fragment>
@@ -192,14 +210,14 @@ export function PayoutRequestBuilder({ editingRequest, onSaved, onCancelled, onC
         <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
           <div className="mb-4 flex items-center gap-2">
             <Store className="h-4 w-4 text-primary" />
-            <h3 className="text-sm font-semibold">Selecionar Store</h3>
+            <h3 className="text-sm font-semibold">{t("pr.selectStore")}</h3>
           </div>
           {storesLoading ? (
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-14 rounded-lg" />)}
             </div>
           ) : stores.length === 0 ? (
-            <p className="py-6 text-center text-xs text-muted-foreground">Nenhuma store disponível.</p>
+            <p className="py-6 text-center text-xs text-muted-foreground">{t("pr.noStores")}</p>
           ) : (
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {stores.map((s) => (
@@ -227,7 +245,7 @@ export function PayoutRequestBuilder({ editingRequest, onSaved, onCancelled, onC
           )}
           <div className="mt-4 flex justify-end">
             <Button size="sm" disabled={!storeId} onClick={() => setStep(1)} className="gap-1.5">
-              Seguinte <ArrowRight className="h-3.5 w-3.5" />
+              {t("common.save")} <ArrowRight className="h-3.5 w-3.5" />
             </Button>
           </div>
         </Card>
@@ -239,36 +257,36 @@ export function PayoutRequestBuilder({ editingRequest, onSaved, onCancelled, onC
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <CalendarClock className="h-4 w-4 text-primary" />
-              <h3 className="text-sm font-semibold">Liberações disponíveis</h3>
+              <h3 className="text-sm font-semibold">{t("pr.releases")}</h3>
             </div>
             {selected.size > 0 && (
               <Badge variant="outline" className="border-primary/40 bg-primary/8 text-primary text-[11px]">
-                {selected.size} selecionada{selected.size !== 1 ? "s" : ""} · {formatCurrency(totalSelected, "EUR")}
+                {selected.size} · {formatCurrency(totalSelected, "EUR")}
               </Badge>
             )}
           </div>
 
           {fundingDisabledCode === "PAYOUT_REQUESTS_DISABLED" ? (
-            <p className="py-6 text-center text-xs text-muted-foreground">Pedidos de payout indisponíveis de momento.</p>
+            <p className="py-6 text-center text-xs text-muted-foreground">{t("pr.featureUnavailable")}</p>
           ) : fundingLoading ? (
             <div className="flex flex-col gap-2">
               {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-16 rounded-lg" />)}
             </div>
           ) : !fundingOptions || fundingOptions.length === 0 ? (
-            <p className="py-6 text-center text-xs text-muted-foreground">Nenhuma liberação disponível para esta store.</p>
+            <p className="py-6 text-center text-xs text-muted-foreground">{t("pr.noReleases")}</p>
           ) : (
             <>
               <div className="overflow-x-auto rounded-lg border border-border/40">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border/40 text-left text-xs text-muted-foreground">
-                      <th className="px-3 py-2 font-medium">Data</th>
+                      <th className="px-3 py-2 font-medium">Date</th>
                       <th className="px-3 py-2 font-medium">Gateway</th>
                       <th className="px-3 py-2 font-medium">Store</th>
-                      <th className="px-3 py-2 text-right font-medium">Disponível</th>
-                      <th className="px-3 py-2 text-right font-medium">Movimentos</th>
+                      <th className="px-3 py-2 text-right font-medium">{t("pr.total")}</th>
+                      <th className="px-3 py-2 text-right font-medium">#</th>
                       <th className="px-3 py-2 font-medium">Provider</th>
-                      <th className="px-3 py-2 text-right font-medium">A utilizar</th>
+                      <th className="px-3 py-2 text-right font-medium">{t("pr.amountToUse")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -323,10 +341,10 @@ export function PayoutRequestBuilder({ editingRequest, onSaved, onCancelled, onC
               </div>
               <div className="mt-4 flex items-center justify-between">
                 <Button variant="ghost" size="sm" onClick={() => setStep(0)} className="gap-1.5">
-                  <ArrowLeft className="h-3.5 w-3.5" /> Anterior
+                  <ArrowLeft className="h-3.5 w-3.5" />
                 </Button>
                 <Button size="sm" disabled={selected.size === 0} onClick={() => setStep(2)} className="gap-1.5">
-                  Seguinte <ArrowRight className="h-3.5 w-3.5" />
+                  {t("common.save")} <ArrowRight className="h-3.5 w-3.5" />
                 </Button>
               </div>
             </>
@@ -337,21 +355,20 @@ export function PayoutRequestBuilder({ editingRequest, onSaved, onCancelled, onC
       {/* Step 2: Reference & notes + actions */}
       {step === 2 && (
         <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
-          <h3 className="mb-4 text-sm font-semibold">Referência e notas</h3>
+          <h3 className="mb-4 text-sm font-semibold">{t("pr.reference")}</h3>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">Referência externa (opcional)</label>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("pr.externalRef")}</label>
               <Input
-                placeholder="ex: FAT-2026-0042"
+                placeholder="FAT-2026-0042"
                 value={externalRef}
                 onChange={(e) => setExternalRef(e.target.value)}
                 className="h-9 text-sm"
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">Notas (opcional)</label>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("pr.notes")}</label>
               <Input
-                placeholder="Notas internas"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 className="h-9 text-sm"
@@ -361,29 +378,33 @@ export function PayoutRequestBuilder({ editingRequest, onSaved, onCancelled, onC
 
           {/* Summary */}
           <div className="mt-5 rounded-lg border border-border/40 bg-background/40 p-4">
-            <p className="text-xs font-semibold">Resumo do pedido</p>
+            <p className="text-xs font-semibold">{t("pr.myRequests")}</p>
             <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-              <span className="text-muted-foreground">Allocações</span>
+              <span className="text-muted-foreground">{t("pr.allocationCount")}</span>
               <span className="text-right font-mono tabular-nums">{selected.size}</span>
-              <span className="text-muted-foreground">Total</span>
+              <span className="text-muted-foreground">{t("pr.total")}</span>
               <span className="text-right font-mono tabular-nums font-semibold">{formatCurrency(totalSelected, "EUR")}</span>
             </div>
           </div>
 
-          {/* Actions */}
+          {/* Actions — 3 separate buttons */}
           <div className="mt-5 flex flex-wrap items-center gap-2">
             <Button variant="ghost" size="sm" onClick={() => setStep(1)} className="gap-1.5">
-              <ArrowLeft className="h-3.5 w-3.5" /> Anterior
+              <ArrowLeft className="h-3.5 w-3.5" />
             </Button>
             <div className="flex-1" />
-            <Button variant="outline" size="sm" onClick={onCancelled}>Cancelar</Button>
+            <Button variant="outline" size="sm" onClick={onCancelled}>{t("common.cancel")}</Button>
             <Button variant="outline" size="sm" onClick={handleSave} disabled={isSaving || selected.size === 0} className="gap-1.5">
               {isSaving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              <Save className="h-3.5 w-3.5" /> Guardar rascunho
+              <Save className="h-3.5 w-3.5" /> {t("pr.saveDraft")}
             </Button>
-            <Button size="sm" onClick={handleRequestManager} disabled={isSaving || selected.size === 0} className="gap-1.5">
+            <Button variant="outline" size="sm" onClick={handleRequestManager} disabled={isSaving || selected.size === 0} className="gap-1.5">
               {isSaving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              <Send className="h-3.5 w-3.5" /> Solicitar gerente
+              <Send className="h-3.5 w-3.5" /> {t("pr.requestManager")}
+            </Button>
+            <Button size="sm" onClick={handleConfirmPayout} disabled={isSaving || selected.size === 0} className="gap-1.5">
+              {isSaving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              <ShieldCheck className="h-3.5 w-3.5" /> {t("pr.confirmPayout")}
             </Button>
           </div>
         </Card>

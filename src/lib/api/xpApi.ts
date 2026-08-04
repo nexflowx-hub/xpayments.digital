@@ -14,6 +14,7 @@ import type {
   PayoutConfirmationPreview,
   PayoutConfirmationResult,
   PayoutFundingOption,
+  PayoutFundingOptionsResponse,
   PayoutManagerVerificationPayload,
   PayoutRequest,
   PayoutRequestsResponse,
@@ -298,7 +299,7 @@ export const finance = {
 export const payoutRequests = {
   /** GET payout-requests/funding-options?storeId=&currency= */
   fundingOptions: (storeId: string, currency = "EUR") =>
-    requestData<PayoutFundingOption[]>({ url: "payout-requests/funding-options", method: "GET", params: { storeId, currency } }),
+    requestData<PayoutFundingOptionsResponse>({ url: "payout-requests/funding-options", method: "GET", params: { storeId, currency } }),
   /** GET payout-requests */
   list: () =>
     requestData<PayoutRequestsResponse>({ url: "payout-requests", method: "GET" }),

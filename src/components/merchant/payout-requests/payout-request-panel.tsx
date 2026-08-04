@@ -95,7 +95,7 @@ export function PayoutRequestPanel() {
         />
       )}
 
-      {/* Confirmation dialog */
+      {/* Confirmation dialog */}
       {confirmRequest && (
         <PayoutConfirmationDialog
           request={confirmRequest}

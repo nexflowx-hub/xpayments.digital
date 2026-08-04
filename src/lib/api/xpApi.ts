@@ -316,7 +316,7 @@ export const payoutRequests = {
     requestData<PayoutRequest>({ url: `payout-requests/${id}/request-manager`, method: "POST", data: { expectedVersion } }),
   /** POST payout-requests/:id/preview-confirmation */
   previewConfirmation: (id: string, expectedVersion: number) =>
-    requestData<PayoutConfirmationPreview>({ url: `payout-requests/${id}/preview-confirmation", method: "POST", data: { expectedVersion } }),
+    requestData<PayoutConfirmationPreview>({ url: `payout-requests/${id}/preview-confirmation`, method: "POST", data: { expectedVersion } }),
   /** POST payout-requests/:id/verify-manager */
   verifyManager: (id: string, payload: PayoutManagerVerificationPayload) =>
     requestData<PayoutConfirmationResult>({ url: `payout-requests/${id}/verify-manager`, method: "POST", data: payload }),

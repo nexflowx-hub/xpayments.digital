@@ -197,3 +197,18 @@ Stage Summary:
 - €961.02 payout NOT hidden — documented as backend issue requiring fundingMode compensation
 - Finance V4 contract preserved (finance/overview, finance/releases, finance/stores, payout-statements)
 - No phantom /financial/* endpoints
+---
+Task ID: 1
+Agent: Main
+Task: Fix build errors — 3 syntax issues preventing compilation
+
+Work Log:
+- Fixed unclosed JSX comment in payout-request-panel.tsx line 98: `{/* Confirmation dialog */` → `{/* Confirmation dialog */}`
+- Fixed missing closing backtick in xpApi.ts line 319: template literal `preview-confirmation"` → `preview-confirmation\`\``
+- Fixed three stray `","` tokens in locales.ts line 144 (en locale) that broke the object literal
+
+Stage Summary:
+- All 3 parsing/syntax errors resolved
+- `bun run lint` passes clean (no output)
+- Dev server compiles successfully (GET / 200)
+- Agent browser verified landing page renders without errors

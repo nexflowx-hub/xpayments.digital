@@ -11,7 +11,15 @@ import type {
   FinanceReleasesResponse,
   FinanceStoresResponse,
   FxQuote,
+  PayoutConfirmationPreview,
+  PayoutConfirmationResult,
+  PayoutFundingOption,
+  PayoutManagerVerificationPayload,
+  PayoutRequest,
+  PayoutRequestsResponse,
   PayoutStatementsResponse,
+  CreatePayoutRequestPayload,
+  UpdatePayoutRequestPayload,
   MerchantProfile,
   Invoice,
   KycReview,
@@ -286,6 +294,37 @@ export const finance = {
     requestData<FxQuote[]>({ url: "finance/fx-quotes", method: "GET", params: { base, quotes } }),
 };
 
+// ---- Payout Requests (v1) ----
+export const payoutRequests = {
+  /** GET payout-requests/funding-options?storeId=&currency= */
+  fundingOptions: (storeId: string, currency = "EUR") =>
+    requestData<PayoutFundingOption[]>({ url: "payout-requests/funding-options", method: "GET", params: { storeId, currency } }),
+  /** GET payout-requests */
+  list: () =>
+    requestData<PayoutRequestsResponse>({ url: "payout-requests", method: "GET" }),
+  /** POST payout-requests */
+  create: (payload: CreatePayoutRequestPayload) =>
+    requestData<PayoutRequest>({ url: "payout-requests", method: "POST", data: payload }),
+  /** PATCH payout-requests/:id */
+  update: (id: string, payload: UpdatePayoutRequestPayload) =>
+    requestData<PayoutRequest>({ url: `payout-requests/${id}`, method: "PATCH", data: payload }),
+  /** DELETE payout-requests/:id (logical cancel) */
+  cancel: (id: string) =>
+    requestData<{ ok: boolean }>({ url: `payout-requests/${id}`, method: "DELETE" }),
+  /** POST payout-requests/:id/request-manager */
+  requestManager: (id: string, expectedVersion: number) =>
+    requestData<PayoutRequest>({ url: `payout-requests/${id}/request-manager`, method: "POST", data: { expectedVersion } }),
+  /** POST payout-requests/:id/preview-confirmation */
+  previewConfirmation: (id: string, expectedVersion: number) =>
+    requestData<PayoutConfirmationPreview>({ url: `payout-requests/${id}/preview-confirmation", method: "POST", data: { expectedVersion } }),
+  /** POST payout-requests/:id/verify-manager */
+  verifyManager: (id: string, payload: PayoutManagerVerificationPayload) =>
+    requestData<PayoutConfirmationResult>({ url: `payout-requests/${id}/verify-manager`, method: "POST", data: payload }),
+  /** POST payout-requests/:id/confirm */
+  confirm: (id: string, challengeId: string, bankTransferConfirmed: boolean) =>
+    requestData<PayoutConfirmationResult>({ url: `payout-requests/${id}/confirm`, method: "POST", data: { challengeId, bankTransferConfirmed } }),
+};
+
 // ---- Merchant Profile ----
 export const merchant = {
   profile: () => requestData<MerchantProfile>({ url: "merchant/profile", method: "GET" }),
@@ -294,7 +333,7 @@ export const merchant = {
 export const xpApi = {
   auth, analytics, transactions, wallets, risk, customers, products, stores,
   paymentLinks, invoices, subscriptions, apiKeys, webhooks, treasury, checkout,
-  kyc, admin, finance, merchant,
+  kyc, admin, finance, payoutRequests, merchant,
 };
 
 export type XpApi = typeof xpApi;

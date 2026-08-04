@@ -161,6 +161,141 @@ export function useMerchantProfile() {
   });
 }
 
+// ---- Payout Requests (v1) ----
+import type {
+  PayoutFundingOption,
+  PayoutRequest,
+  PayoutRequestAllocation,
+  CreatePayoutRequestPayload,
+  UpdatePayoutRequestPayload,
+  PayoutManagerVerificationPayload,
+} from "@/types";
+
+/** Funding options — enabled only when storeId is set */
+export function usePayoutFundingOptions(storeId: string | null, currency = "EUR") {
+  return useQuery({
+    queryKey: ["payout-funding-options", storeId, currency],
+    queryFn: () => xpApi.payoutRequests.fundingOptions(storeId!, currency),
+    enabled: !!storeId,
+    retry: (failureCount, error) => {
+      const code = (error as { code?: string })?.code;
+      if (code === "PAYOUT_REQUESTS_DISABLED") return false;
+      return failureCount < 2;
+    },
+    select: (d) => d ?? [],
+  });
+}
+
+/** List payout requests */
+export function usePayoutRequests() {
+  return useQuery({
+    queryKey: ["payout-requests"],
+    queryFn: () => xpApi.payoutRequests.list(),
+    retry: (failureCount, error) => {
+      const code = (error as { code?: string })?.code;
+      if (code === "PAYOUT_REQUESTS_DISABLED") return false;
+      return failureCount < 2;
+    },
+    select: (d) => d?.items ?? [],
+  });
+}
+
+/** Feature-flag check — returns true if PAYOUT_REQUESTS_DISABLED is NOT returned */
+export function usePayoutRequestsEnabled() {
+  return useQuery({
+    queryKey: ["payout-requests", "_enabled"],
+    queryFn: () => xpApi.payoutRequests.list(),
+    retry: false,
+    select: (_data) => true,
+    staleTime: 300_000,
+  });
+}
+
+/** Create a payout request draft */
+export function useCreatePayoutRequest() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CreatePayoutRequestPayload) => xpApi.payoutRequests.create(payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["payout-requests"] });
+      qc.invalidateQueries({ queryKey: ["payout-funding-options"] });
+    },
+  });
+}
+
+/** Update a payout request draft */
+export function useUpdatePayoutRequest() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: UpdatePayoutRequestPayload }) =>
+      xpApi.payoutRequests.update(id, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["payout-requests"] });
+    },
+  });
+}
+
+/** Cancel (logical delete) a payout request */
+export function useCancelPayoutRequest() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => xpApi.payoutRequests.cancel(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["payout-requests"] });
+      qc.invalidateQueries({ queryKey: ["payout-funding-options"] });
+    },
+  });
+}
+
+/** Request manager review */
+export function useRequestPayoutManager() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, expectedVersion }: { id: string; expectedVersion: number }) =>
+      xpApi.payoutRequests.requestManager(id, expectedVersion),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["payout-requests"] });
+    },
+  });
+}
+
+/** Preview confirmation (obtains challenge) */
+export function usePreviewPayoutConfirmation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, expectedVersion }: { id: string; expectedVersion: number }) =>
+      xpApi.payoutRequests.previewConfirmation(id, expectedVersion),
+  });
+}
+
+/** Verify manager password */
+export function useVerifyPayoutManager() {
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: PayoutManagerVerificationPayload }) =>
+      xpApi.payoutRequests.verifyManager(id, payload),
+  });
+}
+
+/** Confirm payout — financial impact, no retry */
+export function useConfirmPayoutRequest() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, challengeId, bankTransferConfirmed }: { id: string; challengeId: string; bankTransferConfirmed: boolean }) =>
+      xpApi.payoutRequests.confirm(id, challengeId, bankTransferConfirmed),
+    retry: false,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["payout-requests"] });
+      qc.invalidateQueries({ queryKey: ["payout-funding-options"] });
+      qc.invalidateQueries({ queryKey: ["finance", "overview"] });
+      qc.invalidateQueries({ queryKey: ["finance", "releases"] });
+      qc.invalidateQueries({ queryKey: ["finance", "stores"] });
+      qc.invalidateQueries({ queryKey: ["finance", "payout-statements"] });
+      qc.invalidateQueries({ queryKey: ["wallets"] });
+      qc.invalidateQueries({ queryKey: ["wallets", "movements"] });
+    },
+  });
+}
+
 // ---- Admin ----
 export function useAdminMerchants() {
   return useQuery({ queryKey: ["admin", "merchants"], queryFn: () => xpApi.admin.merchants(), select: (d) => d ?? [] });

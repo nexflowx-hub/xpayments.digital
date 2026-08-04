@@ -576,6 +576,109 @@ export interface PayoutFxSnapshot {
 /** User's display currency preference (visual only, not financial) */
 export type DisplayCurrency = "BRL" | "USDT";
 
+// ============================================================
+// Payout Requests (v1) — /api/v1/payout-requests
+// ============================================================
+
+export type PayoutRequestStatus =
+  | "draft"
+  | "requested"
+  | "under_review"
+  | "rejected"
+  | "cancelled"
+  | "stale"
+  | "confirmed";
+
+export interface PayoutFundingOption {
+  releaseDate: string;
+  storeId: string;
+  storeCode: string;
+  storeName: string;
+  gateway: string;
+  remainingAmount: number;
+  movementCount: number;
+  providerStatus: "available" | "pending" | "unknown";
+  providerAvailableCount: number;
+  providerPendingCount: number;
+  providerUnknownCount: number;
+}
+
+export interface PayoutRequestAllocation {
+  releaseDate: string;
+  provider: string;
+  amount: number;
+}
+
+export interface PayoutRequest {
+  id: string;
+  code: string;
+  storeId: string;
+  storeName?: string;
+  storeCode?: string;
+  currency: string;
+  amount: number;
+  externalReference?: string;
+  notes?: string;
+  allocations: PayoutRequestAllocation[];
+  status: PayoutRequestStatus;
+  version: number;
+  rejectionReason?: string;
+  createdAt: string;
+  requestedAt?: string;
+  confirmedAt?: string;
+  updatedAt: string;
+}
+
+export interface PayoutRequestsResponse {
+  items: PayoutRequest[];
+}
+
+export interface CreatePayoutRequestPayload {
+  storeId: string;
+  currency: string;
+  externalReference?: string;
+  notes?: string;
+  allocations: PayoutRequestAllocation[];
+}
+
+export interface UpdatePayoutRequestPayload {
+  expectedVersion: number;
+  storeId: string;
+  currency: string;
+  externalReference?: string;
+  notes?: string;
+  allocations: PayoutRequestAllocation[];
+}
+
+export interface PayoutConfirmationPreview {
+  challengeId: string;
+  expiresAt: string;
+  request: PayoutRequest;
+  allocations: PayoutRequestAllocation[];
+  amount: number;
+  storeName: string;
+  wallet: {
+    balance: number;
+    available: number;
+    pending: number;
+  };
+  approvalPasswordRequired: boolean;
+  bankTransferAttestationRequired: boolean;
+  financialImpact: boolean;
+}
+
+export interface PayoutManagerVerificationPayload {
+  challengeId: string;
+  approvalPassword: string;
+  bankTransferConfirmed: boolean;
+}
+
+export interface PayoutConfirmationResult {
+  confirmationReady: boolean;
+  financialImpact: boolean;
+  payoutEngineCalled: boolean;
+}
+
 export interface MerchantProfile {
   id: string;
   name: string;

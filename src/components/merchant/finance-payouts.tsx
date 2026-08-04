@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { usePayoutStatements } from "@/hooks/queries";
 import { PageHeader, ErrorState, EmptyState } from "@/components/shared";
+import { PayoutRequestPanel } from "@/components/merchant/payout-requests/payout-request-panel";
 import { formatCurrency, formatDateCivil, cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -59,6 +60,9 @@ export default function FinancePayoutsPage() {
           </Button>
         }
       />
+
+      {/* Payout Requests panel — hidden when feature disabled, non-blocking */}
+      <PayoutRequestPanel />
 
       {/* Summary */}
       {isLoading ? (

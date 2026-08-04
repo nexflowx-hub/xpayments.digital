@@ -5,10 +5,11 @@ import { motion } from "framer-motion";
 import {
   Wallet as WalletIcon, ArrowDownLeft, ArrowUpRight, ArrowLeftRight,
   TrendingUp, Lock, Activity, RefreshCw, CheckCircle2,
-  ArrowRight, Coins,
+  ArrowRight, Coins, Building2, ChevronRight,
 } from "lucide-react";
 import {
   useWallets, useWalletMovements, useWalletDeposit, useWalletPayout, useWalletSwap,
+  useFinanceStores,
 } from "@/hooks/queries";
 import { StatCard, PageHeader, fadeUp, ErrorState } from "@/components/shared";
 import { useT } from "@/lib/i18n";
@@ -29,7 +30,7 @@ import {
 import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from "@/components/ui/select";
-import { formatCurrency, formatNumber, cn, timeAgo } from "@/lib/utils";
+import { formatCurrency, cn, timeAgo } from "@/lib/utils";
 import { CURRENCIES, PAYMENT_METHODS } from "@/config";
 import type { CurrencyCode, Wallet, WalletMovement } from "@/types";
 import { toast } from "sonner";
@@ -58,12 +59,15 @@ export default function WalletsPage() {
   const t = useT();
   const { data: walletsRes, isLoading, isError: wError, refetch: wRefetch } = useWallets();
   const { data: movementsRes } = useWalletMovements();
+  const { data: storesRes } = useFinanceStores("EUR");
   const depositM = useWalletDeposit();
   const payoutM = useWalletPayout();
   const swapM = useWalletSwap();
 
   const wallets: Wallet[] = walletsRes ?? [];
   const movements: WalletMovement[] = movementsRes ?? [];
+  const financeStores = storesRes?.stores ?? [];
+  const currency = storesRes?.currency ?? "EUR";
 
   const totalEur = wallets.reduce((s, w) => s + w.balance * EUR_RATES[w.currency], 0);
   const availableEur = wallets.reduce((s, w) => s + w.available * EUR_RATES[w.currency], 0);
@@ -75,6 +79,8 @@ export default function WalletsPage() {
   const [depositOpen, setDepositOpen] = React.useState(false);
   const [payoutOpen, setPayoutOpen] = React.useState(false);
   const [swapOpen, setSwapOpen] = React.useState(false);
+  const [storeDetailOpen, setStoreDetailOpen] = React.useState(false);
+  const [selectedStore, setSelectedStore] = React.useState<typeof financeStores[number] | null>(null);
 
   // deposit form
   const [depCurrency, setDepCurrency] = React.useState<CurrencyCode>("EUR");
@@ -105,15 +111,9 @@ export default function WalletsPage() {
     value: w.balance * EUR_RATES[w.currency],
   }));
 
-  function resetDeposit() {
-    setDepAmount(""); setDepMethod("sepa");
-  }
-  function resetPayout() {
-    setPoAmount(""); setPoBeneficiary("");
-  }
-  function resetSwap() {
-    setSwapAmount("");
-  }
+  function resetDeposit() { setDepAmount(""); setDepMethod("sepa"); }
+  function resetPayout() { setPoAmount(""); setPoBeneficiary(""); }
+  function resetSwap() { setSwapAmount(""); }
 
   function submitDeposit() {
     const amount = parseFloat(depAmount);
@@ -154,6 +154,11 @@ export default function WalletsPage() {
     );
   }
 
+  function openStoreDetail(store: typeof financeStores[number]) {
+    setSelectedStore(store);
+    setStoreDetailOpen(true);
+  }
+
   if (wError) return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t("nav.wallets")} description="Tesouraria multi-moeda em fiat, cripto e cartões." />
@@ -164,7 +169,7 @@ export default function WalletsPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title={t("nav.wallets")}
-        description="Tesouraria multi-moeda em fiat, cripto e cartões."
+        description="Carteiras associadas por Store e moeda."
         actions={
           <>
             <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setDepositOpen(true)}>
@@ -194,7 +199,80 @@ export default function WalletsPage() {
         )}
       </div>
 
-      {/* Wallet cards grid */}
+      {/* ---- Store wallets section ---- */}
+      <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold">Carteiras por Store</h3>
+            <p className="text-xs text-muted-foreground">Dados financeiros associados a cada loja/moeda.</p>
+          </div>
+          <Badge variant="outline" className="text-[10px]">
+            {financeStores.length} stores
+          </Badge>
+        </div>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {!storesRes
+            ? Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)
+            : financeStores.map((store) => {
+                const hasBalance = store.operationalBalance > 0 || store.pending > 0;
+                const spark = genSpark(store.storeCode.length, hasBalance);
+                return (
+                  <motion.div
+                    key={store.storeId}
+                    {...fadeUp}
+                    transition={{ ...fadeUp.transition, delay: financeStores.indexOf(store) * 0.03 }}
+                  >
+                    <Card
+                      className={cn(
+                        "group cursor-pointer overflow-hidden border-border/60 bg-card/60 p-4 backdrop-blur-xl transition hover:border-primary/40",
+                        !hasBalance && "opacity-60"
+                      )}
+                      onClick={() => openStoreDetail(store)}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
+                            {store.storeCode.slice(-2).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold">{store.storeName}</p>
+                            <p className="font-mono text-[10px] text-muted-foreground">{store.storeCode} · {currency}</p>
+                          </div>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground transition group-hover:text-primary" />
+                      </div>
+                      <div className="mt-3 grid grid-cols-3 gap-2">
+                        <div>
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Vendas líq.</p>
+                          <p className="font-mono text-xs font-semibold tabular-nums text-emerald-400">
+                            {formatCurrency(store.net, currency)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Pendente</p>
+                          <p className="font-mono text-xs font-semibold tabular-nums text-amber-400">
+                            {formatCurrency(store.pending, currency)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Saldo op.</p>
+                          <p className="font-mono text-xs font-semibold tabular-nums">
+                            {formatCurrency(store.operationalBalance, currency)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-2">
+                        <Sparkline data={spark} color={hasBalance ? "oklch(0.70 0.17 158)" : "oklch(0.55 0.02 260)"} height={24} />
+                      </div>
+                    </Card>
+                  </motion.div>
+                );
+              })
+          }
+        </div>
+      </Card>
+
+      {/* ---- Wallet cards grid ---- */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {isLoading || !walletsRes
           ? Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-44 rounded-xl" />)
@@ -236,11 +314,9 @@ export default function WalletsPage() {
                         {formatCurrency(w.changePct ?? 0, w.currency)}
                       </Badge>
                     </div>
-
                     <p className="mt-3 font-mono text-2xl font-semibold tabular-nums">
                       {formatCurrency(w.balance, w.currency)}
                     </p>
-
                     <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
                       <span>
                         Avail <span className="font-mono text-foreground/80">{formatCurrency(w.available, w.currency)}</span>
@@ -249,7 +325,6 @@ export default function WalletsPage() {
                         Res <span className="font-mono text-foreground/80">{formatCurrency(w.reserved, w.currency)}</span>
                       </span>
                     </div>
-
                     <div className="mt-3">
                       <Sparkline data={spark} color={w.color} height={32} />
                     </div>
@@ -339,6 +414,61 @@ export default function WalletsPage() {
           )}
         </Card>
       </div>
+
+      {/* ---- Store Detail Dialog ---- */}
+      <Dialog open={storeDetailOpen} onOpenChange={setStoreDetailOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-primary" />
+              {selectedStore?.storeName ?? "Store"}
+            </DialogTitle>
+            <DialogDescription>
+              {selectedStore?.storeCode} · Moeda: {currency}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedStore && (
+            <div className="flex flex-col gap-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Vendas brutas</p>
+                  <p className="mt-1 font-mono text-sm font-semibold tabular-nums">{formatCurrency(selectedStore.gross, currency)}</p>
+                </div>
+                <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Taxas</p>
+                  <p className="mt-1 font-mono text-sm font-semibold tabular-nums text-amber-400">{formatCurrency(selectedStore.fees, currency)}</p>
+                </div>
+                <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Vendas líquidas</p>
+                  <p className="mt-1 font-mono text-sm font-semibold tabular-nums text-emerald-400">{formatCurrency(selectedStore.net, currency)}</p>
+                </div>
+                <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Pendente</p>
+                  <p className="mt-1 font-mono text-sm font-semibold tabular-nums text-amber-400">{formatCurrency(selectedStore.pending, currency)}</p>
+                </div>
+                <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Liberado</p>
+                  <p className="mt-1 font-mono text-sm font-semibold tabular-nums">{formatCurrency(selectedStore.released, currency)}</p>
+                </div>
+                <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Saldo operacional</p>
+                  <p className="mt-1 font-mono text-sm font-semibold tabular-nums">{formatCurrency(selectedStore.operationalBalance, currency)}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Payouts pagos</p>
+                  <p className="mt-1 font-mono text-sm font-semibold tabular-nums">{formatCurrency(selectedStore.paidPayouts, currency)}</p>
+                </div>
+                <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Payouts agendados</p>
+                  <p className="mt-1 font-mono text-sm font-semibold tabular-nums text-sky-400">{formatCurrency(selectedStore.scheduledPayouts, currency)}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* ---- Deposit Dialog ---- */}
       <Dialog open={depositOpen} onOpenChange={setDepositOpen}>

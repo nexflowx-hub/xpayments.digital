@@ -63,7 +63,7 @@ export function PayoutRequestBuilder({ editingRequest, onSaved, onCancelled, onC
   );
 
   function toggleOption(option: PayoutFundingOption) {
-    const key = `${option.releaseDate}|${option.provider}`;
+    const key = `${option.releaseDate}|${option.gateway}`;
     setSelected((prev) => {
       const next = new Map(prev);
       if (next.has(key)) {
@@ -89,7 +89,7 @@ export function PayoutRequestBuilder({ editingRequest, onSaved, onCancelled, onC
   function buildAllocations(): PayoutRequestAllocation[] {
     return Array.from(selected.entries()).map(([key, v]) => ({
       releaseDate: v.option.releaseDate,
-      provider: v.option.provider,
+      provider: v.option.gateway,
       amount: v.amount,
     }));
   }
@@ -273,7 +273,7 @@ export function PayoutRequestBuilder({ editingRequest, onSaved, onCancelled, onC
                   </thead>
                   <tbody>
                     {fundingOptions.map((opt) => {
-                      const key = `${opt.releaseDate}|${opt.provider}`;
+                      const key = `${opt.releaseDate}|${opt.gateway}`;
                       const sel = selected.get(key);
                       const pStatus = providerStatusMap[opt.providerStatus] ?? providerStatusMap.unknown;
                       return (

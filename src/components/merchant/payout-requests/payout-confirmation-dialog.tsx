@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ShieldCheck, Loader2, CheckCircle2, Eye, EyeOff, AlertTriangle,
 } from "lucide-react";
@@ -70,7 +71,7 @@ export function PayoutConfirmationDialog({ request, open, onOpenChange, onSucces
   const previewMut = usePreviewPayoutConfirmation();
   const verifyMut = useVerifyPayoutManager();
   const confirmMut = useConfirmPayoutRequest();
-  const queryClient = require("@/hooks/queries").useQueryClient ? require("@/hooks/queries").useQueryClient() : null;
+  const queryClient = useQueryClient();
 
   // Reset all state on close
   React.useEffect(() => {
@@ -169,8 +170,8 @@ export function PayoutConfirmationDialog({ request, open, onOpenChange, onSucces
         try {
           // Trigger refetches
           await Promise.allSettled([
-            confirmMut.queryClient?.invalidateQueries({ queryKey: ["payout-requests"] }),
-            confirmMut.queryClient?.invalidateQueries({ queryKey: ["finance", "payout-statements"] }),
+            queryClient.invalidateQueries({ queryKey: ["payout-requests"] }),
+            queryClient.invalidateQueries({ queryKey: ["finance", "payout-statements"] }),
           ]);
           // Optimistically mark done — the parent will refetch
           setTimeout(() => {

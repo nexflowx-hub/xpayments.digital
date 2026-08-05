@@ -98,7 +98,7 @@ export function PayoutRequestList({ onEdit, onConfirm, onRefreshFunding }: Payou
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.map((req) => (
+              {items.filter((req) => req.status !== "confirmed").map((req) => (
                 <TableRow key={req.id} className="border-border/30">
                   <TableCell className="font-mono text-xs text-primary">{req.requestCode}</TableCell>
                   <TableCell className="text-xs">
@@ -145,9 +145,6 @@ export function PayoutRequestList({ onEdit, onConfirm, onRefreshFunding }: Payou
                         <Button variant="ghost" size="icon" className="h-7 w-7 text-amber-400" title={t("pr.updateFunding")} onClick={() => onRefreshFunding(req)}>
                           <RotateCcw className="h-3 w-3" />
                         </Button>
-                      )}
-                      {req.status === "confirmed" && (
-                        <span className="text-[10px] text-emerald-400">✓</span>
                       )}
                     </div>
                   </TableCell>

@@ -1,0 +1,619 @@
+     1→"use client";
+     2→
+     3→import * as React from "react";
+     4→import { motion } from "framer-motion";
+     5→import {
+     6→  Wallet as WalletIcon, ArrowDownLeft, ArrowUpRight, ArrowLeftRight,
+     7→  TrendingUp, Lock, Activity, RefreshCw, CheckCircle2,
+     8→  ArrowRight, Coins, Building2, ChevronRight,
+     9→} from "lucide-react";
+    10→import {
+    11→  useWallets, useWalletMovements, useWalletDeposit, useWalletPayout, useWalletSwap,
+    12→  useFinanceStores,
+    13→} from "@/hooks/queries";
+    14→import { StatCard, PageHeader, fadeUp, ErrorState } from "@/components/shared";
+    15→import { useT } from "@/lib/i18n";
+    16→import { StatusBadge, Sparkline } from "@/components/shared/badges";
+    17→import { DonutChart } from "@/components/shared/charts";
+    18→import { Card } from "@/components/ui/card";
+    19→import { Button } from "@/components/ui/button";
+    20→import { Input } from "@/components/ui/input";
+    21→import { Label } from "@/components/ui/label";
+    22→import { Skeleton } from "@/components/ui/skeleton";
+    23→import { Badge } from "@/components/ui/badge";
+    24→import {
+    25→  Table, TableHeader, TableBody, TableRow, TableHead, TableCell,
+    26→} from "@/components/ui/table";
+    27→import {
+    28→  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+    29→} from "@/components/ui/dialog";
+    30→import {
+    31→  Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
+    32→} from "@/components/ui/select";
+    33→import { formatCurrency, cn, timeAgo } from "@/lib/utils";
+    34→import { CURRENCIES, PAYMENT_METHODS } from "@/config";
+    35→import type { CurrencyCode, Wallet, WalletMovement } from "@/types";
+    36→import { toast } from "sonner";
+    37→
+    38→const EUR_RATES: Record<CurrencyCode, number> = {
+    39→  EUR: 1, USD: 0.92, BRL: 0.18, GBP: 1.17, USDT: 0.99, BTC: 42000,
+    40→};
+    41→
+    42→function genSpark(seed: number, positive: boolean): number[] {
+    43→  const arr: number[] = [];
+    44→  let v = 50;
+    45→  for (let i = 0; i < 18; i++) {
+    46→    const noise = (Math.sin(seed + i * 1.7) + Math.cos(seed + i * 0.9)) * 6;
+    47→    v += (positive ? 1.3 : -1.3) + noise * 0.45;
+    48→    arr.push(Math.max(1, v));
+    49→  }
+    50→  return arr;
+    51→}
+    52→
+    53→const movementTypeLabel: Record<string, string> = {
+    54→  deposit: "Deposit", withdraw: "Withdraw", swap: "Swap",
+    55→  payment: "Payment", fee: "Fee", payout: "Payout",
+    56→};
+    57→
+    58→export default function WalletsPage() {
+    59→  const t = useT();
+    60→  const { data: walletsRes, isLoading, isError: wError, refetch: wRefetch } = useWallets();
+    61→  const { data: movementsRes } = useWalletMovements();
+    62→  const { data: storesRes } = useFinanceStores("EUR");
+    63→  const depositM = useWalletDeposit();
+    64→  const payoutM = useWalletPayout();
+    65→  const swapM = useWalletSwap();
+    66→
+    67→  const wallets: Wallet[] = walletsRes ?? [];
+    68→  const movements: WalletMovement[] = movementsRes ?? [];
+    69→  const financeStores = storesRes?.stores ?? [];
+    70→  const currency = storesRes?.currency ?? "EUR";
+    71→
+    72→  const totalEur = wallets.reduce((s, w) => s + w.balance * EUR_RATES[w.currency], 0);
+    73→  const availableEur = wallets.reduce((s, w) => s + w.available * EUR_RATES[w.currency], 0);
+    74→  const reservedEur = wallets.reduce((s, w) => s + w.reserved * EUR_RATES[w.currency], 0);
+    75→  const weightedChange = totalEur
+    76→    ? wallets.reduce((s, w) => s + (w.changePct ?? 0) * (w.balance * EUR_RATES[w.currency]), 0) / totalEur
+    77→    : 0;
+    78→
+    79→  const [depositOpen, setDepositOpen] = React.useState(false);
+    80→  const [payoutOpen, setPayoutOpen] = React.useState(false);
+    81→  const [swapOpen, setSwapOpen] = React.useState(false);
+    82→  const [storeDetailOpen, setStoreDetailOpen] = React.useState(false);
+    83→  const [selectedStore, setSelectedStore] = React.useState<typeof financeStores[number] | null>(null);
+    84→
+    85→  // deposit form
+    86→  const [depCurrency, setDepCurrency] = React.useState<CurrencyCode>("EUR");
+    87→  const [depAmount, setDepAmount] = React.useState<string>("");
+    88→  const [depMethod, setDepMethod] = React.useState<string>("sepa");
+    89→
+    90→  // payout form
+    91→  const [poCurrency, setPoCurrency] = React.useState<CurrencyCode>("EUR");
+    92→  const [poAmount, setPoAmount] = React.useState<string>("");
+    93→  const [poBeneficiary, setPoBeneficiary] = React.useState<string>("");
+    94→
+    95→  // swap form
+    96→  const [swapFrom, setSwapFrom] = React.useState<CurrencyCode>("EUR");
+    97→  const [swapTo, setSwapTo] = React.useState<CurrencyCode>("USD");
+    98→  const [swapAmount, setSwapAmount] = React.useState<string>("");
+    99→
+   100→  const swapRate = EUR_RATES[swapFrom] / EUR_RATES[swapTo];
+   101→  const swapConverted = (parseFloat(swapAmount) || 0) * swapRate;
+   102→
+   103→  const walletById = React.useMemo(() => {
+   104→    const m = new Map<string, Wallet>();
+   105→    wallets.forEach((w) => m.set(w.id ?? "", w));
+   106→    return m;
+   107→  }, [wallets]);
+   108→
+   109→  const allocationData = wallets.map((w) => ({
+   110→    name: w.currency,
+   111→    value: w.balance * EUR_RATES[w.currency],
+   112→  }));
+   113→
+   114→  function resetDeposit() { setDepAmount(""); setDepMethod("sepa"); }
+   115→  function resetPayout() { setPoAmount(""); setPoBeneficiary(""); }
+   116→  function resetSwap() { setSwapAmount(""); }
+   117→
+   118→  function submitDeposit() {
+   119→    const amount = parseFloat(depAmount);
+   120→    if (!amount || amount <= 0) { toast.error("Enter a valid amount"); return; }
+   121→    depositM.mutate(
+   122→      { currency: depCurrency, amount, method: depMethod },
+   123→      {
+   124→        onSuccess: () => { toast.success(`Deposit of ${formatCurrency(amount, depCurrency)} initiated`); setDepositOpen(false); resetDeposit(); },
+   125→        onError: () => toast.error("Deposit failed"),
+   126→      }
+   127→    );
+   128→  }
+   129→  function submitPayout() {
+   130→    const amount = parseFloat(poAmount);
+   131→    if (!amount || amount <= 0) { toast.error("Enter a valid amount"); return; }
+   132→    if (!poBeneficiary.trim()) { toast.error("Beneficiary IBAN is required"); return; }
+   133→    payoutM.mutate(
+   134→      { currency: poCurrency, amount, beneficiary: poBeneficiary.trim() },
+   135→      {
+   136→        onSuccess: () => { toast.success(`Payout of ${formatCurrency(amount, poCurrency)} queued`); setPayoutOpen(false); resetPayout(); },
+   137→        onError: () => toast.error("Payout failed"),
+   138→      }
+   139→    );
+   140→  }
+   141→  function submitSwap() {
+   142→    const amount = parseFloat(swapAmount);
+   143→    if (!amount || amount <= 0) { toast.error("Enter a valid amount"); return; }
+   144→    if (swapFrom === swapTo) { toast.error("Choose different currencies"); return; }
+   145→    swapM.mutate(
+   146→      { from: swapFrom, to: swapTo, amount },
+   147→      {
+   148→        onSuccess: () => {
+   149→          toast.success(`Swapped ${formatCurrency(amount, swapFrom)} → ${formatCurrency(amount * swapRate, swapTo)}`, { description: `Rate ${swapRate.toFixed(4)} · executed` });
+   150→          setSwapOpen(false); resetSwap();
+   151→        },
+   152→        onError: () => toast.error("Swap failed"),
+   153→      }
+   154→    );
+   155→  }
+   156→
+   157→  function openStoreDetail(store: typeof financeStores[number]) {
+   158→    setSelectedStore(store);
+   159→    setStoreDetailOpen(true);
+   160→  }
+   161→
+   162→  if (wError) return (
+   163→    <div className="flex flex-col gap-6">
+   164→      <PageHeader title={t("nav.wallets")} description="Tesouraria multi-moeda em fiat, cripto e cartões." />
+   165→      <ErrorState message="Failed to load wallets. The backend may be unreachable." onRetry={() => wRefetch()} />
+   166→    </div>
+   167→  );
+   168→  return (
+   169→    <div className="flex flex-col gap-6">
+   170→      <PageHeader
+   171→        title={t("nav.wallets")}
+   172→        description="Carteiras associadas por Store e moeda."
+   173→        actions={
+   174→          <>
+   175→            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setDepositOpen(true)}>
+   176→              <ArrowDownLeft className="h-3.5 w-3.5" /> Deposit
+   177→            </Button>
+   178→            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setPayoutOpen(true)}>
+   179→              <ArrowUpRight className="h-3.5 w-3.5" /> Withdraw
+   180→            </Button>
+   181→            <Button size="sm" className="gap-1.5" onClick={() => setSwapOpen(true)}>
+   182→              <ArrowLeftRight className="h-3.5 w-3.5" /> Swap
+   183→            </Button>
+   184→          </>
+   185→        }
+   186→      />
+   187→
+   188→      {/* Stat cards */}
+   189→      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+   190→        {isLoading || !walletsRes ? (
+   191→          Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)
+   192→        ) : (
+   193→          <>
+   194→            <StatCard label="Total balance" value={totalEur} change={weightedChange} icon={WalletIcon} accent="blue" format={(n) => formatCurrency(n, "EUR")} />
+   195→            <StatCard label="Available" value={availableEur} icon={Coins} accent="green" format={(n) => formatCurrency(n, "EUR")} />
+   196→            <StatCard label="Reserved" value={reservedEur} icon={Lock} accent="amber" format={(n) => formatCurrency(n, "EUR")} />
+   197→            <StatCard label="24h change" value={weightedChange} icon={Activity} accent="violet" format={(n) => `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`} />
+   198→          </>
+   199→        )}
+   200→      </div>
+   201→
+   202→      {/* ---- Store wallets section ---- */}
+   203→      <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+   204→        <div className="mb-4 flex items-center justify-between">
+   205→          <div>
+   206→            <h3 className="text-sm font-semibold">Carteiras por Store</h3>
+   207→            <p className="text-xs text-muted-foreground">Dados financeiros associados a cada loja/moeda.</p>
+   208→          </div>
+   209→          <Badge variant="outline" className="text-[10px]">
+   210→            {financeStores.length} stores
+   211→          </Badge>
+   212→        </div>
+   213→        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+   214→          {!storesRes
+   215→            ? Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-xl" />)
+   216→            : financeStores.map((store) => {
+   217→                const hasBalance = store.operationalBalance > 0 || store.pending > 0;
+   218→                const spark = genSpark(store.storeCode.length, hasBalance);
+   219→                return (
+   220→                  <motion.div
+   221→                    key={store.storeId}
+   222→                    {...fadeUp}
+   223→                    transition={{ ...fadeUp.transition, delay: financeStores.indexOf(store) * 0.03 }}
+   224→                  >
+   225→                    <Card
+   226→                      className={cn(
+   227→                        "group cursor-pointer overflow-hidden border-border/60 bg-card/60 p-4 backdrop-blur-xl transition hover:border-primary/40",
+   228→                        !hasBalance && "opacity-60"
+   229→                      )}
+   230→                      onClick={() => openStoreDetail(store)}
+   231→                    >
+   232→                      <div className="flex items-start justify-between">
+   233→                        <div className="flex items-center gap-2.5">
+   234→                          <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
+   235→                            {store.storeCode.slice(-2).toUpperCase()}
+   236→                          </div>
+   237→                          <div>
+   238→                            <p className="text-sm font-semibold">{store.storeName}</p>
+   239→                            <p className="font-mono text-[10px] text-muted-foreground">{store.storeCode} · {currency}</p>
+   240→                          </div>
+   241→                        </div>
+   242→                        <ChevronRight className="h-4 w-4 text-muted-foreground transition group-hover:text-primary" />
+   243→                      </div>
+   244→                      <div className="mt-3 grid grid-cols-3 gap-2">
+   245→                        <div>
+   246→                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Vendas líq.</p>
+   247→                          <p className="font-mono text-xs font-semibold tabular-nums text-emerald-400">
+   248→                            {formatCurrency(store.net, currency)}
+   249→                          </p>
+   250→                        </div>
+   251→                        <div>
+   252→                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Pendente</p>
+   253→                          <p className="font-mono text-xs font-semibold tabular-nums text-amber-400">
+   254→                            {formatCurrency(store.pending, currency)}
+   255→                          </p>
+   256→                        </div>
+   257→                        <div>
+   258→                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Saldo op.</p>
+   259→                          <p className="font-mono text-xs font-semibold tabular-nums">
+   260→                            {formatCurrency(store.operationalBalance, currency)}
+   261→                          </p>
+   262→                        </div>
+   263→                      </div>
+   264→                      <div className="mt-2">
+   265→                        <Sparkline data={spark} color={hasBalance ? "oklch(0.70 0.17 158)" : "oklch(0.55 0.02 260)"} height={24} />
+   266→                      </div>
+   267→                    </Card>
+   268→                  </motion.div>
+   269→                );
+   270→              })
+   271→          }
+   272→        </div>
+   273→      </Card>
+   274→
+   275→      {/* ---- Wallet cards grid ---- */}
+   276→      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+   277→        {isLoading || !walletsRes
+   278→          ? Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-44 rounded-xl" />)
+   279→          : wallets.map((w, i) => {
+   280→              const c = CURRENCIES.find((x) => x.code === w.currency);
+   281→              const spark = genSpark(i + 1, (w.changePct ?? 0) >= 0);
+   282→              return (
+   283→                <motion.div key={w.id} {...fadeUp} transition={{ ...fadeUp.transition, delay: i * 0.04 }}>
+   284→                  <Card className="relative overflow-hidden border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+   285→                    <div
+   286→                      className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full blur-3xl"
+   287→                      style={{ background: `${w.color}22` }}
+   288→                    />
+   289→                    <div className="flex items-start justify-between">
+   290→                      <div className="flex items-center gap-2.5">
+   291→                        <div
+   292→                          className="grid h-9 w-9 place-items-center rounded-lg text-base font-bold"
+   293→                          style={{ background: `${w.color}22`, color: w.color }}
+   294→                        >
+   295→                          {w.type === "card" ? "💳" : c?.flag}
+   296→                        </div>
+   297→                        <div>
+   298→                          <p className="text-sm font-semibold">{w.label}</p>
+   299→                          <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+   300→                            {w.type === "card" ? `Card •${w.cardLast4}` : w.currency}
+   301→                          </p>
+   302→                        </div>
+   303→                      </div>
+   304→                      <Badge
+   305→                        variant="outline"
+   306→                        className={cn(
+   307→                          "gap-1 font-medium",
+   308→                          (w.changePct ?? 0) >= 0
+   309→                            ? "border-emerald-500/25 bg-emerald-500/12 text-emerald-400"
+   310→                            : "border-rose-500/25 bg-rose-500/12 text-rose-400"
+   311→                        )}
+   312→                      >
+   313→                        {(w.changePct ?? 0) >= 0 ? <TrendingUp className="h-3 w-3" /> : <Activity className="h-3 w-3" />}
+   314→                        {formatCurrency(w.changePct ?? 0, w.currency)}
+   315→                      </Badge>
+   316→                    </div>
+   317→                    <p className="mt-3 font-mono text-2xl font-semibold tabular-nums">
+   318→                      {formatCurrency(w.balance, w.currency)}
+   319→                    </p>
+   320→                    <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
+   321→                      <span>
+   322→                        Avail <span className="font-mono text-foreground/80">{formatCurrency(w.available, w.currency)}</span>
+   323→                      </span>
+   324→                      <span>
+   325→                        Res <span className="font-mono text-foreground/80">{formatCurrency(w.reserved, w.currency)}</span>
+   326→                      </span>
+   327→                    </div>
+   328→                    <div className="mt-3">
+   329→                      <Sparkline data={spark} color={w.color} height={32} />
+   330→                    </div>
+   331→                  </Card>
+   332→                </motion.div>
+   333→              );
+   334→            })}
+   335→      </div>
+   336→
+   337→      {/* Movements + allocation */}
+   338→      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+   339→        <Card className="lg:col-span-2 border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+   340→          <div className="mb-4 flex items-center justify-between">
+   341→            <div>
+   342→              <h3 className="text-sm font-semibold">Movements</h3>
+   343→              <p className="text-xs text-muted-foreground">Recent wallet activity across all balances</p>
+   344→            </div>
+   345→            <Badge variant="outline" className="gap-1">{movements.length} records</Badge>
+   346→          </div>
+   347→          <div className="overflow-x-auto">
+   348→            <Table>
+   349→              <TableHeader>
+   350→                <TableRow className="border-border/60 text-left text-xs text-muted-foreground">
+   351→                  <TableHead className="text-xs font-medium">Reference</TableHead>
+   352→                  <TableHead className="text-xs font-medium">Wallet</TableHead>
+   353→                  <TableHead className="text-xs font-medium">Type</TableHead>
+   354→                  <TableHead className="text-xs font-medium text-right">Amount</TableHead>
+   355→                  <TableHead className="text-xs font-medium">Status</TableHead>
+   356→                  <TableHead className="text-xs font-medium text-right">Time</TableHead>
+   357→                </TableRow>
+   358→              </TableHeader>
+   359→              <TableBody>
+   360→                {!movementsRes
+   361→                  ? Array.from({ length: 8 }).map((_, i) => (
+   362→                      <TableRow key={i}>
+   363→                        <TableCell colSpan={6}><Skeleton className="my-2 h-7" /></TableCell>
+   364→                      </TableRow>
+   365→                    ))
+   366→                  : movements.slice(0, 12).map((m) => {
+   367→                      const w = walletById.get(m.walletId ?? "");
+   368→                      const incoming = m.direction === "in";
+   369→                      return (
+   370→                        <TableRow key={m.id} className="border-border/30">
+   371→                          <TableCell className="font-mono text-xs text-primary">{m.reference}</TableCell>
+   372→                          <TableCell>
+   373→                            <div className="flex items-center gap-2">
+   374→                              <span
+   375→                                className="h-1.5 w-1.5 rounded-full"
+   376→                                style={{ background: w?.color ?? "#888" }}
+   377→                              />
+   378→                              <span className="text-xs">{w?.label ?? m.walletId}</span>
+   379→                            </div>
+   380→                          </TableCell>
+   381→                          <TableCell>
+   382→                            <span className="text-xs capitalize">{movementTypeLabel[m.type ?? "payment"]}</span>
+   383→                          </TableCell>
+   384→                          <TableCell className="text-right">
+   385→                            <span
+   386→                              className={cn(
+   387→                                "inline-flex items-center gap-1 font-mono text-xs tabular-nums",
+   388→                                incoming ? "text-emerald-400" : "text-rose-400"
+   389→                              )}
+   390→                            >
+   391→                              {incoming ? <ArrowDownLeft className="h-3 w-3" /> : <ArrowUpRight className="h-3 w-3" />}
+   392→                              {incoming ? "+" : "−"}{formatCurrency(m.amount, m.currency)}
+   393→                            </span>
+   394→                          </TableCell>
+   395→                          <TableCell><StatusBadge status={m.status} /></TableCell>
+   396→                          <TableCell className="text-right text-xs text-muted-foreground">{timeAgo(m.createdAt)}</TableCell>
+   397→                        </TableRow>
+   398→                      );
+   399→                    })}
+   400→              </TableBody>
+   401→            </Table>
+   402→          </div>
+   403→        </Card>
+   404→
+   405→        <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
+   406→          <div className="mb-4">
+   407→            <h3 className="text-sm font-semibold">Balance allocation</h3>
+   408→            <p className="text-xs text-muted-foreground">Share of total liquidity by currency</p>
+   409→          </div>
+   410→          {!walletsRes ? (
+   411→            <Skeleton className="h-56 w-full" />
+   412→          ) : (
+   413→            <DonutChart data={allocationData} height={240} formatter={(v) => formatCurrency(v, "EUR")} />
+   414→          )}
+   415→        </Card>
+   416→      </div>
+   417→
+   418→      {/* ---- Store Detail Dialog ---- */}
+   419→      <Dialog open={storeDetailOpen} onOpenChange={setStoreDetailOpen}>
+   420→        <DialogContent className="max-w-md">
+   421→          <DialogHeader>
+   422→            <DialogTitle className="flex items-center gap-2">
+   423→              <Building2 className="h-4 w-4 text-primary" />
+   424→              {selectedStore?.storeName ?? "Store"}
+   425→            </DialogTitle>
+   426→            <DialogDescription>
+   427→              {selectedStore?.storeCode} · Moeda: {currency}
+   428→            </DialogDescription>
+   429→          </DialogHeader>
+   430→          {selectedStore && (
+   431→            <div className="flex flex-col gap-3">
+   432→              <div className="grid grid-cols-2 gap-3">
+   433→                <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+   434→                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Vendas brutas</p>
+   435→                  <p className="mt-1 font-mono text-sm font-semibold tabular-nums">{formatCurrency(selectedStore.gross, currency)}</p>
+   436→                </div>
+   437→                <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+   438→                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Taxas</p>
+   439→                  <p className="mt-1 font-mono text-sm font-semibold tabular-nums text-amber-400">{formatCurrency(selectedStore.fees, currency)}</p>
+   440→                </div>
+   441→                <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+   442→                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Vendas líquidas</p>
+   443→                  <p className="mt-1 font-mono text-sm font-semibold tabular-nums text-emerald-400">{formatCurrency(selectedStore.net, currency)}</p>
+   444→                </div>
+   445→                <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+   446→                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Pendente</p>
+   447→                  <p className="mt-1 font-mono text-sm font-semibold tabular-nums text-amber-400">{formatCurrency(selectedStore.pending, currency)}</p>
+   448→                </div>
+   449→                <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+   450→                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Liberado</p>
+   451→                  <p className="mt-1 font-mono text-sm font-semibold tabular-nums">{formatCurrency(selectedStore.released, currency)}</p>
+   452→                </div>
+   453→                <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+   454→                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Saldo operacional</p>
+   455→                  <p className="mt-1 font-mono text-sm font-semibold tabular-nums">{formatCurrency(selectedStore.operationalBalance, currency)}</p>
+   456→                </div>
+   457→              </div>
+   458→              <div className="grid grid-cols-2 gap-3">
+   459→                <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+   460→                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Payouts pagos</p>
+   461→                  <p className="mt-1 font-mono text-sm font-semibold tabular-nums">{formatCurrency(selectedStore.paidPayouts, currency)}</p>
+   462→                </div>
+   463→                <div className="rounded-lg border border-border/40 bg-background/40 p-3">
+   464→                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Payouts agendados</p>
+   465→                  <p className="mt-1 font-mono text-sm font-semibold tabular-nums text-sky-400">{formatCurrency(selectedStore.scheduledPayouts, currency)}</p>
+   466→                </div>
+   467→              </div>
+   468→            </div>
+   469→          )}
+   470→        </DialogContent>
+   471→      </Dialog>
+   472→
+   473→      {/* ---- Deposit Dialog ---- */}
+   474→      <Dialog open={depositOpen} onOpenChange={setDepositOpen}>
+   475→        <DialogContent>
+   476→          <DialogHeader>
+   477→            <DialogTitle className="flex items-center gap-2"><ArrowDownLeft className="h-4 w-4 text-emerald-400" /> Deposit funds</DialogTitle>
+   478→            <DialogDescription>Add funds to one of your wallets via bank rail or instant method.</DialogDescription>
+   479→          </DialogHeader>
+   480→          <div className="flex flex-col gap-4">
+   481→            <div className="flex flex-col gap-1.5">
+   482→              <Label htmlFor="dep-cur">Currency</Label>
+   483→              <Select value={depCurrency} onValueChange={(v) => setDepCurrency(v as CurrencyCode)}>
+   484→                <SelectTrigger id="dep-cur" className="w-full"><SelectValue /></SelectTrigger>
+   485→                <SelectContent>
+   486→                  {CURRENCIES.map((c) => (
+   487→                    <SelectItem key={c.code} value={c.code}>{c.flag} {c.code} — {c.symbol}</SelectItem>
+   488→                  ))}
+   489→                </SelectContent>
+   490→              </Select>
+   491→            </div>
+   492→            <div className="flex flex-col gap-1.5">
+   493→              <Label htmlFor="dep-amt">Amount</Label>
+   494→              <Input id="dep-amt" type="number" placeholder="0.00" value={depAmount} onChange={(e) => setDepAmount(e.target.value)} />
+   495→            </div>
+   496→            <div className="flex flex-col gap-1.5">
+   497→              <Label htmlFor="dep-mth">Method</Label>
+   498→              <Select value={depMethod} onValueChange={setDepMethod}>
+   499→                <SelectTrigger id="dep-mth" className="w-full"><SelectValue /></SelectTrigger>
+   500→                <SelectContent>
+   501→                  {PAYMENT_METHODS.map((m) => (
+   502→                    <SelectItem key={m.id} value={m.id}>{m.label}</SelectItem>
+   503→                  ))}
+   504→                </SelectContent>
+   505→              </Select>
+   506→            </div>
+   507→          </div>
+   508→          <DialogFooter>
+   509→            <Button variant="outline" onClick={() => setDepositOpen(false)}>Cancel</Button>
+   510→            <Button onClick={submitDeposit} disabled={depositM.isPending} className="gap-1.5">
+   511→              {depositM.isPending ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+   512→              Confirm deposit
+   513→            </Button>
+   514→          </DialogFooter>
+   515→        </DialogContent>
+   516→      </Dialog>
+   517→
+   518→      {/* ---- Payout Dialog ---- */}
+   519→      <Dialog open={payoutOpen} onOpenChange={setPayoutOpen}>
+   520→        <DialogContent>
+   521→          <DialogHeader>
+   522→            <DialogTitle className="flex items-center gap-2"><ArrowUpRight className="h-4 w-4 text-rose-400" /> Withdraw funds</DialogTitle>
+   523→            <DialogDescription>Send a payout to a beneficiary IBAN. Funds leave the selected wallet immediately.</DialogDescription>
+   524→          </DialogHeader>
+   525→          <div className="flex flex-col gap-4">
+   526→            <div className="flex flex-col gap-1.5">
+   527→              <Label htmlFor="po-cur">From wallet</Label>
+   528→              <Select value={poCurrency} onValueChange={(v) => setPoCurrency(v as CurrencyCode)}>
+   529→                <SelectTrigger id="po-cur" className="w-full"><SelectValue /></SelectTrigger>
+   530→                <SelectContent>
+   531→                  {CURRENCIES.map((c) => (
+   532→                    <SelectItem key={c.code} value={c.code}>{c.flag} {c.code}</SelectItem>
+   533→                  ))}
+   534→                </SelectContent>
+   535→              </Select>
+   536→            </div>
+   537→            <div className="flex flex-col gap-1.5">
+   538→              <Label htmlFor="po-amt">Amount</Label>
+   539→              <Input id="po-amt" type="number" placeholder="0.00" value={poAmount} onChange={(e) => setPoAmount(e.target.value)} />
+   540→            </div>
+   541→            <div className="flex flex-col gap-1.5">
+   542→              <Label htmlFor="po-ben">Beneficiary IBAN</Label>
+   543→              <Input id="po-ben" placeholder="PT50 0002 0123 1234 5678 9015 4" value={poBeneficiary} onChange={(e) => setPoBeneficiary(e.target.value)} />
+   544→            </div>
+   545→          </div>
+   546→          <DialogFooter>
+   547→            <Button variant="outline" onClick={() => setPayoutOpen(false)}>Cancel</Button>
+   548→            <Button onClick={submitPayout} disabled={payoutM.isPending} className="gap-1.5">
+   549→              {payoutM.isPending ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <ArrowUpRight className="h-3.5 w-3.5" />}
+   550→              Confirm payout
+   551→            </Button>
+   552→          </DialogFooter>
+   553→        </DialogContent>
+   554→      </Dialog>
+   555→
+   556→      {/* ---- Swap Dialog ---- */}
+   557→      <Dialog open={swapOpen} onOpenChange={setSwapOpen}>
+   558→        <DialogContent>
+   559→          <DialogHeader>
+   560→            <DialogTitle className="flex items-center gap-2"><ArrowLeftRight className="h-4 w-4 text-primary" /> Convert currency</DialogTitle>
+   561→            <DialogDescription>Swap between wallet balances at live mid-market rates.</DialogDescription>
+   562→          </DialogHeader>
+   563→          <div className="flex flex-col gap-4">
+   564→            <div className="grid grid-cols-2 gap-3">
+   565→              <div className="flex flex-col gap-1.5">
+   566→                <Label>From</Label>
+   567→                <Select value={swapFrom} onValueChange={(v) => setSwapFrom(v as CurrencyCode)}>
+   568→                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+   569→                  <SelectContent>
+   570→                    {CURRENCIES.map((c) => (
+   571→                      <SelectItem key={c.code} value={c.code}>{c.flag} {c.code}</SelectItem>
+   572→                    ))}
+   573→                  </SelectContent>
+   574→                </Select>
+   575→              </div>
+   576→              <div className="flex flex-col gap-1.5">
+   577→                <Label>To</Label>
+   578→                <Select value={swapTo} onValueChange={(v) => setSwapTo(v as CurrencyCode)}>
+   579→                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+   580→                  <SelectContent>
+   581→                    {CURRENCIES.map((c) => (
+   582→                      <SelectItem key={c.code} value={c.code}>{c.flag} {c.code}</SelectItem>
+   583→                    ))}
+   584→                  </SelectContent>
+   585→                </Select>
+   586→              </div>
+   587→            </div>
+   588→            <div className="flex flex-col gap-1.5">
+   589→              <Label htmlFor="sw-amt">Amount</Label>
+   590→              <Input id="sw-amt" type="number" placeholder="0.00" value={swapAmount} onChange={(e) => setSwapAmount(e.target.value)} />
+   591→            </div>
+   592→            <div className="rounded-lg border border-border/60 bg-background/40 p-3">
+   593→              <div className="flex items-center justify-between text-xs text-muted-foreground">
+   594→                <span>Rate</span>
+   595→                <span className="font-mono text-foreground">
+   596→                  1 {swapFrom} = {swapRate.toFixed(swapRate < 1 ? 4 : 2)} {swapTo}
+   597→                </span>
+   598→              </div>
+   599→              <div className="mt-1.5 flex items-center justify-between text-xs text-muted-foreground">
+   600→                <span>You receive</span>
+   601→                <span className="font-mono text-sm font-semibold text-emerald-400">
+   602→                  {formatCurrency(swapConverted, swapTo)}
+   603→                </span>
+   604→              </div>
+   605→            </div>
+   606→          </div>
+   607→          <DialogFooter>
+   608→            <Button variant="outline" onClick={() => setSwapOpen(false)}>Cancel</Button>
+   609→            <Button onClick={submitSwap} disabled={swapM.isPending} className="gap-1.5">
+   610→              {swapM.isPending ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <ArrowRight className="h-3.5 w-3.5" />}
+   611→              Execute swap
+   612→            </Button>
+   613→          </DialogFooter>
+   614→        </DialogContent>
+   615→      </Dialog>
+   616→    </div>
+   617→  );
+   618→}
+   619→

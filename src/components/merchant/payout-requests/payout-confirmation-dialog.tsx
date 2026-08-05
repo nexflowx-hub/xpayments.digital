@@ -8,7 +8,7 @@ import {
   usePreviewPayoutConfirmation,
   useVerifyPayoutManager,
   useConfirmPayoutRequest,
-} from "@/hooks/queries";
+} from "hooks/queries";
 import { useT } from "@/lib/i18n";
 import {
   Dialog,
@@ -24,6 +24,7 @@ import type { PayoutRequest, PayoutConfirmationPreview } from "@/types";
 
 function mapConfirmError(code: string | undefined, t: (k: string) => string): string {
   switch (code) {
+    case "PAYOUT_CHALLENGE_NOT_PENDING": return t("pr.challengeNotPending");
     case "PAYOUT_CHALLENGE_EXPIRED": return t("pr.challengeExpired");
     case "PAYOUT_REQUEST_OUTDATED": return t("pr.outdated");
     case "PAYOUT_REQUEST_VERSION_CONFLICT": return t("pr.versionConflict");
@@ -35,6 +36,17 @@ function mapConfirmError(code: string | undefined, t: (k: string) => string): st
     default: return t("pr.authorizationDenied");
   }
 }
+
+type Phase =
+  | "idle"
+  | "previewing"
+  | "preview"
+  | "verifying"
+  | "authorized"
+  | "confirming"
+  | "reconciling"
+  | "done"
+  | "error";
 
 interface PayoutConfirmationDialogProps {
   request: PayoutRequest;
@@ -49,12 +61,16 @@ export function PayoutConfirmationDialog({ request, open, onOpenChange, onSucces
   const [bankConfirmed, setBankConfirmed] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
   const [preview, setPreview] = React.useState<PayoutConfirmationPreview | null>(null);
-  const [phase, setPhase] = React.useState<"idle" | "previewing" | "preview" | "verifying" | "confirming" | "done">("idle");
-  const [confirmingRef, setConfirmingRef] = React.useState(false);
+  const [phase, setPhase] = React.useState<Phase>("idle");
+  const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+
+  // Use ref to prevent double-click
+  const confirmInFlightRef = React.useRef(false);
 
   const previewMut = usePreviewPayoutConfirmation();
   const verifyMut = useVerifyPayoutManager();
   const confirmMut = useConfirmPayoutRequest();
+  const queryClient = require("@/hooks/queries").useQueryClient ? require("@/hooks/queries").useQueryClient() : null;
 
   // Reset all state on close
   React.useEffect(() => {
@@ -64,12 +80,14 @@ export function PayoutConfirmationDialog({ request, open, onOpenChange, onSucces
       setShowPassword(false);
       setPreview(null);
       setPhase("idle");
-      setConfirmingRef(false);
+      setErrorMsg(null);
+      confirmInFlightRef.current = false;
     }
   }, [open]);
 
   async function handlePreview() {
     setPhase("previewing");
+    setErrorMsg(null);
     try {
       const res = await previewMut.mutateAsync({ id: request.id, expectedVersion: request.version });
       setPreview(res);
@@ -82,15 +100,22 @@ export function PayoutConfirmationDialog({ request, open, onOpenChange, onSucces
         onSuccess();
       } else {
         toast.error(mapConfirmError(code, t));
+        setPhase("error");
       }
-      setPhase("idle");
     }
   }
 
   async function handleVerifyAndConfirm() {
-    if (!preview || !password) return;
+    if (!preview || !password || confirmInFlightRef.current) return;
+
+    // If already authorized (challenge was verified), go straight to confirm
+    if (phase === "authorized") {
+      handleConfirm();
+      return;
+    }
+
     setPhase("verifying");
-    setConfirmingRef(true);
+    setErrorMsg(null);
     try {
       const verifyRes = await verifyMut.mutateAsync({
         id: request.id,
@@ -102,40 +127,71 @@ export function PayoutConfirmationDialog({ request, open, onOpenChange, onSucces
         setPassword("");
         return;
       }
-      setPhase("confirming");
-      try {
-        await confirmMut.mutateAsync({
-          id: request.id,
-          challengeId: preview.challengeId,
-          bankTransferConfirmed: bankConfirmed,
-        });
-        setPhase("done");
-        toast.success(t("pr.payoutConfirmed"));
-        onSuccess();
-      } catch (e2) {
-        const code = (e2 as { code?: string })?.code;
-        if (code === "PAYOUT_ALREADY_CONFIRMED") {
-          setPhase("done");
-          toast.success(t("pr.payoutConfirmed"));
-          onSuccess();
-        } else {
-          toast.error(mapConfirmError(code, t));
-          setPhase("preview");
-        }
-      } finally {
-        setPassword("");
-      }
+      // Challenge authorized — store and move to authorized phase
+      setPhase("authorized");
+      setPassword("");
+      // Proceed to confirm
+      handleConfirm();
     } catch (e) {
       const code = (e as { code?: string })?.code;
       toast.error(mapConfirmError(code, t));
       setPhase("preview");
       setPassword("");
-    } finally {
-      setConfirmingRef(false);
     }
   }
 
-  const isBusy = phase === "previewing" || phase === "verifying" || phase === "confirming";
+  async function handleConfirm() {
+    if (!preview || confirmInFlightRef.current) return;
+    confirmInFlightRef.current = true;
+    setPhase("confirming");
+    setErrorMsg(null);
+    try {
+      await confirmMut.mutateAsync({
+        id: request.id,
+        challengeId: preview.challengeId,
+        bankTransferConfirmed: bankConfirmed,
+      });
+      setPhase("done");
+      toast.success(t("pr.payoutConfirmed"));
+      onSuccess();
+    } catch (e) {
+      const code = (e as { code?: string })?.code;
+      const status = (e as { status?: number })?.status;
+
+      if (code === "PAYOUT_ALREADY_CONFIRMED") {
+        setPhase("done");
+        toast.success(t("pr.payoutConfirmed"));
+        onSuccess();
+      } else if (status === 500 || status === 502 || status === 504 || !navigator.onLine) {
+        // Network/timeout/server error — reconcile
+        setPhase("reconciling");
+        // Re-fetch to check actual state
+        try {
+          // Trigger refetches
+          await Promise.allSettled([
+            confirmMut.queryClient?.invalidateQueries({ queryKey: ["payout-requests"] }),
+            confirmMut.queryClient?.invalidateQueries({ queryKey: ["finance", "payout-statements"] }),
+          ]);
+          // Optimistically mark done — the parent will refetch
+          setTimeout(() => {
+            setPhase("done");
+            onSuccess();
+          }, 2000);
+        } catch {
+          setPhase("error");
+          setErrorMsg("Erro de rede ao confirmar. Verifique o estado em Payouts & Saídas.");
+        }
+      } else {
+        toast.error(mapConfirmError(code, t));
+        setPhase(phase === "authorized" ? "authorized" : "preview");
+        if (phase !== "authorized") setPassword("");
+      }
+    } finally {
+      confirmInFlightRef.current = false;
+    }
+  }
+
+  const isBusy = phase === "previewing" || phase === "verifying" || phase === "confirming" || phase === "reconciling";
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!isBusy) onOpenChange(v); }}>
@@ -155,7 +211,21 @@ export function PayoutConfirmationDialog({ request, open, onOpenChange, onSucces
               <p className="text-sm font-semibold">{t("pr.payoutConfirmed")}</p>
               <p className="mt-1 text-xs text-muted-foreground">{t("pr.payoutRegistered")}</p>
             </div>
-            <Button size="sm" onClick={() => onOpenChange(false)}>{t("common.cancel")}</Button>
+            <Button size="sm" onClick={() => onOpenChange(false)}>{t("common.close")}</Button>
+          </div>
+        ) : phase === "reconciling" ? (
+          <div className="flex flex-col items-center gap-4 py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-amber-400" />
+            <p className="text-sm text-muted-foreground">A verificar o estado do payout…</p>
+          </div>
+        ) : phase === "error" ? (
+          <div className="flex flex-col items-center gap-4 py-8">
+            <AlertTriangle className="h-8 w-8 text-rose-400" />
+            <div className="text-center">
+              <p className="text-sm font-semibold">Erro</p>
+              <p className="mt-1 max-w-xs text-xs text-muted-foreground">{errorMsg ?? "Não foi possível completar a operação."}</p>
+            </div>
+            <Button size="sm" onClick={() => onOpenChange(false)}>Fechar</Button>
           </div>
         ) : phase === "idle" ? (
           <div className="flex flex-col gap-4">
@@ -167,8 +237,6 @@ export function PayoutConfirmationDialog({ request, open, onOpenChange, onSucces
                 <span className="text-right font-mono text-xs text-primary">{request.requestCode}</span>
                 <span className="text-muted-foreground">{t("pr.total")}</span>
                 <span className="text-right font-mono font-semibold tabular-nums">{formatCurrency(request.requestedAmount, request.currency)}</span>
-                <span className="text-muted-foreground">Currency</span>
-                <span className="text-right">{request.currency}</span>
                 {request.externalReference && (
                   <>
                     <span className="text-muted-foreground">{t("pr.externalRef")}</span>
@@ -226,7 +294,7 @@ export function PayoutConfirmationDialog({ request, open, onOpenChange, onSucces
               <span className="text-xs leading-relaxed">{t("pr.bankTransferExecuted")}</span>
             </label>
 
-            {preview?.approvalPasswordRequired && (
+            {preview?.approvalPasswordRequired && phase !== "authorized" && (
               <div>
                 <label className="mb-1 block text-xs font-medium text-muted-foreground">{t("pr.managerPassword")}</label>
                 <div className="relative">
@@ -251,12 +319,18 @@ export function PayoutConfirmationDialog({ request, open, onOpenChange, onSucces
               </div>
             )}
 
+            {phase === "authorized" && (
+              <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 p-3 text-xs text-emerald-400">
+                <p>✓ Password verificada. Clique em confirmar para executar o payout.</p>
+              </div>
+            )}
+
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={() => { setPhase("idle"); setPassword(""); }} disabled={isBusy}>{t("common.cancel")}</Button>
               <Button
                 size="sm"
                 className="gap-1.5"
-                disabled={!bankConfirmed || (preview?.approvalPasswordRequired && !password) || isBusy || confirmingRef}
+                disabled={!bankConfirmed || (preview?.approvalPasswordRequired && phase !== "authorized" && !password) || isBusy || confirmInFlightRef.current}
                 onClick={() => handleVerifyAndConfirm()}
               >
                 {isBusy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}

@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import {
-  Search, Download, FileSpreadsheet, Receipt, ShieldAlert,
+  Search,
+  Receipt, ShieldAlert,
   Clock, User, Globe, Server, Hash, X, Filter, RefreshCw,
 } from "lucide-react";
 import { useTransactions } from "@/hooks/queries";
@@ -120,16 +121,7 @@ export default function PaymentsPage() {
       <PageHeader
         title={t("nav.payments")}
         description="Todos os pagamentos em todos os gateways, moedas e canais."
-        actions={
-          <>
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => toast("Export started", { description: "CSV export queued — you'll get an email shortly." })}>
-              <Download className="h-3.5 w-3.5" /> Export CSV
-            </Button>
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => toast("Export started", { description: "Excel export queued — you'll get an email shortly." })}>
-              <FileSpreadsheet className="h-3.5 w-3.5" /> Export Excel
-            </Button>
-          </>
-        }
+        actions={null}
       />
 
       {/* Filters bar */}
@@ -158,20 +150,6 @@ export default function PaymentsPage() {
                 {CURRENCIES.map((c) => <SelectItem key={c.code} value={c.code}>{c.flag} {c.code}</SelectItem>)}
               </SelectContent>
             </Select>
-            <Select value={filters.method ?? "all"} onValueChange={(v) => update("method", v)}>
-              <SelectTrigger size="sm" className="h-8 w-[140px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All methods</SelectItem>
-                {PAYMENT_METHODS.map((m) => <SelectItem key={m.id} value={m.id}>{m.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={filters.country ?? "all"} onValueChange={(v) => update("country", v)}>
-              <SelectTrigger size="sm" className="h-8 w-[150px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All countries</SelectItem>
-                {COUNTRY_LIST.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-              </SelectContent>
-            </Select>
             <Select value={filters.gateway ?? "all"} onValueChange={(v) => update("gateway", v)}>
               <SelectTrigger size="sm" className="h-8 w-[140px]"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -179,10 +157,10 @@ export default function PaymentsPage() {
                 {GATEWAYS.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
               </SelectContent>
             </Select>
-            {(filters.search || filters.status || filters.currency || filters.method || filters.country || filters.gateway) && (
+            {(filters.search || filters.status || filters.currency || filters.gateway) && (
               <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground"
-                onClick={() => setFilters({ page: 1, limit: PAGE_SIZE, sortBy: "createdAt", sortDir: "desc" })}>
-                <X className="h-3.5 w-3.5" /> Clear
+                onClick={() => setFilters({ page: 1, limit: PAGE_SIZE })}>
+                <X className="h-3.5 w-3.5" /> Limpar
               </Button>
             )}
           </div>

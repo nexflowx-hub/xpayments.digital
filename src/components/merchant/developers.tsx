@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import {
   Code2, Terminal, Copy, BookOpen, AlertTriangle, ShieldCheck, Zap,
   ExternalLink, ChevronRight, FlaskConical, Phone, CheckCircle2, XCircle,
-  Clock, Ban,
+  Clock, Ban, Activity, HeartPulse,
 } from "lucide-react";
 import { PageHeader, fadeUp } from "@/components/shared";
 import { Card } from "@/components/ui/card";
@@ -161,6 +161,7 @@ export default function DevelopersPage() {
           <TabsTrigger value="checkout" className="gap-1.5"><ExternalLink className="h-3.5 w-3.5" /> Checkout</TabsTrigger>
           <TabsTrigger value="webhooks" className="gap-1.5"><Zap className="h-3.5 w-3.5" /> Webhooks</TabsTrigger>
           <TabsTrigger value="sandbox" className="gap-1.5"><FlaskConical className="h-3.5 w-3.5" /> Sandbox</TabsTrigger>
+          <TabsTrigger value="estado" className="gap-1.5"><HeartPulse className="h-3.5 w-3.5" /> Estado</TabsTrigger>
         </TabsList>
 
         {/* ===== Overview ===== */}
@@ -383,6 +384,34 @@ export default function DevelopersPage() {
                 </table>
               </div>
             </div>
+          </DocSection>
+        </TabsContent>
+
+        {/* ===== Estado (Health) ===== */}
+        <TabsContent value="estado" className="mt-6 space-y-6">
+          <DocSection id="estado" icon={HeartPulse} title="Estado">
+            <Card className="border-border/60 bg-card/60 p-6 backdrop-blur-xl">
+              <div className="flex flex-col items-center gap-4 py-8 text-center">
+                <div className="grid h-12 w-12 place-items-center rounded-2xl bg-amber-500/10">
+                  <Activity className="h-6 w-6 text-amber-400" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-semibold">Contrato de API necessário</h4>
+                  <p className="mt-1 max-w-md text-xs text-muted-foreground">
+                    O endpoint <code className="rounded bg-muted/60 px-1 py-0.5 font-mono text-[10px]">GET /developer/payment-method-health</code> ainda não está disponível.
+                    Quando estiver implementado, esta aba mostrará o estado operacional de cada Store e método de pagamento.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                  {["Saudável", "Atenção", "Indisponível", "Não configurado", "Sem dados recentes"].map((s) => (
+                    <div key={s} className="flex items-center gap-1.5 rounded-md border border-border/40 bg-background/40 px-2.5 py-1.5">
+                      <span className="h-2 w-2 rounded-full bg-muted-foreground/30" />
+                      <span className="text-[10px] text-muted-foreground">{s}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </Card>
           </DocSection>
         </TabsContent>
       </Tabs>

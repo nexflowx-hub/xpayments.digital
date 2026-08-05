@@ -713,6 +713,36 @@ export interface PayoutConfirmationResult {
   payoutEngineCalled: boolean;
 }
 
+// ---- Multi-currency prep (optional, not simulated) ----
+
+export interface MoneyConversion {
+  sourceAmount: number;
+  sourceCurrency: string;
+  settlementAmount: number;
+  settlementCurrency: string;
+  exchangeRate?: number;
+  exchangeRateSource?: "provider" | "xpayments" | "external";
+  convertedAt?: string;
+}
+
+export interface PaymentMethodHealth {
+  storeId: string;
+  storeCode: string;
+  storeName: string;
+  currency: string;
+  gatewayConfigured: string | null;
+  methods: {
+    method: string;
+    active: boolean;
+    lastSuccessfulChargeAt: string | null;
+    lastError: string | null;
+    lastValidatedAt: string | null;
+    operationalStatus: "healthy" | "attention" | "unavailable" | "not_configured" | "no_recent_data";
+  }[];
+  vaultConfigured: boolean;
+  lastValidatedAt: string | null;
+}
+
 export interface MerchantProfile {
   id: string;
   name: string;

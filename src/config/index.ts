@@ -2,9 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard,
   Wallet,
-  ArrowLeftRight,
   Banknote,
-  Landmark,
   Store,
   Package,
   Users,
@@ -19,7 +17,7 @@ import {
   Store as StoreIcon,
   Settings,
   LifeBuoy,
-  TrendingUp, CalendarClock, Send,
+  CalendarClock, Send,
   Receipt,
   Building2,
   ScrollText,
@@ -61,9 +59,6 @@ export const merchantNav: NavSection[] = [
     items: [
       { id: "payments", label: "Payments", tKey: "nav.payments", icon: Receipt },
       { id: "wallets", label: "Wallets", tKey: "nav.wallets", icon: Wallet },
-      { id: "fx", label: "FX", tKey: "nav.fx", icon: ArrowLeftRight },
-      { id: "treasury", label: "Treasury", tKey: "nav.treasury", icon: Banknote },
-      { id: "finance-flow", label: "Financial Flow", tKey: "nav.financeFlow", icon: TrendingUp },
       { id: "finance-releases", label: "Releases", tKey: "nav.financeReleases", icon: CalendarClock },
       { id: "finance-payouts", label: "Payouts & Exits", tKey: "nav.financePayouts", icon: Send },
       { id: "finance-stores", label: "By Store", tKey: "nav.financeStores", icon: Building2 },

@@ -54,15 +54,7 @@ export default function RiskPage() {
       <PageHeader
         title={t("nav.risk")}
         description="Real-time fraud monitoring, alerts and trust posture for your merchant account."
-        actions={
-          <Badge variant="outline" className="gap-1.5 border-emerald-500/25 bg-emerald-500/12 text-emerald-400">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
-            </span>
-            Engine live
-          </Badge>
-        }
+        actions={null}
       />
 
       {/* Stat cards */}
@@ -71,7 +63,7 @@ export default function RiskPage() {
           Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)
         ) : (
           <>
-            <StatCard label="Risk score" value={risk.score} change={-3.0} icon={GaugeIcon} accent={risk.score < 30 ? "green" : risk.score < 60 ? "amber" : "rose"} format={(n) => Math.round(n).toString()} />
+            <StatCard label="Risk score" value={risk.score} icon={GaugeIcon} accent={risk.score < 30 ? "green" : risk.score < 60 ? "amber" : "rose"} format={(n) => Math.round(n).toString()} />
             <StatCard label="Rolling reserve" value={risk.reservePct} icon={Lock} accent="violet" format={(n) => formatPercent(n)} />
             <StatCard label="Chargeback rate" value={risk.chargebackRate} icon={RefreshCcw} accent="amber" format={(n) => formatPercent(n, 2)} />
             <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
@@ -170,15 +162,7 @@ export default function RiskPage() {
           <div className="flex items-center gap-2">
             <Bell className="h-4 w-4 text-amber-400" />
             <h3 className="text-sm font-semibold">Active alerts</h3>
-            <Badge variant="outline" className="ml-1.5">{(risk?.alerts ?? []).length ?? 0} open</Badge>
-          </div>
-          <Badge variant="outline" className="gap-1 border-amber-500/25 bg-amber-500/12 text-amber-400">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-amber-400" />
-            </span>
-            Monitoring
-          </Badge>
+            <Badge variant="outline">{(risk?.alerts ?? []).length} alertas</Badge>
         </div>
         <div className="flex flex-col divide-y divide-border/40">
           {!risk

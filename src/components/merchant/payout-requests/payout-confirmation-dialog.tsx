@@ -8,7 +8,7 @@ import {
   usePreviewPayoutConfirmation,
   useVerifyPayoutManager,
   useConfirmPayoutRequest,
-} from "hooks/queries";
+} from "@/hooks/queries";
 import { useT } from "@/lib/i18n";
 import {
   Dialog,

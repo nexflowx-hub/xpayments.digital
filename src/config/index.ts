@@ -26,6 +26,7 @@ import {
   Activity,
   Cpu,
   Gauge,
+  Landmark,
 } from "lucide-react";
 
 export interface NavItem {

@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import {
   useWallets, useWalletMovements, useFinanceStores,
-} from "hooks/queries";
+} from "@/hooks/queries";
 import { PageHeader, ErrorState, fadeUp } from "@/components/shared";
 import { useT } from "@/lib/i18n";
 import { StatusBadge } from "@/components/shared/badges";

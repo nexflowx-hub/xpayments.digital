@@ -163,6 +163,7 @@ export default function RiskPage() {
             <Bell className="h-4 w-4 text-amber-400" />
             <h3 className="text-sm font-semibold">Active alerts</h3>
             <Badge variant="outline">{(risk?.alerts ?? []).length} alertas</Badge>
+          </div>
         </div>
         <div className="flex flex-col divide-y divide-border/40">
           {!risk

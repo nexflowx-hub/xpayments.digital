@@ -10,7 +10,7 @@ import { useAnalyticsOverview } from "@/hooks/queries";
 import { PageHeader, StatCard, ErrorState } from "@/components/shared";
 import { useT } from "@/lib/i18n";
 import { AreaTrend, DonutChart } from "@/components/shared/charts";
-import { Card } from "components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {

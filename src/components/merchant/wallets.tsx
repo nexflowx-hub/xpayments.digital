@@ -10,6 +10,8 @@ import {
   useWallets, useWalletMovements, useFinanceStores,
 } from "@/hooks/queries";
 import { PageHeader, ErrorState, fadeUp } from "@/components/shared";
+import { FinanceCurrencySelector } from "@/components/shared/finance-currency-selector";
+import { useFinanceCurrencyStore } from "@/stores/finance-currency";
 import { useT } from "@/lib/i18n";
 import { StatusBadge } from "@/components/shared/badges";
 import { Card } from "@/components/ui/card";
@@ -40,14 +42,30 @@ function NoDataMessage({ message }: { message: string }) {
 
 export default function WalletsPage() {
   const t = useT();
+  const financeCurrency = useFinanceCurrencyStore((s) => s.currency);
   const { data: walletsRes, isLoading, isError: wError, refetch: wRefetch } = useWallets();
   const { data: movementsRes } = useWalletMovements();
-  const { data: storesRes, isLoading: storesLoading } = useFinanceStores("EUR");
+  const { data: storesRes, isLoading: storesLoading } = useFinanceStores(financeCurrency);
 
   const wallets: Wallet[] = walletsRes ?? [];
-  const movements: WalletMovement[] = movementsRes ?? [];
+  const allMovements: WalletMovement[] = movementsRes ?? [];
   const financeStores = storesRes?.stores ?? [];
-  const currency = storesRes?.currency ?? "EUR";
+  const currency = storesRes?.currency ?? financeCurrency;
+
+  // Movement currency filter
+  const [movementCurrencyFilter, setMovementCurrencyFilter] = React.useState<string | null>(null);
+
+  const filteredMovements = React.useMemo(() => {
+    if (!movementCurrencyFilter) return allMovements;
+    return allMovements.filter((m) => m.currency === movementCurrencyFilter);
+  }, [allMovements, movementCurrencyFilter]);
+
+  // Derive movement currencies for filter buttons
+  const movementCurrencies = React.useMemo(() => {
+    const seen = new Set<string>();
+    for (const m of allMovements) seen.add(m.currency);
+    return Array.from(seen);
+  }, [allMovements]);
 
   // Store detail
   const [selectedStore, setSelectedStore] = React.useState<FinanceStore | null>(null);
@@ -71,19 +89,24 @@ export default function WalletsPage() {
         title={t("nav.wallets")}
         description="Carteiras associadas por Store e moeda."
         actions={
-          <Button variant="outline" size="sm" onClick={() => wRefetch()} className="gap-1.5">
-            <RefreshCw className="h-3.5 w-3.5" />
-            Atualizar
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => wRefetch()} className="gap-1.5">
+              <RefreshCw className="h-3.5 w-3.5" />
+              Atualizar
+            </Button>
+          </div>
         }
       />
 
       {/* ---- Store wallets section ---- */}
       <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
         <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-semibold">Carteiras por Store</h3>
-            <p className="text-xs text-muted-foreground">Dados financeiros associados a cada loja/moeda.</p>
+          <div className="flex items-center gap-2">
+            <div>
+              <h3 className="text-sm font-semibold">Carteiras por Store</h3>
+              <p className="text-xs text-muted-foreground">Dados financeiros associados a cada loja/moeda.</p>
+            </div>
+            <FinanceCurrencySelector />
           </div>
           <Badge variant="outline" className="text-[10px]">
             {financeStores.length} stores
@@ -183,7 +206,38 @@ export default function WalletsPage() {
             <h3 className="text-sm font-semibold">Movimentos</h3>
             <p className="text-xs text-muted-foreground">Atividade recente de carteiras.</p>
           </div>
-          <Badge variant="outline" className="gap-1">{movements.length} registos</Badge>
+          <div className="flex items-center gap-2">
+            {movementCurrencies.length > 1 && (
+              <div className="inline-flex items-center gap-0.5 rounded-md border border-border/60 bg-muted/30 px-1.5 py-0.5">
+                <button
+                  onClick={() => setMovementCurrencyFilter(null)}
+                  className={cn(
+                    "rounded px-1.5 py-0.5 text-[11px] font-medium transition",
+                    !movementCurrencyFilter
+                      ? "bg-primary/12 text-primary"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  Todas
+                </button>
+                {movementCurrencies.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setMovementCurrencyFilter(c)}
+                    className={cn(
+                      "rounded px-1.5 py-0.5 text-[11px] font-medium transition",
+                      movementCurrencyFilter === c
+                        ? "bg-primary/12 text-primary"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+            )}
+            <Badge variant="outline" className="gap-1">{filteredMovements.length} registos</Badge>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <Table>
@@ -192,6 +246,7 @@ export default function WalletsPage() {
                 <TableHead className="text-xs font-medium">Referência</TableHead>
                 <TableHead className="text-xs font-medium">Tipo</TableHead>
                 <TableHead className="text-xs font-medium text-right">Montante</TableHead>
+                <TableHead className="text-xs font-medium">Moeda</TableHead>
                 <TableHead className="text-xs font-medium">Status</TableHead>
                 <TableHead className="text-xs font-medium text-right">Data</TableHead>
               </TableRow>
@@ -200,17 +255,17 @@ export default function WalletsPage() {
               {!movementsRes
                 ? Array.from({ length: 8 }).map((_, i) => (
                     <TableRow key={i}>
-                      <TableCell colSpan={5}><Skeleton className="my-2 h-7" /></TableCell>
+                      <TableCell colSpan={6}><Skeleton className="my-2 h-7" /></TableCell>
                     </TableRow>
                   ))
-                : movements.length === 0 ? (
+                : filteredMovements.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="py-12 text-center text-xs text-muted-foreground">
-                        Sem movimentos registados.
+                      <TableCell colSpan={6} className="py-12 text-center text-xs text-muted-foreground">
+                        {movementCurrencyFilter ? `Sem movimentos em ${movementCurrencyFilter}.` : "Sem movimentos registados."}
                       </TableCell>
                     </TableRow>
                   )
-                : movements.slice(0, 20).map((m) => {
+                : filteredMovements.slice(0, 20).map((m) => {
                     const incoming = m.direction === "in";
                     return (
                       <TableRow key={m.id} className="border-border/30">
@@ -228,6 +283,9 @@ export default function WalletsPage() {
                             {incoming ? <ArrowDownLeft className="h-3 w-3" /> : <ArrowUpRight className="h-3 w-3" />}
                             {incoming ? "+" : "−"}{formatCurrency(m.amount, m.currency)}
                           </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-[11px] font-medium text-muted-foreground">{m.currency}</span>
                         </TableCell>
                         <TableCell><StatusBadge status={m.status} /></TableCell>
                         <TableCell className="text-right text-xs text-muted-foreground">{timeAgo(m.createdAt)}</TableCell>

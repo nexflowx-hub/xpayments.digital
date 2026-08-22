@@ -4,6 +4,8 @@ import * as React from "react";
 import { RefreshCw, Building2 } from "lucide-react";
 import { useFinanceStores } from "@/hooks/queries";
 import { PageHeader, ErrorState } from "@/components/shared";
+import { FinanceCurrencySelector } from "@/components/shared/finance-currency-selector";
+import { useFinanceCurrencyStore } from "@/stores/finance-currency";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,9 +14,10 @@ import { StoreWalletDialog } from "@/components/merchant/finance/store-wallet-di
 import type { FinanceStore } from "@/types";
 
 export default function FinanceStoresPage() {
-  const { data: storesRes, isLoading, isError, refetch, isFetching } = useFinanceStores("EUR");
+  const financeCurrency = useFinanceCurrencyStore((s) => s.currency);
+  const { data: storesRes, isLoading, isError, refetch, isFetching } = useFinanceStores(financeCurrency);
   const stores = storesRes?.stores ?? [];
-  const currency = storesRes?.currency ?? "EUR";
+  const currency = storesRes?.currency ?? financeCurrency;
 
   const [selectedStore, setSelectedStore] = React.useState<FinanceStore | null>(null);
   const [storeDialogOpen, setStoreDialogOpen] = React.useState(false);
@@ -40,6 +43,7 @@ export default function FinanceStoresPage() {
         description="Dados financeiros por unidade de venda."
         actions={
           <div className="flex items-center gap-2">
+            <FinanceCurrencySelector />
             <Badge variant="outline" className="text-[10px]">
               {stores.length} stores
             </Badge>

@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { useStores, useFinanceStores } from "@/hooks/queries";
 import { PageHeader, ErrorState } from "@/components/shared";
+import { FinanceCurrencySelector } from "@/components/shared/finance-currency-selector";
+import { useFinanceCurrencyStore } from "@/stores/finance-currency";
 import { StatusBadge } from "@/components/shared/badges";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -40,8 +42,9 @@ interface StoreWithFinance {
 
 export default function StoresPage() {
   const t = useT();
+  const financeCurrency = useFinanceCurrencyStore((s) => s.currency);
   const { data: storesData, isLoading: sLoading, isError: sError, refetch: sRefetch } = useStores();
-  const { data: finStoresData } = useFinanceStores("EUR");
+  const { data: finStoresData } = useFinanceStores(financeCurrency);
 
   const stores = React.useMemo(() => {
     const raw = storesData ?? [];
@@ -79,11 +82,14 @@ export default function StoresPage() {
         title={t("nav.stores")}
         description="Gerencie suas Stores e acompanhe dados financeiros por unidade."
         actions={
-          <Button size="sm" variant="outline" className="gap-1.5" asChild>
-            <a href={SUPPORT_WHATSAPP} target="_blank" rel="noreferrer">
-              <MessageCircle className="h-3.5 w-3.5" /> Solicitar nova Store
-            </a>
-          </Button>
+          <div className="flex items-center gap-2">
+            <FinanceCurrencySelector />
+            <Button size="sm" variant="outline" className="gap-1.5" asChild>
+              <a href={SUPPORT_WHATSAPP} target="_blank" rel="noreferrer">
+                <MessageCircle className="h-3.5 w-3.5" /> Solicitar nova Store
+              </a>
+            </Button>
+          </div>
         }
       />
 
@@ -191,19 +197,19 @@ export default function StoresPage() {
                     <div className="mt-5 grid grid-cols-2 gap-2">
                       <div>
                         <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Vendas brutas</p>
-                        <p className="mt-1 font-mono text-sm font-semibold tabular-nums">{dv(f.gross, "EUR")}</p>
+                        <p className="mt-1 font-mono text-sm font-semibold tabular-nums">{dv(f.gross, financeCurrency)}</p>
                       </div>
                       <div>
                         <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Taxas</p>
-                        <p className="mt-1 font-mono text-sm font-semibold tabular-nums">{dv(f.fees, "EUR")}</p>
+                        <p className="mt-1 font-mono text-sm font-semibold tabular-nums">{dv(f.fees, financeCurrency)}</p>
                       </div>
                       <div>
                         <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Vendas líquidas</p>
-                        <p className="mt-1 font-mono text-sm font-semibold tabular-nums">{dv(f.net, "EUR")}</p>
+                        <p className="mt-1 font-mono text-sm font-semibold tabular-nums">{dv(f.net, financeCurrency)}</p>
                       </div>
                       <div>
                         <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Pendente</p>
-                        <p className="mt-1 font-mono text-sm font-semibold tabular-nums">{dv(f.pending, "EUR")}</p>
+                        <p className="mt-1 font-mono text-sm font-semibold tabular-nums">{dv(f.pending, financeCurrency)}</p>
                       </div>
                     </div>
                   ) : (

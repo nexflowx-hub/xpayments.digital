@@ -41,7 +41,7 @@ export function DisplayCurrencySelector({ className }: { className?: string }) {
           </div>
         </TooltipTrigger>
         <TooltipContent side="bottom">
-          <p className="text-xs">Moeda de exibição (indicativo). Valores contabilísticos permanecem em EUR.</p>
+          <p className="text-xs">Conversão apenas indicativa. Não altera a moeda contabilística da Wallet.</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

@@ -7,6 +7,8 @@ import {
 } from "lucide-react";
 import { useFinanceOverview, useFinanceStores } from "@/hooks/queries";
 import { PageHeader, ErrorState } from "@/components/shared";
+import { FinanceCurrencySelector } from "@/components/shared/finance-currency-selector";
+import { useFinanceCurrencyStore } from "@/stores/finance-currency";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -90,17 +92,18 @@ function KpiSkeleton() {
 
 export default function MerchantOverview() {
   const setMerchantView = useUi((s) => s.setMerchantView);
+  const financeCurrency = useFinanceCurrencyStore((s) => s.currency);
   const {
     data: overview,
     isLoading,
     isError,
     refetch,
     isFetching,
-  } = useFinanceOverview("EUR");
-  const { data: storesRes, isLoading: storesLoading } = useFinanceStores("EUR");
+  } = useFinanceOverview(financeCurrency);
+  const { data: storesRes, isLoading: storesLoading } = useFinanceStores(financeCurrency);
 
   const d: FinanceOverview | null = overview ?? null;
-  const cur = d?.currency ?? "EUR";
+  const cur = d?.currency ?? financeCurrency;
   const storesList = storesRes?.stores ?? [];
 
   // Store detail dialog
@@ -130,6 +133,7 @@ export default function MerchantOverview() {
         description="Visão consolidada de vendas, wallet e payouts."
         actions={
           <div className="flex items-center gap-2">
+            <FinanceCurrencySelector />
             {isFetching && <RefreshCw className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
             <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-1.5">
               <RefreshCw className={cn("h-3.5 w-3.5", isFetching && "animate-spin")} />

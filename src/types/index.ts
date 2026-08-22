@@ -86,7 +86,7 @@ export interface ApiResponse<T> {
 }
 
 // ---- Wallets (API Contract v3.1) ----
-export type CurrencyCode = "EUR" | "USD" | "BRL" | "USDT" | "GBP" | "BTC";
+export type CurrencyCode = "EUR" | "USD" | "BRL" | "PLN" | "USDT" | "GBP" | "BTC";
 
 export interface Wallet {
   currency: CurrencyCode;

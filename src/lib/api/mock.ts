@@ -164,7 +164,7 @@ export const mockTransactions: Transaction[] = Array.from({ length: 128 }).map(
     const status = pick(statuses);
     const amount = float(5, 4800);
     const eurRate: Record<CurrencyCode, number> = {
-      EUR: 1, USD: 0.92, BRL: 0.18, GBP: 1.17, USDT: 0.99, BTC: 42000,
+      EUR: 1, USD: 0.92, BRL: 0.18, GBP: 1.17, USDT: 0.99, BTC: 42000, PLN: 0.23,
     };
     return {
       id: id("txn", i),

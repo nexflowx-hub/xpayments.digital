@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import type { StoreControlItem, StorePaymentMethod } from "@/types/vnext";
+import type { StoreControlItem, StorePaymentMethod, StorePaymentMethodsResponse } from "@/types/vnext";
 
 type FilterState = "ALL" | "ACTIVE" | "DISABLED" | "UNAVAILABLE";
 
@@ -78,6 +78,35 @@ export function StorePaymentMethodsPanel({
     },
     onError: (error: { message?: string }) => {
       toast.error(error?.message || "Não foi possível atualizar o método de pagamento");
+      qc.invalidateQueries({ queryKey: ["store-payment-methods", store.id] });
+    },
+  });
+
+  const bulkMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      if (!query.data) throw new Error("Payment Methods ainda não carregados");
+      const targets = query.data.methods.filter((method) => method.editable && method.enabled !== enabled);
+      let latest: StorePaymentMethodsResponse = query.data;
+      for (const method of targets) {
+        latest = await vnextApi.paymentMethods.update(store.id, method.id, { enabled });
+      }
+      return { data: latest, enabled, changed: targets.length };
+    },
+    onSuccess: ({ data, enabled, changed }) => {
+      qc.setQueryData(["store-payment-methods", store.id], data);
+      toast.success(
+        enabled
+          ? `${changed} métodos enviados para ON na Stripe`
+          : `${changed} métodos enviados para OFF na Stripe`,
+        {
+          description: enabled
+            ? "Métodos não elegíveis podem permanecer UNAVAILABLE mesmo com preferência ON."
+            : "A configuração efetiva foi relida da Stripe.",
+        },
+      );
+    },
+    onError: (error: { message?: string }) => {
+      toast.error(error?.message || "A operação em massa não foi concluída");
       qc.invalidateQueries({ queryKey: ["store-payment-methods", store.id] });
     },
   });
@@ -141,6 +170,7 @@ export function StorePaymentMethodsPanel({
   const active = data.methods.filter((method) => method.status === "ACTIVE").length;
   const disabled = data.methods.filter((method) => method.status === "DISABLED").length;
   const unavailable = data.methods.filter((method) => method.status === "UNAVAILABLE" || method.status === "LOCKED").length;
+  const busy = mutation.isPending || bulkMutation.isPending;
 
   return (
     <div className="space-y-4">
@@ -158,10 +188,31 @@ export function StorePaymentMethodsPanel({
             {data.configurationName ?? "Payment Method Configuration"} · {data.configurationId ?? "sem configuração remota"}
           </p>
         </div>
-        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => query.refetch()} disabled={query.isFetching}>
-          {query.isFetching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-          Atualizar Stripe
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            className="gap-1.5"
+            onClick={() => bulkMutation.mutate(true)}
+            disabled={busy || data.methods.every((method) => !method.editable || method.enabled)}
+          >
+            {bulkMutation.isPending && bulkMutation.variables === true ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+            Ativar todos
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5"
+            disabled={busy || data.methods.every((method) => !method.editable || !method.enabled)}
+            onClick={() => window.confirm("Desativar todos os métodos editáveis desta Store? Isso pode impedir pagamentos até reativá-los.") && bulkMutation.mutate(false)}
+          >
+            {bulkMutation.isPending && bulkMutation.variables === false ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />}
+            Desativar todos
+          </Button>
+          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => query.refetch()} disabled={query.isFetching || busy}>
+            {query.isFetching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            Atualizar Stripe
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-2">
@@ -212,7 +263,7 @@ export function StorePaymentMethodsPanel({
                   {pending && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
                   <Switch
                     checked={method.enabled}
-                    disabled={!method.editable || pending}
+                    disabled={!method.editable || pending || bulkMutation.isPending}
                     onCheckedChange={(checked) => mutation.mutate({ methodId: method.id, enabled: checked })}
                     aria-label={`${method.enabled ? "Desativar" : "Ativar"} ${method.label}`}
                   />
@@ -236,7 +287,7 @@ export function StorePaymentMethodsPanel({
         <div className="flex items-start gap-2 rounded-lg border border-cyan-500/20 bg-cyan-500/5 p-3 text-xs text-muted-foreground">
           <SlidersHorizontal className="mt-0.5 h-3.5 w-3.5 shrink-0 text-cyan-300" />
           <span>
-            OBSERVED: esta configuração governa métodos dinâmicos da conta Stripe. Um checkout externo que envie explicitamente <code className="font-mono">payment_method_types</code> pode impor a sua própria lista.
+            OBSERVED: esta configuração governa métodos dinâmicos da conta Stripe. Um checkout externo que envie explicitamente <code className="font-mono">payment_method_types</code> pode impor a sua própria lista. Métodos com preferência ON podem continuar UNAVAILABLE até a Stripe considerar a conta/contexto elegível.
           </span>
         </div>
       )}

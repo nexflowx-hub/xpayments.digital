@@ -57,12 +57,62 @@ import { toast } from "sonner";
 import type { StoreControlItem, WebhookV2 } from "@/types/vnext";
 
 const EVENTS = [
-  { id: "payment.succeeded", label: "payment.succeeded", description: "Pagamento confirmado." },
-  { id: "payment.failed", label: "payment.failed", description: "Pagamento recusado ou falhou." },
-  { id: "refund.created", label: "refund.created", description: "Reembolso criado." },
-  { id: "dispute.opened", label: "dispute.opened", description: "Disputa/chargeback aberto." },
-  { id: "payout.created", label: "payout.created", description: "Payout criado no provider." },
+  {
+    id: "checkout.session.completed",
+    label: "checkout.session.completed",
+    description: "Checkout Session concluída com sucesso.",
+  },
+  {
+    id: "checkout.session.async_payment_succeeded",
+    label: "checkout.session.async_payment_succeeded",
+    description: "Pagamento assíncrono da Checkout Session concluído com sucesso.",
+  },
+  {
+    id: "checkout.session.async_payment_failed",
+    label: "checkout.session.async_payment_failed",
+    description: "Pagamento assíncrono da Checkout Session falhou.",
+  },
+  {
+    id: "checkout.session.expired",
+    label: "checkout.session.expired",
+    description: "Checkout Session expirou sem conclusão.",
+  },
+  {
+    id: "payment_intent.succeeded",
+    label: "payment_intent.succeeded",
+    description: "PaymentIntent concluído com sucesso.",
+  },
+  {
+    id: "payment_intent.payment_failed",
+    label: "payment_intent.payment_failed",
+    description: "Tentativa de pagamento do PaymentIntent falhou.",
+  },
+  {
+    id: "charge.refunded",
+    label: "charge.refunded",
+    description: "Charge reembolsada total ou parcialmente.",
+  },
+  {
+    id: "charge.dispute.created",
+    label: "charge.dispute.created",
+    description: "Nova disputa/chargeback criada para uma Charge.",
+  },
+  {
+    id: "charge.dispute.closed",
+    label: "charge.dispute.closed",
+    description: "Disputa/chargeback encerrada.",
+  },
+  {
+    id: "refund.created",
+    label: "refund.created",
+    description: "Novo objeto Refund criado.",
+  },
 ] as const;
+
+const DEFAULT_EVENTS = [
+  "payment_intent.succeeded",
+  "payment_intent.payment_failed",
+];
 
 export default function WebhooksVNextPage() {
   const qc = useQueryClient();
@@ -307,22 +357,30 @@ function VNextWebhookCard({
           </div>
 
           <div className="mt-4 rounded-lg border border-border/50 bg-background/30 p-3">
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Signing secret</p>
-            <div className="mt-1.5 flex items-center gap-2">
-              <code className="min-w-0 flex-1 truncate rounded bg-black/30 px-2 py-1 font-mono text-xs text-zinc-300">
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Stripe signing secret</p>
+            <div className="mt-1.5 flex flex-col gap-2 sm:flex-row sm:items-center">
+              <code className="min-w-0 flex-1 truncate rounded bg-black/30 px-2 py-1.5 font-mono text-xs text-zinc-300">
                 {secret ?? (webhook.secretAvailable ? "whsec_••••••••••••" : "Unavailable")}
               </code>
               {secret ? (
-                <>
-                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onHideSecret}><EyeOff className="h-3.5 w-3.5" /></Button>
-                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => copy(secret)}><Copy className="h-3.5 w-3.5" /></Button>
-                </>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" className="gap-1.5" onClick={onHideSecret}>
+                    <EyeOff className="h-3.5 w-3.5" /> Ocultar
+                  </Button>
+                  <Button size="sm" variant="outline" className="gap-1.5" onClick={() => copy(secret)}>
+                    <Copy className="h-3.5 w-3.5" /> Copiar whsec
+                  </Button>
+                </div>
               ) : webhook.secretAvailable ? (
-                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onReveal} disabled={revealing}>
+                <Button size="sm" variant="outline" className="gap-1.5" onClick={onReveal} disabled={revealing}>
                   {revealing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
+                  Mostrar whsec
                 </Button>
               ) : null}
             </div>
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              O Merchant autenticado pode revelar e copiar esta chave sempre que necessário para validar assinaturas do respetivo endpoint.
+            </p>
           </div>
         </div>
 
@@ -376,7 +434,7 @@ function WebhookEditorDialog({
 }) {
   const [storeId, setStoreId] = React.useState("");
   const [url, setUrl] = React.useState("");
-  const [events, setEvents] = React.useState<string[]>(["payment.succeeded", "payment.failed"]);
+  const [events, setEvents] = React.useState<string[]>(DEFAULT_EVENTS);
 
   React.useEffect(() => {
     if (!open) return;
@@ -387,7 +445,7 @@ function WebhookEditorDialog({
     } else {
       setStoreId(stores[0]?.id ?? "");
       setUrl("");
-      setEvents(["payment.succeeded", "payment.failed"]);
+      setEvents(DEFAULT_EVENTS);
     }
   }, [open, mode, webhook, stores]);
 
@@ -402,7 +460,7 @@ function WebhookEditorDialog({
     onSuccess: (data) => {
       if (mode === "create" && "signingSecret" in data) {
         onSaved({ id: data.id, value: data.signingSecret });
-        toast.success("Endpoint criado e sincronizado no provider");
+        toast.success("Endpoint criado e sincronizado no provider. A whsec está disponível para copiar.");
       } else {
         onSaved(null);
         toast.success("Endpoint atualizado no provider");
@@ -420,13 +478,13 @@ function WebhookEditorDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>{mode === "create" ? "Novo endpoint V2" : "Editar endpoint V2"}</DialogTitle>
           <DialogDescription>
             {mode === "create"
-              ? "Para Stores OBSERVED, esta operação cria o webhook diretamente no provider e guarda o signing secret cifrado."
-              : "URL, eventos e estado remoto permanecem sincronizados com o provider."}
+              ? "Para Stores OBSERVED, esta operação cria o webhook diretamente na Stripe, permite escolher os eventos Stripe e guarda o signing secret cifrado com acesso posterior pelo Merchant."
+              : "URL e eventos Stripe permanecem sincronizados diretamente com o endpoint remoto."}
           </DialogDescription>
         </DialogHeader>
 
@@ -449,16 +507,23 @@ function WebhookEditorDialog({
           </div>
 
           <div className="flex flex-col gap-2">
-            <Label>Eventos</Label>
-            {EVENTS.map((event) => (
-              <label key={event.id} className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
-                <Checkbox checked={events.includes(event.id)} onCheckedChange={() => toggleEvent(event.id)} className="mt-0.5" />
-                <div>
-                  <code className="font-mono text-xs font-medium">{event.label}</code>
-                  <p className="text-[11px] text-muted-foreground">{event.description}</p>
-                </div>
-              </label>
-            ))}
+            <div>
+              <Label>Eventos Stripe</Label>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Selecione um ou vários eventos a subscrever neste endpoint da Store OBSERVED.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
+              {EVENTS.map((event) => (
+                <label key={event.id} className="flex cursor-pointer items-start gap-2.5 rounded-lg border border-border/60 bg-muted/20 px-3 py-2">
+                  <Checkbox checked={events.includes(event.id)} onCheckedChange={() => toggleEvent(event.id)} className="mt-0.5" />
+                  <div className="min-w-0">
+                    <code className="break-all font-mono text-xs font-medium">{event.label}</code>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">{event.description}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
           </div>
         </div>
 

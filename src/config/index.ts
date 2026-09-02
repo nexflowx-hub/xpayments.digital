@@ -14,6 +14,7 @@ import {
   Code2,
   KeyRound,
   Webhook,
+  CreditCard,
   Store as StoreIcon,
   Settings,
   LifeBuoy,
@@ -69,6 +70,7 @@ export const merchantNav: NavSection[] = [
     id: "commerce", label: "Commerce", tKey: "sec.commerce",
     items: [
       { id: "stores", label: "Stores", tKey: "nav.stores", icon: Store },
+      { id: "payment-methods", label: "Payment Methods", icon: CreditCard },
       { id: "products", label: "Products", tKey: "nav.products", icon: Package },
       { id: "customers", label: "Customers", tKey: "nav.customers", icon: Users },
       { id: "subscriptions", label: "Subscriptions", tKey: "nav.subscriptions", icon: Repeat },

@@ -4,6 +4,8 @@ import type {
   CreateWebhookV2Result,
   StoreControlItem,
   StoreIntegration,
+  StorePaymentMethods,
+  UpdateStorePaymentMethodPayload,
   UpdateWebhookV2Payload,
   WebhookV2,
 } from "@/types/vnext";
@@ -19,6 +21,21 @@ export const storeControlApi = {
     requestData<StoreIntegration>({
       url: `stores/${storeId}/integration`,
       method: "GET",
+    }),
+};
+
+export const paymentMethodsApi = {
+  list: (storeId: string) =>
+    requestData<StorePaymentMethods>({
+      url: `stores/${storeId}/payment-methods`,
+      method: "GET",
+    }),
+
+  update: (storeId: string, methodId: string, payload: UpdateStorePaymentMethodPayload) =>
+    requestData<StorePaymentMethods>({
+      url: `stores/${storeId}/payment-methods/${methodId}`,
+      method: "PUT",
+      data: payload,
     }),
 };
 
@@ -59,5 +76,6 @@ export const webhooksV2Api = {
 
 export const vnextApi = {
   storeControl: storeControlApi,
+  paymentMethods: paymentMethodsApi,
   webhooksV2: webhooksV2Api,
 };

@@ -52,6 +52,41 @@ export interface StoreControlItem {
   integration: StoreIntegration;
 }
 
+export type PaymentMethodState = "ACTIVE" | "DISABLED" | "UNAVAILABLE" | "LOCKED";
+
+export interface StorePaymentMethod {
+  id: string;
+  label: string;
+  category: string;
+  status: PaymentMethodState;
+  available: boolean;
+  enabled: boolean;
+  editable: boolean;
+  preference: "on" | "off" | "none" | string;
+  value: "on" | "off" | string;
+  overridable: boolean | null;
+  reason?: string | null;
+}
+
+export interface StorePaymentMethods {
+  storeId: string;
+  storeCode: string;
+  storeName: string;
+  provider: string;
+  providerAccountRef: string | null;
+  configurationId: string | null;
+  configurationName: string | null;
+  isDefault: boolean;
+  livemode: boolean;
+  source: "STRIPE_PAYMENT_METHOD_CONFIGURATION" | string;
+  methods: StorePaymentMethod[];
+  refreshedAt: string;
+}
+
+export interface UpdateStorePaymentMethodPayload {
+  enabled: boolean;
+}
+
 export type WebhookV2Status = "ACTIVE" | "PAUSED" | "DISABLED";
 
 export interface WebhookV2 {

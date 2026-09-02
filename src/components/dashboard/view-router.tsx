@@ -22,12 +22,6 @@ function PageFallback() {
   );
 }
 
-/**
- * Per-view error boundary — if a single page (e.g. Analytics) crashes,
- * only that view shows an error card. The sidebar, topbar, and navigation
- * remain fully functional. The user can click another nav item to navigate
- * away, or hit "Retry" to re-mount the page.
- */
 class ViewErrorBoundary extends React.Component<
   { children: React.ReactNode; viewKey: string },
   { hasError: boolean; error: Error | null }
@@ -46,7 +40,6 @@ class ViewErrorBoundary extends React.Component<
   }
 
   componentDidUpdate(prevProps: { viewKey: string }) {
-    // Reset error when the view changes (user navigates to another page)
     if (prevProps.viewKey !== this.props.viewKey && this.state.hasError) {
       this.setState({ hasError: false, error: null });
     }
@@ -72,12 +65,9 @@ class ViewErrorBoundary extends React.Component<
             </svg>
           </div>
           <div>
-            <p className="text-sm font-semibold text-foreground">
-              Verificar ligação à API
-            </p>
+            <p className="text-sm font-semibold text-foreground">Verificar ligação à API</p>
             <p className="mt-1 max-w-xs text-xs text-muted-foreground">
-              Não foi possível carregar esta página. Pode continuar a navegar
-              no menu lateral ou tentar novamente.
+              Não foi possível carregar esta página. Pode continuar a navegar no menu lateral ou tentar novamente.
             </p>
           </div>
           <button
@@ -93,7 +83,6 @@ class ViewErrorBoundary extends React.Component<
   }
 }
 
-// Lazy-load every page for code-splitting
 const lazy = (loader: () => Promise<{ default: React.ComponentType }>) =>
   dynamic(loader, { loading: () => <PageFallback />, ssr: false });
 
@@ -110,6 +99,7 @@ const merchantPages: Record<string, React.ComponentType> = {
   "finance-payouts": lazy(() => import("@/components/merchant/finance-payouts")),
   "finance-stores": lazy(() => import("@/components/merchant/finance-stores")),
   stores: lazy(() => import("@/components/merchant/stores")),
+  "payment-methods": lazy(() => import("@/components/merchant/payment-methods-vnext")),
   products: lazy(() => import("@/components/merchant/products")),
   customers: lazy(() => import("@/components/merchant/customers")),
   subscriptions: lazy(() => import("@/components/merchant/subscriptions")),

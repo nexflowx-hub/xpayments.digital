@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import type { StoreControlItem, StorePaymentMethod, StorePaymentMethodsResponse } from "@/types/vnext";
+import type { StoreControlItem, StorePaymentMethod, StorePaymentMethods } from "@/types/vnext";
 
 type FilterState = "ALL" | "ACTIVE" | "DISABLED" | "UNAVAILABLE";
 
@@ -86,7 +86,7 @@ export function StorePaymentMethodsPanel({
     mutationFn: async (enabled: boolean) => {
       if (!query.data) throw new Error("Payment Methods ainda não carregados");
       const targets = query.data.methods.filter((method) => method.editable && method.enabled !== enabled);
-      let latest: StorePaymentMethodsResponse = query.data;
+      let latest: StorePaymentMethods = query.data;
       for (const method of targets) {
         latest = await vnextApi.paymentMethods.update(store.id, method.id, { enabled });
       }

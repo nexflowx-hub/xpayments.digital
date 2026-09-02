@@ -5,6 +5,7 @@ import { Webhook, History, ServerCog } from "lucide-react";
 import { useStoreControl } from "@/hooks/vnext";
 import WebhooksVNextPage from "@/components/merchant/webhooks-vnext";
 import WebhooksLegacyPage from "@/components/merchant/webhooks-legacy";
+import WebhooksLegacyScopedPage from "@/components/merchant/webhooks-legacy-scoped";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,18 +14,27 @@ export default function WebhooksPage() {
   const { data: stores = [], isLoading, isError } = useStoreControl();
   const [surface, setSurface] = React.useState<"vnext" | "legacy">("vnext");
 
-  const hasVNext = stores.some(
-    (store) =>
-      store.integration.runtimeGeneration === "VNEXT" &&
-      (store.integration.processingMode === "OBSERVED" ||
-        store.integration.processingMode === "ORCHESTRATED"),
+  const vnextStores = React.useMemo(
+    () => stores.filter(
+      (store) =>
+        store.integration.runtimeGeneration === "VNEXT" &&
+        (store.integration.processingMode === "OBSERVED" ||
+          store.integration.processingMode === "ORCHESTRATED"),
+    ),
+    [stores],
   );
 
-  const hasLegacy = stores.some(
-    (store) =>
-      store.integration.runtimeGeneration === "LEGACY" ||
-      store.integration.webhookManagement === "LEGACY",
+  const legacyStores = React.useMemo(
+    () => stores.filter(
+      (store) =>
+        store.integration.runtimeGeneration === "LEGACY" ||
+        store.integration.webhookManagement === "LEGACY",
+    ),
+    [stores],
   );
+
+  const hasVNext = vnextStores.length > 0;
+  const hasLegacy = legacyStores.length > 0;
 
   React.useEffect(() => {
     if (!hasVNext && hasLegacy) setSurface("legacy");
@@ -50,7 +60,7 @@ export default function WebhooksPage() {
   /*
    * Backwards-compatibility circuit breaker:
    * if the additive VNext Control Plane is unavailable,
-   * preserve the production legacy webhook manager.
+   * preserve the production legacy webhook manager exactly.
    */
   if (isError || !hasVNext) {
     return <WebhooksLegacyPage />;
@@ -68,7 +78,7 @@ export default function WebhooksPage() {
           <div>
             <p className="text-sm font-medium">Webhook management mode</p>
             <p className="text-[11px] text-muted-foreground">
-              O XPayments detectou Stores VNext e Legacy neste Merchant. Escolha a superfície que pretende gerir.
+              O Store Control Plane detetou Stores VNext e Legacy. Cada CRUD fica estritamente limitado ao respetivo Store Mode.
             </p>
           </div>
         </div>
@@ -80,7 +90,7 @@ export default function WebhooksPage() {
             className="gap-1.5"
             onClick={() => setSurface("vnext")}
           >
-            <ServerCog className="h-3.5 w-3.5" /> VNext
+            <ServerCog className="h-3.5 w-3.5" /> VNext ({vnextStores.length})
           </Button>
           <Button
             size="sm"
@@ -88,12 +98,16 @@ export default function WebhooksPage() {
             className="gap-1.5"
             onClick={() => setSurface("legacy")}
           >
-            <History className="h-3.5 w-3.5" /> Legacy
+            <History className="h-3.5 w-3.5" /> Legacy ({legacyStores.length})
           </Button>
         </div>
       </Card>
 
-      {surface === "vnext" ? <WebhooksVNextPage /> : <WebhooksLegacyPage />}
+      {surface === "vnext" ? (
+        <WebhooksVNextPage />
+      ) : (
+        <WebhooksLegacyScopedPage allowedStoreIds={legacyStores.map((store) => store.id)} />
+      )}
     </div>
   );
 }

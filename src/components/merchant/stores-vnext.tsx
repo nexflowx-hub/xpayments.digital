@@ -28,6 +28,7 @@ import { vnextApi } from "@/lib/api/vnext";
 import { xpApi } from "@/lib/api/xpApi";
 import { PageHeader, ErrorState } from "@/components/shared";
 import { FinanceCurrencySelector } from "@/components/shared/finance-currency-selector";
+import { StorePaymentMethodsPanel } from "@/components/merchant/payment-methods-vnext";
 import { useFinanceCurrencyStore } from "@/stores/finance-currency";
 import { StatusBadge } from "@/components/shared/badges";
 import { Card } from "@/components/ui/card";
@@ -290,6 +291,10 @@ function StoreManager({ store, open, onOpenChange }: { store: StoreControlItem |
             <InfoRow label="Legacy compatibility" value={integration.legacyCompatibility ? "ON" : "OFF"} />
             <InfoRow label="Currency" value={store.currency} />
           </InfoCard>
+        </div>
+
+        <div className="border-t border-border/60 pt-4">
+          <StorePaymentMethodsPanel store={store} embedded />
         </div>
 
         <div className="border-t border-border/60 pt-4">

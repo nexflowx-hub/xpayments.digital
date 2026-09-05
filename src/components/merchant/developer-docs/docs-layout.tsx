@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DocsSidebar, useActiveSection } from "./docs-sidebar";
 import { S2SCertifiedSection } from "./s2s-certified-section";
+import { S2SSandboxSection } from "./s2s-sandbox-section";
 import { MaintenanceSection } from "./maintenance-section";
 
 export default function DocsLayout() {
@@ -66,6 +67,7 @@ export default function DocsLayout() {
 
         <main className="min-w-0 flex-1 space-y-12 pb-8">
           <S2SCertifiedSection />
+          <S2SSandboxSection />
 
           <MaintenanceSection
             id="checkout"

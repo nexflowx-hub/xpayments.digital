@@ -42,12 +42,22 @@ export default function DocsLayout() {
             Server-to-Server
           </Badge>
         </div>
-        <Badge
-          variant="outline"
-          className="border-emerald-500/25 bg-emerald-500/10 text-emerald-400 text-[11px]"
-        >
-          API v1 • S2S Stable
-        </Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 gap-1.5 text-[11px]"
+            onClick={() => window.open("/docs/xpayments-api-s2s-guide.html", "_blank")}
+          >
+            <ExternalLink className="h-3 w-3" /> Guia completo S2S
+          </Button>
+          <Badge
+            variant="outline"
+            className="border-emerald-500/25 bg-emerald-500/10 text-emerald-400 text-[11px]"
+          >
+            API v1 • S2S Stable
+          </Badge>
+        </div>
       </div>
 
       <Card className="border-emerald-500/20 bg-emerald-500/5 p-4 backdrop-blur-xl">

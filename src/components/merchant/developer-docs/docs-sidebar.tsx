@@ -10,6 +10,7 @@ import {
   Zap,
   AlertTriangle,
   Activity,
+  TestTube2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -26,6 +27,7 @@ export const NAV_SECTIONS = [
   { id: "payments", label: "Criar Pagamento", icon: CreditCard, state: "active" },
   { id: "methods", label: "Métodos S2S", icon: Wallet, state: "active" },
   { id: "webhooks", label: "Webhooks Merchant", icon: Zap, state: "active" },
+  { id: "sandbox", label: "Sandbox e Simuladores", icon: TestTube2, state: "active" },
   { id: "checkout", label: "Checkout", icon: ExternalLink, state: "maintenance" },
   { id: "errors", label: "Referência de Erros", icon: AlertTriangle, state: "maintenance" },
   { id: "security", label: "Guia de Segurança", icon: ShieldCheck, state: "maintenance" },

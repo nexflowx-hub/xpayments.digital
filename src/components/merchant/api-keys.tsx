@@ -1,519 +1,228 @@
 "use client";
 
 import * as React from "react";
-import { motion } from "framer-motion";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  Eye, EyeOff, KeyRound, Plus, Copy, Trash2, Loader2, ShieldAlert, CheckCircle2, Store,
-} from "lucide-react";
+import { Copy, Eye, KeyRound, Loader2, Plus, ShieldAlert, Store, Trash2 } from "lucide-react";
 import { useApiKeys, useStores } from "@/hooks/queries";
 import { xpApi } from "@/lib/api/xpApi";
-import { PageHeader, EmptyState, fadeUp } from "@/components/shared";
-import { useT } from "@/lib/i18n";
+import { PageHeader, EmptyState } from "@/components/shared";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import {
-  Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
-} from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog, AlertDialogTrigger, AlertDialogContent, AlertDialogHeader,
-  AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel,
-  AlertDialogAction,
-} from "@/components/ui/alert-dialog";
-import { cn, formatDate, timeAgo } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
-const ALL_SCOPES = ["read", "write", "payments", "payouts", "webhooks"] as const;
-const SCOPE_LABELS: Record<string, string> = {
-  read: "Read", write: "Write", payments: "Payments", payouts: "Payouts", webhooks: "Webhooks",
-};
+const SCOPES = [
+  { id: "payments_write", label: "Payments S2S · write", recommended: true },
+  { id: "read", label: "Read", recommended: false },
+  { id: "write", label: "Write (legacy)", recommended: false },
+  { id: "payments", label: "Payments (legacy)", recommended: false },
+  { id: "payouts", label: "Payouts", recommended: false },
+  { id: "webhooks", label: "Webhooks", recommended: false },
+] as const;
 
 type EnvFilter = "all" | "live" | "test";
 
 export default function ApiKeysPage() {
-  const t = useT();
-  const { data, isLoading } = useApiKeys();
-  const { data: stores } = useStores();
+  const { data: keys = [], isLoading } = useApiKeys();
+  const { data: stores = [] } = useStores();
   const qc = useQueryClient();
-  const [envFilter, setEnvFilter] = React.useState<EnvFilter>("all");
+
+  const [filter, setFilter] = React.useState<EnvFilter>("all");
   const [createOpen, setCreateOpen] = React.useState(false);
-  const [revealedKey, setRevealedKey] = React.useState<{ fullKey: string; name: string; environment: string; scopes: string[] } | null>(null);
-  const [confirmSaved, setConfirmSaved] = React.useState(false);
-  const [revealedKeyIds, setRevealedKeyIds] = React.useState<Set<string>>(new Set());
-  const [revealedKeys, setRevealedKeys] = React.useState<Record<string, string>>({});
-  const [revealLoadingId, setRevealLoadingId] = React.useState<string | null>(null);
-
-  const toggleReveal = (id: string) =>
-    setRevealedKeyIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-
-  // Create form state
   const [name, setName] = React.useState("");
   const [storeId, setStoreId] = React.useState("");
   const [environment, setEnvironment] = React.useState<"live" | "test">("test");
-  const [scopes, setScopes] = React.useState<string[]>(["read", "payments"]);
+  const [scopes, setScopes] = React.useState<string[]>(["payments_write"]);
+  const [createdKey, setCreatedKey] = React.useState<string | null>(null);
+  const [revealed, setRevealed] = React.useState<Record<string, string>>({});
+  const [revealId, setRevealId] = React.useState<string | null>(null);
 
-  const storeList = stores ?? [];
+  const resetForm = () => {
+    setName("");
+    setStoreId("");
+    setEnvironment("test");
+    setScopes(["payments_write"]);
+  };
 
   const createMutation = useMutation({
-    mutationFn: () => xpApi.apiKeys.create({ name, environment, scopes, storeId }),
+    mutationFn: () => xpApi.apiKeys.create({ name, storeId, environment, scopes }),
     onSuccess: (key) => {
       qc.invalidateQueries({ queryKey: ["api-keys"] });
       setCreateOpen(false);
-      setName("");
-      setStoreId("");
-      setScopes(["read", "payments"]);
-      setEnvironment("test");
-      if (key.fullKey) {
-        setRevealedKey({
-          fullKey: key.fullKey,
-          name: key.name,
-          environment: key.environment,
-          scopes: key.scopes,
-        });
-        setConfirmSaved(false);
-      }
-      toast.success("API key created");
+      setCreatedKey(key.fullKey ?? null);
+      resetForm();
+      toast.success("API key criada");
     },
-    onError: () => toast.error("Could not create API key"),
+    onError: (error: { message?: string }) => toast.error(error?.message || "Não foi possível criar a API key"),
   });
 
   const revokeMutation = useMutation({
     mutationFn: (id: string) => xpApi.apiKeys.revoke(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["api-keys"] });
-      toast.success("API key revoked");
+      toast.success("API key revogada");
     },
-    onError: () => toast.error("Could not revoke key"),
+    onError: (error: { message?: string }) => toast.error(error?.message || "Não foi possível revogar a chave"),
   });
 
-  const keys = data ?? [];
-  const filtered = keys.filter((k) => envFilter === "all" || k.environment === envFilter);
-
-  const toggleScope = (s: string) =>
-    setScopes((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
-
-  const copyToClipboard = (text: string, label = "Copied") => {
-    if (typeof navigator !== "undefined" && navigator.clipboard) {
-      navigator.clipboard.writeText(text).then(() => toast.success(label));
-    }
+  const copy = async (value: string) => {
+    await navigator.clipboard.writeText(value);
+    toast.success("Copiado");
   };
 
-  // Helper: find store name by storeId
-  const getStoreName = (sid?: string) => storeList.find((s) => s.id === sid)?.name ?? "—";
-  const getStoreCode = (sid?: string) => storeList.find((s) => s.id === sid)?.storeCode ?? "—";
+  const toggleScope = (scope: string) => {
+    setScopes((current) => current.includes(scope) ? current.filter((item) => item !== scope) : [...current, scope]);
+  };
+
+  const filtered = keys.filter((key) => filter === "all" || key.environment === filter);
+  const valid = Boolean(name.trim() && storeId && scopes.length > 0);
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title={t("nav.apiKeys")}
-        description="Manage credentials used to authenticate API requests."
+        title="API Keys"
+        description="Credenciais por Store para integrações XPayments. O endpoint S2S /payments/charge exige o scope payments_write."
         actions={
-          <Button size="sm" className="gap-1.5" onClick={() => setCreateOpen(true)} disabled={storeList.length === 0}>
+          <Button size="sm" className="gap-1.5" onClick={() => setCreateOpen(true)} disabled={stores.length === 0}>
             <Plus className="h-3.5 w-3.5" /> Create API key
           </Button>
         }
       />
 
-      {/* Environment filter + warning */}
-      <motion.div {...fadeUp} className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="inline-flex items-center gap-1 rounded-lg border border-border/60 bg-card/60 p-1 backdrop-blur-xl">
-          {(["all", "live", "test"] as EnvFilter[]).map((e) => (
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="inline-flex w-fit items-center gap-1 rounded-lg border border-border/60 bg-card/60 p-1">
+          {(["all", "live", "test"] as EnvFilter[]).map((item) => (
             <button
-              key={e}
-              onClick={() => setEnvFilter(e)}
-              className={cn(
-                "rounded-md px-3 py-1 text-xs font-medium capitalize transition",
-                envFilter === e ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
-              )}
+              key={item}
+              onClick={() => setFilter(item)}
+              className={`rounded-md px-3 py-1 text-xs font-medium transition ${filter === item ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
             >
-              {e === "all" ? "All keys" : `${e === "live" ? "Live" : "Test"} only`}
+              {item === "all" ? "All" : item === "live" ? "Live" : "Test"}
             </button>
           ))}
         </div>
         <div className="flex items-center gap-2 rounded-lg border border-amber-500/25 bg-amber-500/8 px-3 py-2 text-xs text-amber-300">
-          <ShieldAlert className="h-3.5 w-3.5" />
-          Never share live secret keys. Rotate immediately on suspected exposure.
+          <ShieldAlert className="h-3.5 w-3.5" /> Nunca exponha xp_live_ ou xp_test_ no browser ou código público.
         </div>
-      </motion.div>
+      </div>
 
-      {storeList.length === 0 && (
+      {createdKey && (
+        <Card className="border-emerald-500/25 bg-emerald-500/5 p-4">
+          <p className="text-xs font-semibold text-emerald-300">Nova API key criada</p>
+          <p className="mt-1 text-[11px] text-muted-foreground">Copie e guarde agora num secret manager do servidor.</p>
+          <div className="mt-3 flex items-center gap-2">
+            <code className="min-w-0 flex-1 truncate rounded bg-black/30 px-2 py-1.5 font-mono text-xs">{createdKey}</code>
+            <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => copy(createdKey)}><Copy className="h-3.5 w-3.5" /></Button>
+          </div>
+        </Card>
+      )}
+
+      {stores.length === 0 && (
         <div className="flex items-center gap-2 rounded-lg border border-amber-500/25 bg-amber-500/8 px-4 py-3 text-sm text-amber-300">
-          <Store className="h-4 w-4" />
-          You need at least one store before creating API keys. Go to Stores to create one.
+          <Store className="h-4 w-4" /> É necessária pelo menos uma Store antes de criar API Keys.
         </div>
       )}
 
-      {/* Keys table */}
       <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h3 className="flex items-center gap-2 text-sm font-semibold">
-              <KeyRound className="h-4 w-4 text-primary" />
-              Your API keys
-            </h3>
-            <p className="text-xs text-muted-foreground">{filtered.length} keys · {keys.filter((k) => k.environment === "live").length} live</p>
+            <h3 className="flex items-center gap-2 text-sm font-semibold"><KeyRound className="h-4 w-4 text-primary" /> Your API keys</h3>
+            <p className="mt-1 text-xs text-muted-foreground">{filtered.length} chave(s) neste filtro</p>
           </div>
         </div>
 
         {isLoading ? (
-          <div className="flex flex-col gap-2">
-            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
-          </div>
+          <p className="py-8 text-center text-sm text-muted-foreground">A carregar…</p>
         ) : filtered.length === 0 ? (
-          <EmptyState
-            icon={KeyRound}
-            title="No API keys yet"
-            description="Create your first key to start integrating XPayments."
-            action={storeList.length > 0 ? <Button size="sm" onClick={() => setCreateOpen(true)} className="gap-1.5"><Plus className="h-3.5 w-3.5" /> New key</Button> : undefined}
-          />
+          <EmptyState icon={KeyRound} title="No API keys yet" description="Crie uma chave por Store e ambiente para iniciar a integração." />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border/60 text-left text-xs text-muted-foreground">
-                  <th className="pb-2 font-medium">Store</th>
-                  <th className="pb-2 font-medium">Name</th>
-                  <th className="pb-2 font-medium">Key Preview</th>
-                  <th className="pb-2 font-medium">Environment</th>
-                  <th className="pb-2 font-medium">Scopes</th>
-                  <th className="pb-2 font-medium">Created</th>
-                  <th className="pb-2 font-medium">Last used</th>
-                  <th className="pb-2 text-right font-medium">Actions</th>
-                </tr>
-              </thead>
+            <table className="w-full min-w-[860px] text-sm">
+              <thead><tr className="border-b border-border/60 text-left text-xs text-muted-foreground"><th className="pb-2 font-medium">Store</th><th className="pb-2 font-medium">Name</th><th className="pb-2 font-medium">Key</th><th className="pb-2 font-medium">Environment</th><th className="pb-2 font-medium">Scopes</th><th className="pb-2 text-right font-medium">Actions</th></tr></thead>
               <tbody>
-                {filtered.map((k) => (
-                  <tr key={k.id} className="border-b border-border/30 transition hover:bg-muted/30">
-                    <td className="py-3">
-                      <p className="font-medium">{k.storeName ?? getStoreName(k.storeId)}</p>
-                      <p className="text-[10px] font-mono text-muted-foreground">{k.storeCode ?? getStoreCode(k.storeId)}</p>
-                    </td>
-                    <td className="py-3 font-medium">{k.name}</td>
-                    <td className="py-3">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-mono text-xs text-muted-foreground">
-                          {(() => {
-                            const keyValue = k.fullKey ?? k.keyPreview ?? `${k.prefix}••••${k.lastFour}`;
-                            const revealedValue = revealedKeys[k.id];
-                            if (revealedKeyIds.has(k.id) && revealedValue) {
-                              return revealedValue;
-                            }
-                            return k.keyPreview ?? `${k.prefix}••••${k.lastFour}`;
-                          })()}
-                        </span>
-                        {(revealedKeys[k.id] || k.fullKey) ? (
-                          <button
-                            onClick={() => toggleReveal(k.id)}
-                            className="text-muted-foreground transition hover:text-foreground"
-                            title={revealedKeyIds.has(k.id) ? "Hide" : "Reveal"}
-                          >
-                            {revealedKeyIds.has(k.id) ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-                          </button>
-                        ) : (
-                          <span
-                            className="text-muted-foreground/50"
-                            title="The full key is only available at creation time."
-                          >
-                            <Eye className="h-3 w-3" />
-                          </span>
-                        )}
-                        <button
-                          onClick={() => copyToClipboard(
-                            revealedKeyIds.has(k.id) && revealedKeys[k.id]
-                              ? revealedKeys[k.id]
-                              : k.keyPreview ?? `${k.prefix}••••${k.lastFour}`,
-                            "Key copied"
-                          )}
-                          className="text-muted-foreground transition hover:text-foreground"
-                          title="Copy"
-                        >
-                          <Copy className="h-3 w-3" />
-                        </button>
-                      </div>
-                    </td>
-                    <td className="py-3">
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "gap-1 font-medium",
-                          k.environment === "live"
-                            ? "border-emerald-500/25 bg-emerald-500/12 text-emerald-400"
-                            : "border-amber-500/25 bg-amber-500/12 text-amber-400",
-                        )}
-                      >
-                        {k.environment === "live" ? "Live" : "Test"}
-                      </Badge>
-                    </td>
-                    <td className="py-3">
-                      <div className="flex flex-wrap gap-1">
-                        {(k?.scopes ?? []).map((s) => (
-                          <Badge key={s} variant="outline" className="border-border/60 bg-muted/30 text-[10px] font-medium">
-                            {SCOPE_LABELS[s] ?? s}
-                          </Badge>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="py-3 text-xs text-muted-foreground">{formatDate(k.createdAt)}</td>
-                    <td className="py-3 text-xs text-muted-foreground">
-                      {k.lastUsedAt ? timeAgo(k.lastUsedAt) : "Never"}
-                    </td>
-                    <td className="py-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
+                {filtered.map((key) => {
+                  const value = revealed[key.id] ?? key.fullKey ?? key.keyPreview ?? `${key.prefix}••••${key.lastFour}`;
+                  return (
+                    <tr key={key.id} className="border-b border-border/30">
+                      <td className="py-3"><p className="font-medium">{key.storeName ?? stores.find((s) => s.id === key.storeId)?.name ?? "—"}</p><p className="font-mono text-[10px] text-muted-foreground">{key.storeCode ?? stores.find((s) => s.id === key.storeId)?.storeCode ?? "—"}</p></td>
+                      <td className="py-3 font-medium">{key.name}</td>
+                      <td className="py-3"><code className="font-mono text-xs text-muted-foreground">{value}</code></td>
+                      <td className="py-3"><Badge variant="outline" className={key.environment === "live" ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-300" : "border-amber-500/25 bg-amber-500/10 text-amber-300"}>{key.environment}</Badge></td>
+                      <td className="py-3"><div className="flex flex-wrap gap-1">{(key.scopes ?? []).map((scope) => <Badge key={scope} variant="outline" className="font-mono text-[10px]">{scope}</Badge>)}</div></td>
+                      <td className="py-3 text-right"><div className="flex justify-end gap-1">
                         <Button
-                          variant="ghost"
                           size="sm"
-                          className="gap-1 text-primary hover:bg-primary/10"
-                          disabled={revealLoadingId === k.id}
+                          variant="ghost"
+                          className="gap-1"
+                          disabled={revealId === key.id}
                           onClick={async () => {
-                            setRevealLoadingId(k.id);
+                            setRevealId(key.id);
                             try {
-                              const revealed = await xpApi.apiKeys.reveal(k.id);
-                              if (revealed.fullKey) {
-                                setRevealedKeys((prev) => ({ ...prev, [k.id]: revealed.fullKey }));
-                                setRevealedKeyIds((prev) => { const n = new Set(prev); n.add(k.id); return n; });
-                                toast.success("Key revealed — copy it now");
-                              } else {
-                                toast.error("The full key is only available at creation time.");
-                              }
+                              const result = await xpApi.apiKeys.reveal(key.id);
+                              if (result.fullKey) setRevealed((current) => ({ ...current, [key.id]: result.fullKey }));
                             } catch {
-                              toast.error("Could not reveal key");
+                              toast.error("Não foi possível revelar a chave");
                             } finally {
-                              setRevealLoadingId(null);
+                              setRevealId(null);
                             }
                           }}
                         >
-                          {revealLoadingId === k.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
-                          View
+                          {revealId === key.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />} View
                         </Button>
-                        <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="sm" className="gap-1 text-rose-400 hover:bg-rose-500/10 hover:text-rose-300">
-                            <Trash2 className="h-3.5 w-3.5" /> Revoke
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Revoke this API key?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              The key <span className="font-mono">{k.prefix}••••{k.lastFour}</span> ({k.name}) will be permanently revoked. This cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              className="bg-rose-600 text-white hover:bg-rose-600/90"
-                              onClick={() => revokeMutation.mutate(k.id)}
-                            >
-                              {revokeMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Revoke key"}
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                        <Button size="sm" variant="ghost" className="gap-1" onClick={() => copy(value)}><Copy className="h-3.5 w-3.5" /> Copy</Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="gap-1 text-rose-400"
+                          disabled={revokeMutation.isPending}
+                          onClick={() => {
+                            if (window.confirm(`Revogar a API key ${key.name}?`)) revokeMutation.mutate(key.id);
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" /> Revoke
+                        </Button>
+                      </div></td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
       </Card>
 
-      {/* Create dialog */}
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={createOpen} onOpenChange={(open) => { setCreateOpen(open); if (!open) resetForm(); }}>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Create API key</DialogTitle>
-            <DialogDescription>Generate a new key for server-side API access.</DialogDescription>
+            <DialogDescription>Associe a chave à Store e ao ambiente corretos. Para S2S, mantenha payments_write ativo.</DialogDescription>
           </DialogHeader>
 
-          <div className="flex flex-col gap-4 py-2">
-            {/* Store — required */}
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="key-store">Store <span className="text-rose-400">*</span></Label>
-              <Select value={storeId} onValueChange={setStoreId}>
-                <SelectTrigger id="key-store">
-                  <SelectValue placeholder="Select a store" />
-                </SelectTrigger>
-                <SelectContent>
-                  {storeList.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.name} {s.storeCode ? `(${s.storeCode})` : ""}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="key-name">Key name</Label>
-              <Input
-                id="key-name"
-                placeholder="e.g. Production Server"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label>Environment</Label>
-              <RadioGroup
-                value={environment}
-                onValueChange={(v) => setEnvironment(v as "live" | "test")}
-                className="grid grid-cols-2 gap-2"
-              >
-                {(["live", "test"] as const).map((e) => (
-                  <label
-                    key={e}
-                    htmlFor={`env-${e}`}
-                    className={cn(
-                      "flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2.5 text-sm transition",
-                      environment === e
-                        ? e === "live"
-                          ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-300"
-                          : "border-amber-500/40 bg-amber-500/10 text-amber-300"
-                        : "border-border/60 bg-muted/30 text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    <RadioGroupItem value={e} id={`env-${e}`} />
-                    <span className="font-medium capitalize">{e === "live" ? "Live" : "Test"}</span>
-                    <span className="ml-auto text-[10px] text-muted-foreground">
-                      {e === "live" ? "real money" : "sandbox"}
-                    </span>
-                  </label>
-                ))}
-              </RadioGroup>
-            </div>
-
-            <div className="flex flex-col gap-2">
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5"><Label>Name</Label><Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Backend production" /></div>
+            <div className="space-y-1.5"><Label>Store</Label><Select value={storeId} onValueChange={setStoreId}><SelectTrigger><SelectValue placeholder="Selecione a Store" /></SelectTrigger><SelectContent>{stores.map((store) => <SelectItem key={store.id} value={store.id}>{store.name} ({store.storeCode})</SelectItem>)}</SelectContent></Select></div>
+            <div className="space-y-1.5"><Label>Environment</Label><Select value={environment} onValueChange={(value) => setEnvironment(value as "live" | "test")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="test">Test · xp_test_</SelectItem><SelectItem value="live">Live · xp_live_</SelectItem></SelectContent></Select></div>
+            <div className="space-y-2">
               <Label>Scopes</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {ALL_SCOPES.map((s) => (
-                  <label
-                    key={s}
-                    htmlFor={`scope-${s}`}
-                    className={cn(
-                      "flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm transition",
-                      scopes.includes(s)
-                        ? "border-primary/40 bg-primary/10 text-foreground"
-                        : "border-border/60 bg-muted/30 text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    <Checkbox
-                      id={`scope-${s}`}
-                      checked={scopes.includes(s)}
-                      onCheckedChange={() => toggleScope(s)}
-                    />
-                    {SCOPE_LABELS[s]}
-                  </label>
-                ))}
-              </div>
+              {SCOPES.map((scope) => (
+                <label key={scope.id} className={`flex cursor-pointer items-center justify-between gap-3 rounded-lg border px-3 py-2 ${scope.recommended ? "border-blue-500/30 bg-blue-500/5" : "border-border/60"}`}>
+                  <div className="flex items-center gap-2"><Checkbox checked={scopes.includes(scope.id)} onCheckedChange={() => toggleScope(scope.id)} /><span className="text-sm">{scope.label}</span></div>
+                  {scope.recommended && <Badge variant="outline" className="border-blue-500/25 bg-blue-500/10 text-[10px] text-blue-300">S2S required</Badge>}
+                </label>
+              ))}
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
-            <Button
-              onClick={() => createMutation.mutate()}
-              disabled={!name.trim() || !storeId || scopes.length === 0 || createMutation.isPending}
-              className="gap-1.5"
-            >
-              {createMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-              Create key
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
+            <Button disabled={!valid || createMutation.isPending} onClick={() => createMutation.mutate()} className="gap-1.5">
+              {createMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />} Criar chave
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* One-time reveal dialog */}
-      <Dialog open={!!revealedKey} onOpenChange={(o) => { if (!o && confirmSaved) setRevealedKey(null); }}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ShieldAlert className="h-5 w-5 text-amber-400" />
-              Save your API key
-            </DialogTitle>
-            <DialogDescription>
-              This is the only time the full key will be shown. Store it securely — you will not be able to see it again.
-            </DialogDescription>
-          </DialogHeader>
-
-          {revealedKey && (
-            <div className="flex flex-col gap-3 py-2">
-              <div className="rounded-lg border border-amber-500/25 bg-amber-500/8 px-3 py-2.5 text-xs text-amber-200">
-                Treat this key like a password. Anyone with this token can act on behalf of your account within the granted scopes.
-              </div>
-              <div className="flex items-center gap-2">
-                <Input
-                  readOnly
-                  value={revealedKey.fullKey}
-                  className="font-mono text-xs"
-                  onFocus={(e) => e.currentTarget.select()}
-                />
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => copyToClipboard(revealedKey.fullKey, "API key copied")}
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <Badge variant="outline" className={cn(
-                  "capitalize",
-                  revealedKey.environment === "live"
-                    ? "border-emerald-500/25 bg-emerald-500/12 text-emerald-400"
-                    : "border-amber-500/25 bg-amber-500/12 text-amber-400",
-                )}>
-                  {revealedKey.environment}
-                </Badge>
-                <span>Scopes: {(revealedKey.scopes ?? []).join(", ")}</span>
-              </div>
-            </div>
-          )}
-
-          <DialogFooter className="gap-2">
-            <AlertDialog open={confirmSaved} onOpenChange={setConfirmSaved}>
-              <AlertDialogTrigger asChild>
-                <Button className="gap-1.5">
-                  <CheckCircle2 className="h-3.5 w-3.5" /> I have saved my key
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Confirm you saved the key</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    The full key will be hidden forever once you close this dialog. Continue?
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Go back</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={() => {
-                      setConfirmSaved(false);
-                      setRevealedKey(null);
-                      toast.success("Key saved — dialog closed");
-                    }}
-                  >
-                    Yes, I saved it
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -52,6 +52,33 @@ export interface StoreControlItem {
   integration: StoreIntegration;
 }
 
+export interface CheckoutBranding {
+  mode: "light" | "dark" | "system";
+  checkoutDisplayName: string;
+  primaryColor: string;
+  autoReturnSeconds: number;
+  localeMode?: "auto" | string;
+  logoUrl: string | null;
+}
+
+export interface MerchantStoreDetail {
+  id: string;
+  storeCode: string;
+  name: string;
+  logoUrl: string | null;
+  theme: string;
+  currency: string;
+  checkoutBranding: CheckoutBranding;
+}
+
+export interface UpdateCheckoutBrandingPayload {
+  checkoutDisplayName: string;
+  primaryColor: string;
+  mode: "light" | "dark" | "system";
+  logoUrl: string | null;
+  autoReturnSeconds?: number;
+}
+
 export type PaymentMethodState = "ACTIVE" | "DISABLED" | "UNAVAILABLE" | "LOCKED";
 
 export interface StorePaymentMethod {

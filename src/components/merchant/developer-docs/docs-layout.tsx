@@ -14,11 +14,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DocsSidebar, useActiveSection } from "./docs-sidebar";
-import { OverviewSection } from "./overview-section";
-import { AuthSection } from "./auth-section";
-import { PaymentsSection } from "./payments-section";
-import { MethodsSection } from "./methods-section";
-import { WebhooksSection } from "./webhooks-section";
+import { S2SCertifiedSection } from "./s2s-certified-section";
 import { MaintenanceSection } from "./maintenance-section";
 
 export default function DocsLayout() {
@@ -59,7 +55,7 @@ export default function DocsLayout() {
           <div>
             <p className="text-sm font-medium text-emerald-300">Superfície certificada</p>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Autenticação, <code className="text-primary">POST /payments/charge</code>, MB WAY, Bizum, Multibanco, Bancontact, BLIK e webhooks Merchant estão documentados de acordo com o runtime S2S atual. As restantes áreas permanecem assinaladas como manutenção até nova certificação.
+              Autenticação, <code className="text-primary">POST /payments/charge</code>, MB WAY, Bizum, Multibanco, Bancontact, BLIK e webhooks Merchant estão publicados como contrato S2S ativo. As restantes áreas permanecem assinaladas como manutenção até nova certificação.
             </p>
           </div>
         </div>
@@ -69,11 +65,7 @@ export default function DocsLayout() {
         <DocsSidebar active={active} onSelect={() => {}} />
 
         <main className="min-w-0 flex-1 space-y-12 pb-8">
-          <OverviewSection />
-          <AuthSection />
-          <PaymentsSection />
-          <MethodsSection />
-          <WebhooksSection />
+          <S2SCertifiedSection />
 
           <MaintenanceSection
             id="checkout"

@@ -1,10 +1,13 @@
 import { requestData } from "./client";
 import type {
+  CheckoutBranding,
   CreateWebhookV2Payload,
   CreateWebhookV2Result,
+  MerchantStoreDetail,
   StoreControlItem,
   StoreIntegration,
   StorePaymentMethods,
+  UpdateCheckoutBrandingPayload,
   UpdateStorePaymentMethodPayload,
   UpdateWebhookV2Payload,
   WebhookV2,
@@ -21,6 +24,23 @@ export const storeControlApi = {
     requestData<StoreIntegration>({
       url: `stores/${storeId}/integration`,
       method: "GET",
+    }),
+
+  merchantDetail: (storeId: string) =>
+    requestData<MerchantStoreDetail>({
+      url: `merchant/stores/${storeId}`,
+      method: "GET",
+    }),
+
+  updateCheckoutBranding: (storeId: string, payload: UpdateCheckoutBrandingPayload) =>
+    requestData<{
+      storeId: string;
+      storeCode: string;
+      checkoutBranding: CheckoutBranding;
+    }>({
+      url: `merchant/stores/${storeId}/checkout-branding`,
+      method: "PUT",
+      data: payload,
     }),
 };
 

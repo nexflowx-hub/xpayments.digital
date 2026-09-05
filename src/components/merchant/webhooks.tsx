@@ -6,6 +6,7 @@ import { useStoreControl } from "@/hooks/vnext";
 import WebhooksVNextPage from "@/components/merchant/webhooks-vnext";
 import WebhooksLegacyPage from "@/components/merchant/webhooks-legacy";
 import WebhooksLegacyScopedPage from "@/components/merchant/webhooks-legacy-scoped";
+import OrchestratedMerchantDelivery from "@/components/merchant/webhooks-orchestrated-delivery";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,6 +21,16 @@ export default function WebhooksPage() {
         store.integration.runtimeGeneration === "VNEXT" &&
         (store.integration.processingMode === "OBSERVED" ||
           store.integration.processingMode === "ORCHESTRATED"),
+    ),
+    [stores],
+  );
+
+  const orchestratedStores = React.useMemo(
+    () => stores.filter(
+      (store) =>
+        store.status === "active" &&
+        store.integration.runtimeGeneration === "VNEXT" &&
+        store.integration.processingMode === "ORCHESTRATED",
     ),
     [stores],
   );
@@ -57,17 +68,19 @@ export default function WebhooksPage() {
     );
   }
 
-  /*
-   * Backwards-compatibility circuit breaker:
-   * if the additive VNext Control Plane is unavailable,
-   * preserve the production legacy webhook manager exactly.
-   */
   if (isError || !hasVNext) {
     return <WebhooksLegacyPage />;
   }
 
+  const vnextSurface = (
+    <div className="flex flex-col gap-8">
+      <WebhooksVNextPage />
+      <OrchestratedMerchantDelivery stores={orchestratedStores} />
+    </div>
+  );
+
   if (!hasLegacy) {
-    return <WebhooksVNextPage />;
+    return vnextSurface;
   }
 
   return (
@@ -78,7 +91,7 @@ export default function WebhooksPage() {
           <div>
             <p className="text-sm font-medium">Webhook management mode</p>
             <p className="text-[11px] text-muted-foreground">
-              O Store Control Plane detetou Stores VNext e Legacy. Cada CRUD fica estritamente limitado ao respetivo Store Mode.
+              VNext separa Provider Direct (Stripe → XPayments) de Merchant Delivery (XPayments → Merchant). Legacy permanece isolado.
             </p>
           </div>
         </div>
@@ -104,7 +117,7 @@ export default function WebhooksPage() {
       </Card>
 
       {surface === "vnext" ? (
-        <WebhooksVNextPage />
+        vnextSurface
       ) : (
         <WebhooksLegacyScopedPage allowedStoreIds={legacyStores.map((store) => store.id)} />
       )}

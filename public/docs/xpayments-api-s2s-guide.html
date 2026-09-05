@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="pt-PT">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>XPayments API Merchant S2S</title>
+  <style>
+    body{font-family:Inter,system-ui,sans-serif;max-width:980px;margin:0 auto;padding:32px;color:#172033;line-height:1.55;background:#f7f9fc}
+    h1,h2,h3{color:#0d1321} code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace} pre{background:#111827;color:#e5e7eb;padding:16px;border-radius:10px;overflow:auto}.card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:18px;margin:16px 0}.ok{display:inline-block;background:#dcfce7;color:#166534;padding:3px 8px;border-radius:999px;font-size:12px;font-weight:700}.warn{background:#fff7ed;border-left:4px solid #f59e0b;padding:12px 16px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #e5e7eb;padding:10px;text-align:left;font-size:14px}
+  </style>
+</head>
+<body>
+  <h1>XPayments — API Merchant S2S</h1>
+  <p><span class="ok">API v1 S2S Stable</span></p>
+  <p>Contrato de integração Server-to-Server para o backend do Merchant. Endpoint base: <code>https://api.xpayments.digital/api/v1</code>.</p>
+
+  <div class="warn"><strong>Segurança:</strong> a API Key pertence à Store e nunca deve ser exposta no browser, aplicação mobile ou código público.</div>
+
+  <h2>Autenticação</h2>
+  <pre>Authorization: Bearer xp_live_********************************</pre>
+  <p>Compatibilidade: <code>x-api-key: xp_live_********************************</code>. O scope necessário para criação de pagamentos é <code>payments_write</code>.</p>
+
+  <h2>Criar pagamento</h2>
+  <pre>POST /payments/charge
+Content-Type: application/json</pre>
+  <p><code>amount</code> é enviado na menor unidade monetária: 1500 EUR = EUR 15,00.</p>
+
+  <h2>MB WAY</h2>
+  <pre>{
+  "amount": 1500,
+  "currency": "EUR",
+  "payment_method_types": ["mb_way"],
+  "reference": "ORDER-PT-2026-0184",
+  "customer": {"name":"João Martins","phone":"+351912345678"}
+}</pre>
+  <p>Resposta típica: <code>status=requires_action</code>, <code>action.type=bank_app</code>. O cliente confirma na aplicação MB WAY.</p>
+
+  <h2>Bizum</h2>
+  <pre>{
+  "amount": 2500,
+  "currency": "EUR",
+  "payment_method_types": ["bizum"],
+  "reference": "ORDER-ES-2026-0331",
+  "customer": {"name":"María García","phone":"+34612345678"}
+}</pre>
+  <p>Requer telefone espanhol. O runtime aceita valores entre EUR 0,50 e EUR 5.000,00.</p>
+
+  <h2>Multibanco</h2>
+  <pre>{
+  "amount": 3450,
+  "currency": "EUR",
+  "payment_method_types": ["multibanco"],
+  "reference": "ORDER-PT-2026-0185",
+  "customer": {"email":"cliente@example.com"}
+}</pre>
+  <p>Quando requer ação, a resposta contém <code>action.entidade</code>, <code>action.referencia</code> e <code>action.montante</code>. Apresente estes dados ao cliente.</p>
+
+  <h2>Bancontact</h2>
+  <pre>{
+  "amount": 4200,
+  "currency": "EUR",
+  "payment_method_types": ["bancontact"],
+  "reference": "ORDER-BE-2026-0078",
+  "metadata": {"return_url":"https://merchant.example/payment/result"},
+  "customer": {"name":"Pieter Janssen","email":"cliente@example.com"}
+}</pre>
+  <p><code>customer.name</code> e <code>metadata.return_url</code> HTTPS são obrigatórios. Redirecione o browser para <code>action.url</code>, sem iframe.</p>
+
+  <h2>BLIK</h2>
+  <pre>{
+  "amount": 4200,
+  "currency": "PLN",
+  "payment_method_types": ["blik"],
+  "reference": "ORDER-PL-2026-0447",
+  "payment_method_options": {"blik":{"code":"123456"}},
+  "customer": {"name":"Jan Kowalski","email":"cliente@example.com"}
+}</pre>
+  <p>O código tem seis dígitos, deve ser enviado imediatamente e nunca deve ser persistido ou registado. A resposta de confirmação por aplicação utiliza <code>expiresInSeconds: 60</code>.</p>
+
+  <h2>Webhook Merchant</h2>
+  <p>Eventos suportados:</p>
+  <pre>payment_intent.succeeded
+payment_intent.payment_failed
+payment_intent.processing
+payment_intent.canceled</pre>
+  <pre>{
+  "event":"payment_intent.succeeded",
+  "transaction_id":"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+  "reference":"ORDER-2026-0001",
+  "amount":15,
+  "currency":"EUR",
+  "status":"succeeded",
+  "method":"mb_way",
+  "timestamp":"2026-09-05T04:30:00.000Z"
+}</pre>
+  <p>No webhook, <code>amount</code> está na unidade monetária principal. Quando configurado um secret da Store, valide <code>x-nexflowx-signature</code> com HMAC-SHA256 sobre o corpo JSON bruto.</p>
+  <div class="warn"><strong>Regra de negócio:</strong> redirects, push notifications e <code>requires_action</code> não confirmam pagamento. Considere pago apenas após <code>payment_intent.succeeded</code>.</div>
+
+  <h2>Sandbox</h2>
+  <p>Os simuladores devem ser usados apenas com Stores Test/Sandbox.</p>
+  <h3>MB WAY</h3>
+  <table><tbody>
+    <tr><td><code>+351 911 111 112</code></td><td>sucesso</td></tr>
+    <tr><td><code>+351 911 111 113</code></td><td>método indisponível</td></tr>
+    <tr><td><code>+351 911 111 114</code></td><td>recusa do provedor</td></tr>
+    <tr><td><code>+351 911 111 115</code></td><td>tentativa expirada</td></tr>
+    <tr><td><code>+351 911 111 116</code></td><td>recusa do cliente</td></tr>
+  </tbody></table>
+  <h3>Bizum — Sandbox XPayments validado anteriormente</h3>
+  <table><tbody>
+    <tr><td><code>+34 600 000 001</code></td><td>sucesso</td></tr>
+    <tr><td><code>+34 600 000 002</code></td><td>falha</td></tr>
+  </tbody></table>
+  <h3>Multibanco</h3>
+  <table><tbody>
+    <tr><td><code>succeed_immediately@example.com</code></td><td>sucesso rápido</td></tr>
+    <tr><td><code>expire_immediately@example.com</code></td><td>expira imediatamente</td></tr>
+    <tr><td><code>expire_with_delay@example.com</code></td><td>expira após atraso</td></tr>
+    <tr><td><code>fill_never@example.com</code></td><td>permanece sem pagamento</td></tr>
+  </tbody></table>
+
+  <p><small>Documento técnico XPayments. A disponibilidade final dos métodos depende da Store e do ambiente.</small></p>
+</body>
+</html>

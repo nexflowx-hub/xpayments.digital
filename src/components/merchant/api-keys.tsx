@@ -1,10 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Copy, Eye, KeyRound, Loader2, Plus, ShieldAlert, Store, Trash2 } from "lucide-react";
 import { useApiKeys, useStores } from "@/hooks/queries";
 import { xpApi } from "@/lib/api/xpApi";
+import { storeControlApi } from "@/lib/api/vnext";
 import { PageHeader, EmptyState } from "@/components/shared";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,11 @@ type EnvFilter = "all" | "live" | "test";
 export default function ApiKeysPage() {
   const { data: keys = [], isLoading } = useApiKeys();
   const { data: stores = [] } = useStores();
+  const { data: controlledStores = [] } = useQuery({
+    queryKey: ["store-control", "api-key-eligibility"],
+    queryFn: () => storeControlApi.list(),
+    staleTime: 30_000,
+  });
   const qc = useQueryClient();
 
   const [filter, setFilter] = React.useState<EnvFilter>("all");
@@ -41,6 +47,26 @@ export default function ApiKeysPage() {
   const [createdKey, setCreatedKey] = React.useState<string | null>(null);
   const [revealed, setRevealed] = React.useState<Record<string, string>>({});
   const [revealId, setRevealId] = React.useState<string | null>(null);
+
+  const writableStoreIds = React.useMemo(
+    () =>
+      new Set(
+        controlledStores
+          .filter(
+            (store) =>
+              store.status === "active" &&
+              store.integration.processingMode === "ORCHESTRATED" &&
+              store.integration.activationState === "ACTIVE"
+          )
+          .map((store) => store.id)
+      ),
+    [controlledStores]
+  );
+
+  const writableStores = React.useMemo(
+    () => stores.filter((store) => writableStoreIds.has(store.id)),
+    [stores, writableStoreIds]
+  );
 
   const resetForm = () => {
     setName("");
@@ -80,15 +106,15 @@ export default function ApiKeysPage() {
   };
 
   const filtered = keys.filter((key) => filter === "all" || key.environment === filter);
-  const valid = Boolean(name.trim() && storeId && scopes.length > 0);
+  const valid = Boolean(name.trim() && storeId && scopes.length > 0 && writableStoreIds.has(storeId));
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="API Keys"
-        description="Credenciais por Store para integrações XPayments. O endpoint S2S /payments/charge exige o scope payments_write."
+        description="Credenciais por Store para integrações XPayments. payments_write é disponibilizado apenas para Stores ORCHESTRATED ativas."
         actions={
-          <Button size="sm" className="gap-1.5" onClick={() => setCreateOpen(true)} disabled={stores.length === 0}>
+          <Button size="sm" className="gap-1.5" onClick={() => setCreateOpen(true)} disabled={writableStores.length === 0}>
             <Plus className="h-3.5 w-3.5" /> Create API key
           </Button>
         }
@@ -122,9 +148,9 @@ export default function ApiKeysPage() {
         </Card>
       )}
 
-      {stores.length === 0 && (
+      {writableStores.length === 0 && (
         <div className="flex items-center gap-2 rounded-lg border border-amber-500/25 bg-amber-500/8 px-4 py-3 text-sm text-amber-300">
-          <Store className="h-4 w-4" /> É necessária pelo menos uma Store antes de criar API Keys.
+          <Store className="h-4 w-4" /> É necessária pelo menos uma Store ORCHESTRATED/ACTIVE antes de criar uma chave de pagamentos.
         </div>
       )}
 
@@ -147,9 +173,10 @@ export default function ApiKeysPage() {
               <tbody>
                 {filtered.map((key) => {
                   const value = revealed[key.id] ?? key.fullKey ?? key.keyPreview ?? `${key.prefix}••••${key.lastFour}`;
+                  const isWritableStore = writableStoreIds.has(key.storeId);
                   return (
                     <tr key={key.id} className="border-b border-border/30">
-                      <td className="py-3"><p className="font-medium">{key.storeName ?? stores.find((s) => s.id === key.storeId)?.name ?? "—"}</p><p className="font-mono text-[10px] text-muted-foreground">{key.storeCode ?? stores.find((s) => s.id === key.storeId)?.storeCode ?? "—"}</p></td>
+                      <td className="py-3"><p className="font-medium">{key.storeName ?? stores.find((s) => s.id === key.storeId)?.name ?? "—"}</p><div className="mt-0.5 flex items-center gap-1.5"><p className="font-mono text-[10px] text-muted-foreground">{key.storeCode ?? stores.find((s) => s.id === key.storeId)?.storeCode ?? "—"}</p>{!isWritableStore && <Badge variant="outline" className="border-slate-500/25 text-[9px] text-slate-400">Observed / read-only</Badge>}</div></td>
                       <td className="py-3 font-medium">{key.name}</td>
                       <td className="py-3"><code className="font-mono text-xs text-muted-foreground">{value}</code></td>
                       <td className="py-3"><Badge variant="outline" className={key.environment === "live" ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-300" : "border-amber-500/25 bg-amber-500/10 text-amber-300"}>{key.environment}</Badge></td>
@@ -200,12 +227,12 @@ export default function ApiKeysPage() {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Create API key</DialogTitle>
-            <DialogDescription>Associe a chave à Store e ao ambiente corretos. Para S2S, mantenha payments_write ativo.</DialogDescription>
+            <DialogDescription>Para pagamentos, apenas Stores ORCHESTRATED/ACTIVE aparecem nesta lista. O ambiente da chave deve coincidir com o Gateway da Store.</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
             <div className="space-y-1.5"><Label>Name</Label><Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Backend production" /></div>
-            <div className="space-y-1.5"><Label>Store</Label><Select value={storeId} onValueChange={setStoreId}><SelectTrigger><SelectValue placeholder="Selecione a Store" /></SelectTrigger><SelectContent>{stores.map((store) => <SelectItem key={store.id} value={store.id}>{store.name} ({store.storeCode})</SelectItem>)}</SelectContent></Select></div>
+            <div className="space-y-1.5"><Label>Store</Label><Select value={storeId} onValueChange={setStoreId}><SelectTrigger><SelectValue placeholder="Selecione uma Store ORCHESTRATED" /></SelectTrigger><SelectContent>{writableStores.map((store) => <SelectItem key={store.id} value={store.id}>{store.name} ({store.storeCode})</SelectItem>)}</SelectContent></Select></div>
             <div className="space-y-1.5"><Label>Environment</Label><Select value={environment} onValueChange={(value) => setEnvironment(value as "live" | "test")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="test">Test · xp_test_</SelectItem><SelectItem value="live">Live · xp_live_</SelectItem></SelectContent></Select></div>
             <div className="space-y-2">
               <Label>Scopes</Label>

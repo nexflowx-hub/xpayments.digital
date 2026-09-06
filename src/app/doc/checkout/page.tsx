@@ -43,8 +43,7 @@ const params = [
 ] as const;
 
 const statuses = [
-  ["pending", "Sessão criada ou pagamento ainda não confirmado."],
-  ["processing", "Provider ainda está a processar o pagamento."],
+  ["pending", "Sessão criada ou pagamento ainda não confirmado. Inclui fluxos provider em requires_action/processing enquanto não existe estado final."],
   ["succeeded", "Pagamento financeiramente confirmado. Estado final de sucesso."],
   ["failed", "Pagamento recusado, cancelado ou não concluído."],
   ["expired", "CheckoutSession ultrapassou a validade configurada."],
@@ -56,8 +55,8 @@ const errors = [
   ["400", "CHECKOUT_METHOD_NOT_AVAILABLE", "O método pedido não está disponível na Store."],
   ["409", "CHECKOUT_ALREADY_PAID", "A sessão já está associada a pagamento succeeded."],
   ["410", "CHECKOUT_EXPIRED", "A sessão expirou."],
-  ["409", "LIVE_KEY_TEST_GATEWAY_MISMATCH", "API Key Live ligada a provider Test."],
-  ["409", "TEST_KEY_LIVE_GATEWAY_MISMATCH", "API Key Test ligada a provider Live."],
+  ["400", "LIVE_KEY_TEST_GATEWAY_MISMATCH", "API Key Live ligada a provider Test."],
+  ["400", "TEST_KEY_LIVE_GATEWAY_MISMATCH", "API Key Test ligada a provider Live."],
 ] as const;
 
 export default function CheckoutDocsPage() {
@@ -240,7 +239,7 @@ export default function CheckoutDocsPage() {
         <section className="mt-12">
           <div className="flex items-center gap-2"><Clock3 className="h-5 w-5 text-emerald-500" /><h2 className="text-2xl font-bold">4. Estados da CheckoutSession</h2></div>
           <p className="mt-3 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
-            Redirect, <code>requires_action</code>, regresso do browser ou fecho de iframe não significam sucesso. XPayments reconcilia CheckoutSession e Transaction com o estado do provider. O estado final positivo é <code>succeeded</code>.
+            Redirect, <code>requires_action</code>, regresso do browser ou fecho de iframe não significam sucesso. XPayments reconcilia CheckoutSession e Transaction com o estado do provider. Enquanto o provider ainda está em ação/processamento, a sessão permanece <code>pending</code>; o estado final positivo é <code>succeeded</code>.
           </p>
           <div className="mt-5 overflow-x-auto rounded-[24px] border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
             <table className="w-full min-w-[620px] text-left text-xs">

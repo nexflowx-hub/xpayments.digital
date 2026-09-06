@@ -173,7 +173,7 @@ export default function ApiKeysPage() {
               <tbody>
                 {filtered.map((key) => {
                   const value = revealed[key.id] ?? key.fullKey ?? key.keyPreview ?? `${key.prefix}••••${key.lastFour}`;
-                  const isWritableStore = writableStoreIds.has(key.storeId);
+                  const isWritableStore = Boolean(key.storeId && writableStoreIds.has(key.storeId));
                   return (
                     <tr key={key.id} className="border-b border-border/30">
                       <td className="py-3"><p className="font-medium">{key.storeName ?? stores.find((s) => s.id === key.storeId)?.name ?? "—"}</p><div className="mt-0.5 flex items-center gap-1.5"><p className="font-mono text-[10px] text-muted-foreground">{key.storeCode ?? stores.find((s) => s.id === key.storeId)?.storeCode ?? "—"}</p>{!isWritableStore && <Badge variant="outline" className="border-slate-500/25 text-[9px] text-slate-400">Observed / read-only</Badge>}</div></td>

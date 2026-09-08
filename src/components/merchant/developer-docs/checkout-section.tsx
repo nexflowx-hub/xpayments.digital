@@ -152,9 +152,11 @@ export function CheckoutSection() {
         </table>
       </div>
 
-      <Callout variant="success" title="Certificação Hosted">
-        <span className="inline-flex items-center gap-1.5"><CheckCircle2 className="h-3.5 w-3.5" /> Fluxo validado: CheckoutSession → MB WAY → shared GatewayVault → signed webhook → Transaction succeeded → WalletMovement.</span>
-      </Callout>
+      <Card className="border-emerald-500/20 bg-emerald-500/5 p-4">
+        <p className="inline-flex items-center gap-1.5 text-xs leading-5 text-emerald-300">
+          <CheckCircle2 className="h-3.5 w-3.5" /> Fluxo Hosted validado: CheckoutSession → MB WAY → shared GatewayVault → signed webhook → Transaction succeeded → WalletMovement.
+        </p>
+      </Card>
     </DocSection>
   );
 }

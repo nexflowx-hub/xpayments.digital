@@ -69,12 +69,7 @@ export default function Home() {
   }, [mounted, sessionChecked, isAuthenticated, wasAuthenticated]);
 
   React.useEffect(() => {
-    if (
-      mounted &&
-      sessionChecked &&
-      !isAuthenticated &&
-      (appView === "merchant" || appView === "admin" || appView === "onboarding")
-    ) {
+    if (mounted && sessionChecked && !isAuthenticated && (appView === "merchant" || appView === "admin")) {
       setAppView("landing");
     }
   }, [mounted, sessionChecked, isAuthenticated, appView, setAppView]);
@@ -95,8 +90,7 @@ export default function Home() {
     }
 
     const newMerchantOnboarding =
-      appView === "onboarding" ||
-      (typeof window !== "undefined" && sessionStorage.getItem(XP_ONBOARDING_SESSION_KEY) === "1");
+      typeof window !== "undefined" && sessionStorage.getItem(XP_ONBOARDING_SESSION_KEY) === "1";
 
     if (newMerchantOnboarding) {
       return <MerchantOnboarding />;
@@ -105,7 +99,7 @@ export default function Home() {
     return (<DashboardShell mode="merchant"><MerchantViewRouter view={activeMerchantView} /></DashboardShell>);
   }
 
-  if (!isAuthenticated && (appView === "merchant" || appView === "admin" || appView === "onboarding")) {
+  if (!isAuthenticated && (appView === "merchant" || appView === "admin")) {
     return <SplashScreen />;
   }
   if (appView === "login" || appView === "forgot" || appView === "reset") {

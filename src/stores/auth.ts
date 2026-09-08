@@ -6,12 +6,12 @@ import type { AuthSession, RegisterPayload, User, UserRole } from "@/types";
 import { auth as authApi } from "@/lib/api/xpApi";
 import {
   XP_STORAGE_KEYS,
-  APP_STORAGE_VERSION,
   clearAuthenticationStorage,
   migrateClientStorage,
 } from "@/lib/storage/xp-storage";
 
 export type SessionStatus = "hydrating" | "checking" | "authenticated" | "unauthenticated";
+export const XP_ONBOARDING_SESSION_KEY = "xpayments:onboarding:new-merchant";
 
 interface AuthState {
   user: User | null;
@@ -32,7 +32,6 @@ interface AuthState {
   hasRole: (...roles: UserRole[]) => boolean;
 }
 
-// In-memory token cache (synced with persist)
 let _memToken: string | null = null;
 let _memRefresh: string | null = null;
 let _memUser: unknown = null;
@@ -47,10 +46,15 @@ export function setMemAuth(token: string | null, refresh: string | null, user: u
 let _onLogout: ((reason?: string) => void) | null = null;
 export function registerLogoutHandler(fn: (reason?: string) => void) { _onLogout = fn; }
 
+function clearOnboardingMarker() {
+  if (typeof window !== "undefined") {
+    sessionStorage.removeItem(XP_ONBOARDING_SESSION_KEY);
+  }
+}
+
 export const useAuth = create<AuthState>()(
   persist(
     (set, get) => {
-      // Bootstrap: migrate + load from localStorage into memory
       if (typeof window !== "undefined") {
         migrateClientStorage();
         try {
@@ -61,8 +65,9 @@ export const useAuth = create<AuthState>()(
             if (state?.accessToken) { _memToken = state.accessToken; _memRefresh = state.refreshToken; _memUser = state.user; }
           }
         } catch { /* ignore */ }
-        registerLogoutHandler((reason?: string) => {
+        registerLogoutHandler(() => {
           clearAuthenticationStorage();
+          clearOnboardingMarker();
           _memToken = null; _memRefresh = null; _memUser = null;
           set({ user: null, accessToken: null, refreshToken: null, authenticated: false, isLoading: false, sessionChecked: true, sessionStatus: "unauthenticated", networkError: false });
         });
@@ -82,6 +87,7 @@ export const useAuth = create<AuthState>()(
         login: async (email, password, remember = false) => {
           set({ isLoading: true });
           try {
+            clearOnboardingMarker();
             const session: AuthSession = await authApi.login(email, password, remember);
             _memToken = session.accessToken; _memRefresh = session.refreshToken; _memUser = session.user;
             set({ user: session.user, accessToken: session.accessToken, refreshToken: session.refreshToken, authenticated: true, isLoading: false, hydrated: true, sessionChecked: true, sessionStatus: "authenticated", networkError: false });
@@ -93,21 +99,26 @@ export const useAuth = create<AuthState>()(
           set({ isLoading: true });
           try {
             const session: AuthSession = await authApi.register(data);
+            if (typeof window !== "undefined") {
+              sessionStorage.setItem(XP_ONBOARDING_SESSION_KEY, "1");
+            }
             _memToken = session.accessToken; _memRefresh = session.refreshToken; _memUser = session.user;
             set({ user: session.user, accessToken: session.accessToken, refreshToken: session.refreshToken, authenticated: true, isLoading: false, hydrated: true, sessionChecked: true, sessionStatus: "authenticated", networkError: false });
             return session.user;
           } catch (e) { set({ isLoading: false }); throw e; }
         },
 
-        logout: (opts?: { preservePreferences?: boolean; reason?: string }) => {
+        logout: () => {
           authApi.logout().catch(() => {});
           clearAuthenticationStorage();
+          clearOnboardingMarker();
           _memToken = null; _memRefresh = null; _memUser = null;
           set({ user: null, accessToken: null, refreshToken: null, authenticated: false, isLoading: false, sessionChecked: true, sessionStatus: "unauthenticated", networkError: false });
         },
 
-        clearSession: (opts?: { preservePreferences?: boolean; reason?: string }) => {
+        clearSession: () => {
           clearAuthenticationStorage();
+          clearOnboardingMarker();
           _memToken = null; _memRefresh = null; _memUser = null;
           set({ user: null, accessToken: null, refreshToken: null, authenticated: false, isLoading: false, sessionChecked: true, sessionStatus: "unauthenticated", networkError: false });
         },
@@ -117,7 +128,6 @@ export const useAuth = create<AuthState>()(
           const user = _memUser as User | null;
           if (token && user) {
             set({ user, accessToken: token, refreshToken: _memRefresh, authenticated: true, hydrated: true, sessionStatus: "checking", sessionChecked: false });
-            // Validate server-side
             authApi.me()
               .then((meUser) => {
                 if (meUser) {
@@ -125,6 +135,7 @@ export const useAuth = create<AuthState>()(
                   set({ user: meUser as User, authenticated: true, sessionChecked: true, sessionStatus: "authenticated", networkError: false });
                 } else {
                   clearAuthenticationStorage();
+                  clearOnboardingMarker();
                   _memToken = null; _memRefresh = null; _memUser = null;
                   set({ user: null, accessToken: null, authenticated: false, sessionChecked: true, sessionStatus: "unauthenticated" });
                 }
@@ -133,10 +144,10 @@ export const useAuth = create<AuthState>()(
                 const status = err?.status;
                 if (status === 401 || status === 403) {
                   clearAuthenticationStorage();
+                  clearOnboardingMarker();
                   _memToken = null; _memRefresh = null; _memUser = null;
                   set({ user: null, accessToken: null, authenticated: false, sessionChecked: true, sessionStatus: "unauthenticated" });
                 } else {
-                  // Network error (500, 502, 503, 0) — DON'T clear session
                   set({ sessionChecked: true, sessionStatus: "unauthenticated", networkError: true });
                 }
               });

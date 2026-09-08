@@ -8,6 +8,7 @@ export type AppView =
   | "login"
   | "forgot"
   | "reset"
+  | "onboarding"
   | "merchant"
   | "admin";
 
@@ -561,199 +562,117 @@ export interface FxQuote {
   asOf: string;
 }
 
-/** Payout FX snapshot — locked at payout creation time */
-export interface PayoutFxSnapshot {
-  baseCurrency: string;
-  quoteCurrency: "BRL" | "USDT";
-  rate: number;
-  baseAmount: number;
-  convertedAmount: number;
-  source: string;
-  asOf: string;
-  lockedAt: string;
-}
-
-/** User's display currency preference (visual only, not financial) */
-export type DisplayCurrency = "BRL" | "USDT";
-
-// ============================================================
-// Payout Requests (v1) — /api/v1/payout-requests
-// ============================================================
-
-export type PayoutRequestStatus =
-  | "draft"
-  | "requested"
-  | "under_review"
-  | "rejected"
-  | "cancelled"
-  | "stale"
-  | "confirmed";
-
+/** Funding option exposed by GET /payout-requests/funding-options */
 export interface PayoutFundingOption {
-  releaseDate: string;
-  storeId: string;
-  storeCode: string;
-  storeName: string;
-  gateway: string;
-  remainingAmount: number;
-  movementCount: number;
-  providerStatus: "available" | "pending" | "unknown";
-  providerAvailableCount: number;
-  providerPendingCount: number;
-  providerUnknownCount: number;
+  code: "bank_eur" | "crypto_usdt" | "converted_brl" | string;
+  currency: string;
+  payoutCurrency: string;
+  label: string;
+  description: string;
+  rail: string;
+  estimatedRate: number | null;
+  quoteSource: string | null;
+  quoteAsOf: string | null;
+  capability: "available" | "managed_contact" | "unavailable" | string;
 }
 
 export interface PayoutFundingOptionsResponse {
-  currency: string;
-  timezone: string;
-  store: {
-    id: string;
-    code: string;
-    name: string;
-  };
-  walletId: string;
-  items: PayoutFundingOption[];
-  summary: {
-    remainingAmount: number;
-    movementCount: number;
-  };
-  generatedAt: string;
-}
-
-export interface PayoutRequestAllocation {
-  id?: string;
-  releaseDate: string;
-  provider: string;
-  amount: number;
-  snapshotAvailableAmount?: number;
-  snapshotMovementCount?: number;
-  position?: number;
-  metadata?: Record<string, unknown>;
+  storeId: string;
+  storeCode: string;
+  storeName: string;
+  sourceCurrency: string;
+  availableNet: number;
+  options: PayoutFundingOption[];
 }
 
 export interface PayoutRequest {
   id: string;
-  requestCode: string;
-  store: {
-    id: string;
-    code: string;
-    name: string;
-  };
-  walletId: string;
-  currency: string;
-  status: PayoutRequestStatus;
-  requestedAmount: number;
-  externalReference: string | null;
-  notes: string | null;
-  snapshotHash: string;
+  merchantId: string;
+  storeId: string;
+  storeCode: string;
+  storeName: string;
+  sourceCurrency: string;
+  sourceAmount: number;
+  payoutMethod: "bank_eur" | "crypto_usdt" | "converted_brl" | string;
+  payoutCurrency: string;
+  destinationType: string;
+  destinationLabel: string;
+  status: "draft" | "awaiting_manager" | "ready_to_confirm" | "scheduled" | "paid" | "cancelled" | string;
   version: number;
-  requestedAt: string | null;
-  confirmedAt: string | null;
-  confirmedPayoutStatementId: string | null;
-  allocations: PayoutRequestAllocation[];
+  requiresManager: boolean;
+  managerRequestedAt: string | null;
+  managerContactedAt: string | null;
+  managerInstructions: string | null;
+  confirmationExpiresAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface PayoutRequestsResponse {
   items: PayoutRequest[];
+  total: number;
 }
 
 export interface CreatePayoutRequestPayload {
   storeId: string;
-  currency: string;
-  externalReference?: string;
-  notes?: string;
-  allocations: Omit<PayoutRequestAllocation, "id" | "snapshotAvailableAmount" | "snapshotMovementCount" | "position" | "metadata">[];
+  sourceAmount: number;
+  payoutMethod: "bank_eur" | "crypto_usdt" | "converted_brl" | string;
+  destinationType?: string;
+  destinationLabel: string;
+  note?: string;
 }
 
 export interface UpdatePayoutRequestPayload {
   expectedVersion: number;
-  storeId: string;
-  currency: string;
-  externalReference?: string;
-  notes?: string;
-  allocations: Omit<PayoutRequestAllocation, "id" | "snapshotAvailableAmount" | "snapshotMovementCount" | "position" | "metadata">[];
+  sourceAmount?: number;
+  payoutMethod?: "bank_eur" | "crypto_usdt" | "converted_brl" | string;
+  destinationType?: string;
+  destinationLabel?: string;
+  note?: string;
 }
 
 export interface PayoutConfirmationPreview {
-  challengeId: string;
-  status: string;
-  expiresAt: string;
-  request: {
-    id: string;
-    requestCode: string;
-    version: number;
-    status: PayoutRequestStatus;
-    store: {
-      id: string;
-      code: string;
-      name: string;
-    };
-    walletId: string;
-    currency: string;
-    requestedAmount: number;
-    externalReference: string | null;
-  };
-  allocations: PayoutRequestAllocation[];
-  bankTransferAttestationRequired: boolean;
-  approvalPasswordRequired: boolean;
-  financialImpact: false;
+  id: string;
+  version: number;
+  sourceAmount: number;
+  sourceCurrency: string;
+  payoutMethod: string;
+  payoutCurrency: string;
+  estimatedPayoutAmount: number;
+  rate: number | null;
+  quoteSource: string | null;
+  quoteAsOf: string | null;
+  feeAmount: number;
+  feeCurrency: string;
+  netPayoutAmount: number;
+  destinationLabel: string;
+  requiresManager: boolean;
+  challengeRequired: boolean;
 }
 
 export interface PayoutManagerVerificationPayload {
-  challengeId: string;
-  approvalPassword: string;
-  bankTransferConfirmed: boolean;
+  expectedVersion: number;
+  channel: "telegram" | "whatsapp" | string;
+  code: string;
 }
 
 export interface PayoutConfirmationResult {
-  confirmationReady: boolean;
-  financialImpact: boolean;
-  payoutEngineCalled: boolean;
-}
-
-// ---- Multi-currency prep (optional, not simulated) ----
-
-export interface MoneyConversion {
+  id: string;
+  status: string;
+  version: number;
   sourceAmount: number;
   sourceCurrency: string;
-  settlementAmount: number;
-  settlementCurrency: string;
-  exchangeRate?: number;
-  exchangeRateSource?: "provider" | "xpayments" | "external";
-  convertedAt?: string;
-}
-
-export interface PaymentMethodHealth {
-  storeId: string;
-  storeCode: string;
-  storeName: string;
-  currency: string;
-  gatewayConfigured: string | null;
-  methods: {
-    method: string;
-    active: boolean;
-    lastSuccessfulChargeAt: string | null;
-    lastError: string | null;
-    lastValidatedAt: string | null;
-    operationalStatus: "healthy" | "attention" | "unavailable" | "not_configured" | "no_recent_data";
-  }[];
-  vaultConfigured: boolean;
-  lastValidatedAt: string | null;
+  payoutCurrency: string;
+  netPayoutAmount: number;
+  scheduledAt?: string | null;
 }
 
 export interface MerchantProfile {
   id: string;
   name: string;
   email: string;
-  company?: string;
-  country?: string;
-  website?: string;
-  supportEmail?: string;
-  industry?: string;
-  kycStatus?: string;
-  kycSubmittedAt?: string;
-  createdAt: string;
-  tier?: string;
+  company?: string | null;
+  tier?: string | null;
+  status?: string | null;
+  kycStatus?: string | null;
 }

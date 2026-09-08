@@ -40,6 +40,7 @@ const services = [
     setup: ["€500", "500 USDT", "R$ 3.000"],
     intro:
       "Estrutura dedicada para Merchant que pretende operar em EUR com identidade empresarial, infraestrutura e configuração próprias.",
+    premium: false,
     items: [
       { icon: Building2, text: "Estruturação de UK LTD dedicada" },
       { icon: Landmark, text: "Apoio à abertura de conta bancária para payout" },
@@ -56,6 +57,7 @@ const services = [
     setup: ["€850", "850 USDT", "R$ 5.100"],
     intro:
       "Estrutura dedicada em França para operações em EUR, preparada para gestão operacional própria ou assistida pelo Merchant.",
+    premium: false,
     items: [
       { icon: Building2, text: "Estruturação de sociedade SAS dedicada" },
       { icon: Landmark, text: "Apoio à abertura de conta bancária empresarial" },
@@ -72,6 +74,7 @@ const services = [
     setup: ["€1.000", "1.000 USDT", "R$ 6.000"],
     intro:
       "Estrutura dedicada nos Estados Unidos para Merchant que pretende operar em USD com entidade e infraestrutura próprias.",
+    premium: false,
     items: [
       { icon: Building2, text: "Estruturação de LLC dedicada" },
       { icon: Landmark, text: "Apoio à configuração bancária e payout" },

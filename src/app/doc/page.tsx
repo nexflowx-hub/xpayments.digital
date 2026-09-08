@@ -18,7 +18,7 @@ import {
 export const metadata: Metadata = {
   title: "XPayments Developer Docs",
   description:
-    "Portal público para integrar XPayments: configuração da Store, API Keys, Webhooks, API S2S e Checkout XPay por Redirect ou Embedded iframe.",
+    "Portal público para integrar XPayments: Store, API Keys, Webhooks, API S2S e Checkout XPay Hosted ou Embedded.",
   alternates: {
     canonical: "https://xpayments.digital/doc",
   },
@@ -46,14 +46,14 @@ export default function DeveloperDocsHome() {
           <div className="pointer-events-none absolute -right-20 -top-28 h-72 w-72 rounded-full bg-indigo-500/25 blur-3xl" />
           <div className="pointer-events-none absolute -bottom-28 left-1/4 h-64 w-64 rounded-full bg-cyan-400/10 blur-3xl" />
           <div className="relative max-w-3xl">
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-medium text-zinc-300">
-              <ShieldCheck className="h-3.5 w-3.5" /> Developer Platform
+            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs font-medium text-emerald-200">
+              <CheckCircle2 className="h-3.5 w-3.5" /> Core certificado · 08 Sep 2026
             </span>
             <h1 className="mt-6 text-4xl font-bold tracking-[-0.04em] sm:text-6xl">
               Integre pagamentos sem duplicar complexidade.
             </h1>
             <p className="mt-5 max-w-2xl text-sm leading-7 text-zinc-300 sm:text-base">
-              A XPayments oferece duas vertentes sobre o mesmo core financeiro: uma API Server-to-Server para controlo total e uma API Checkout para apresentar uma experiência de pagamento hospedada ou embutida na página do Merchant.
+              A XPayments oferece duas superfícies sobre o mesmo core financeiro: API Server-to-Server para merchants com checkout próprio e Checkout XPay para uma experiência Hosted ou Embedded. Routing, GatewayVault, Transaction, ledger e webhooks são comuns às duas integrações.
             </p>
           </div>
         </header>
@@ -65,30 +65,10 @@ export default function DeveloperDocsHome() {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <SetupCard
-              number="01"
-              icon={Store}
-              title="Configure a Store"
-              text="Confirme moeda, provider, métodos ativos e o branding público do Checkout. O nome público pode ser diferente do nome interno da Store."
-            />
-            <SetupCard
-              number="02"
-              icon={KeyRound}
-              title="Crie uma API Key"
-              text="No Dashboard, abra API Keys, selecione a Store e crie xp_test_ ou xp_live_. Para pagamentos e Checkout utilize o scope payments_write."
-            />
-            <SetupCard
-              number="03"
-              icon={Webhook}
-              title="Configure Webhooks"
-              text="Na Store, adicione o endpoint HTTPS do Merchant. XPayments assina Merchant Delivery com HMAC SHA-256 e x-nexflowx-signature."
-            />
-            <SetupCard
-              number="04"
-              icon={CheckCircle2}
-              title="Comece no Sandbox"
-              text="Valide a integração com uma Store Test e xp_test_. Só depois troque para a Store Live e xp_live_. Não misture credenciais Test e Live."
-            />
+            <SetupCard number="01" icon={Store} title="Configure a Store" text="Confirme moeda, ambiente, métodos ativos, routing e branding. Uma API Key pertence a uma Store e nunca deve ser reutilizada entre Stores." />
+            <SetupCard number="02" icon={KeyRound} title="Crie uma API Key" text="Use xp_test_ no Sandbox e xp_live_ em produção. Para pagamentos e Checkout utilize uma chave com scope payments_write." />
+            <SetupCard number="03" icon={Webhook} title="Configure Webhooks" text="O estado financeiro definitivo deve ser consumido pelo webhook Merchant. Não considere redirects, bank-app actions ou requires_action como pagamento concluído." />
+            <SetupCard number="04" icon={ShieldCheck} title="Separe Test e Live" text="A XPayments bloqueia combinações entre API Keys Test e gateways Live, e entre API Keys Live e gateways Test." />
           </div>
         </section>
 
@@ -103,21 +83,22 @@ export default function DeveloperDocsHome() {
               <div className="absolute right-0 top-0 h-32 w-32 rounded-full bg-violet-500/10 blur-3xl" />
               <div className="relative">
                 <div className="flex items-start justify-between gap-4">
-                  <div className="grid h-12 w-12 place-items-center rounded-2xl bg-violet-500/10 text-violet-600 dark:text-violet-300">
-                    <Braces className="h-6 w-6" />
-                  </div>
+                  <div className="grid h-12 w-12 place-items-center rounded-2xl bg-violet-500/10 text-violet-600 dark:text-violet-300"><Braces className="h-6 w-6" /></div>
                   <ArrowRight className="h-5 w-5 text-zinc-400 transition-transform group-hover:translate-x-1" />
                 </div>
-                <p className="mt-6 text-xs font-semibold uppercase tracking-[0.16em] text-violet-600 dark:text-violet-300">API 01</p>
-                <h3 className="mt-2 text-2xl font-bold tracking-tight">Server-to-Server (S2S)</h3>
-                <p className="mt-3 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
-                  O backend do Merchant envia diretamente a cobrança à XPayments. Ideal para aplicações com UI própria e controlo explícito de cada método.
-                </p>
-                <div className="mt-5 rounded-2xl border border-zinc-200 bg-zinc-50 p-3 font-mono text-xs text-zinc-600 dark:border-zinc-800 dark:bg-black dark:text-zinc-400">
-                  POST /api/v1/payments/charge
+                <div className="mt-6 flex flex-wrap items-center gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-violet-600 dark:text-violet-300">API 01 · S2S</p>
+                  <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-300">CERTIFIED</span>
                 </div>
-                <div className="mt-5 flex flex-wrap gap-2 text-[10px] font-medium text-zinc-500">
-                  {['Card', 'MB WAY', 'Bizum', 'Multibanco', 'Bancontact', 'BLIK'].map((item) => <span key={item} className="rounded-full border border-zinc-200 px-2.5 py-1 dark:border-zinc-800">{item}</span>)}
+                <h3 className="mt-2 text-2xl font-bold tracking-tight">Server-to-Server</h3>
+                <p className="mt-3 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+                  O backend do Merchant cria pagamentos diretamente. O método deve estar ativo na Store e o frontend do Merchant é responsável por apresentar a ação devolvida pela API.
+                </p>
+                <div className="mt-5 rounded-2xl border border-zinc-200 bg-zinc-50 p-3 font-mono text-xs text-zinc-600 dark:border-zinc-800 dark:bg-black dark:text-zinc-400">POST /api/v1/payments/charge</div>
+                <div className="mt-5 space-y-2 text-[11px] text-zinc-500">
+                  <p><strong className="text-zinc-800 dark:text-zinc-200">Certificado E2E:</strong> MB WAY.</p>
+                  <p><strong className="text-zinc-800 dark:text-zinc-200">Store-dependent:</strong> Bizum e Multibanco, quando configurados.</p>
+                  <p><strong className="text-zinc-800 dark:text-zinc-200">Não usar ainda no S2S direto:</strong> card, Bancontact, BLIK e restantes métodos Stripe sem fluxo dedicado.</p>
                 </div>
               </div>
             </Link>
@@ -126,22 +107,21 @@ export default function DeveloperDocsHome() {
               <div className="absolute right-0 top-0 h-32 w-32 rounded-full bg-cyan-500/10 blur-3xl" />
               <div className="relative">
                 <div className="flex items-start justify-between gap-4">
-                  <div className="grid h-12 w-12 place-items-center rounded-2xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-300">
-                    <Layers3 className="h-6 w-6" />
-                  </div>
+                  <div className="grid h-12 w-12 place-items-center rounded-2xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-300"><Layers3 className="h-6 w-6" /></div>
                   <ArrowRight className="h-5 w-5 text-zinc-400 transition-transform group-hover:translate-x-1" />
                 </div>
-                <p className="mt-6 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-600 dark:text-cyan-300">API 02</p>
+                <div className="mt-6 flex flex-wrap items-center gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-600 dark:text-cyan-300">API 02 · Checkout</p>
+                  <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-300">HOSTED CERTIFIED</span>
+                </div>
                 <h3 className="mt-2 text-2xl font-bold tracking-tight">Checkout XPay</h3>
                 <p className="mt-3 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
-                  Crie uma CheckoutSession e deixe a XPayments apresentar e acompanhar o pagamento. Pode abrir como página externa ou modal sobre o site do Merchant.
+                  Crie uma CheckoutSession e receba uma URL Hosted e uma URL Embedded. A sessão usa os métodos, routing e branding configurados na Store.
                 </p>
-                <div className="mt-5 rounded-2xl border border-zinc-200 bg-zinc-50 p-3 font-mono text-xs text-zinc-600 dark:border-zinc-800 dark:bg-black dark:text-zinc-400">
-                  POST /api/v1/checkout/session
-                </div>
+                <div className="mt-5 rounded-2xl border border-zinc-200 bg-zinc-50 p-3 font-mono text-xs text-zinc-600 dark:border-zinc-800 dark:bg-black dark:text-zinc-400">POST /api/v1/checkout/session</div>
                 <div className="mt-5 grid grid-cols-2 gap-2">
-                  <MiniMode icon={ExternalLink} label="Redirect URL" />
-                  <MiniMode icon={MonitorUp} label="Embedded / iframe" />
+                  <MiniMode icon={ExternalLink} label="Hosted /pay/:id" />
+                  <MiniMode icon={MonitorUp} label="Embedded /embed/:id" />
                 </div>
               </div>
             </Link>
@@ -153,14 +133,14 @@ export default function DeveloperDocsHome() {
             <Code2 className="h-5 w-5 text-zinc-500" />
             <h2 className="mt-4 text-lg font-semibold">Qual escolher?</h2>
             <div className="mt-4 space-y-4 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
-              <p><strong className="text-zinc-950 dark:text-white">S2S:</strong> já tem formulário/UX própria, precisa de controlo direto e quer gerir a ação de cada método no seu frontend.</p>
-              <p><strong className="text-zinc-950 dark:text-white">Checkout XPay:</strong> quer integrar mais rápido, delegar a UI, ter localização, branding e os dois modos Redirect/Embedded.</p>
+              <p><strong className="text-zinc-950 dark:text-white">S2S:</strong> o Merchant controla a UI e implementa cada action. Use apenas métodos marcados como suportados para S2S.</p>
+              <p><strong className="text-zinc-950 dark:text-white">Checkout XPay:</strong> melhor opção para cards, wallets e uma superfície de métodos mais ampla sem o Merchant gerir a UI do provider.</p>
             </div>
           </div>
 
           <div className={`${panel} p-6`}>
             <Link2 className="h-5 w-5 text-zinc-500" />
-            <h2 className="mt-4 text-lg font-semibold">Fluxo comum</h2>
+            <h2 className="mt-4 text-lg font-semibold">Regra de confirmação</h2>
             <div className="mt-5 grid gap-2 sm:grid-cols-5">
               {['Store', 'API Key', 'Payment / Session', 'Transaction', 'Webhook'].map((step, index) => (
                 <div key={step} className="relative rounded-2xl border border-zinc-200 bg-zinc-50 p-3 text-center dark:border-zinc-800 dark:bg-black">
@@ -170,7 +150,7 @@ export default function DeveloperDocsHome() {
               ))}
             </div>
             <p className="mt-4 text-xs leading-5 text-zinc-500">
-              As duas vertentes convergem no routing, GatewayVault, Transaction, ledger e webhooks XPayments. Não existem dois motores financeiros separados.
+              Considere uma cobrança paga apenas quando a Transaction XPayments estiver <code>succeeded</code> / o webhook Merchant indicar sucesso. <code>requires_action</code>, redirect e retorno ao site são estados de UX, não liquidação financeira.
             </p>
           </div>
         </section>

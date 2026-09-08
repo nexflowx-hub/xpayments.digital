@@ -1,12 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { useAuth } from "@/stores/auth";
+import { useAuth, XP_ONBOARDING_SESSION_KEY } from "@/stores/auth";
 import { useUi } from "@/stores/ui";
 import { useI18n } from "@/lib/i18n";
 import { DashboardShell } from "@/components/dashboard/shell";
 import { MerchantViewRouter, AdminViewRouter } from "@/components/dashboard/view-router";
 import { AuthScreen } from "@/components/auth/auth-screen";
+import MerchantOnboarding from "@/components/onboarding/merchant-onboarding";
 import { XSymbol } from "@/components/shared/x-symbol";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -46,7 +47,6 @@ export default function Home() {
   const hydrate = useAuth((s) => s.hydrate);
   const hydrated = useAuth((s) => s.hydrated);
   const sessionChecked = useAuth((s) => s.sessionChecked);
-  const sessionStatus = useAuth((s) => s.sessionStatus);
   const networkError = useAuth((s) => s.networkError);
   const retrySession = useAuth((s) => s.retrySession);
   const appView = useUi((s) => s.appView);
@@ -69,33 +69,43 @@ export default function Home() {
   }, [mounted, sessionChecked, isAuthenticated, wasAuthenticated]);
 
   React.useEffect(() => {
-    if (mounted && sessionChecked && !isAuthenticated && (appView === "merchant" || appView === "admin")) {
+    if (
+      mounted &&
+      sessionChecked &&
+      !isAuthenticated &&
+      (appView === "merchant" || appView === "admin" || appView === "onboarding")
+    ) {
       setAppView("landing");
     }
   }, [mounted, sessionChecked, isAuthenticated, appView, setAppView]);
 
   if (!mounted) return <SplashScreen />;
 
-  // Network error — show retry screen (DON'T clear session)
   if (networkError && !isAuthenticated) {
     return <NetworkErrorScreen onRetry={() => retrySession()} />;
   }
 
-  // Hydrating or checking session — controlled loading
   if (!hydrated || (isAuthenticated && !sessionChecked)) {
     return <SplashScreen />;
   }
 
-  // Authenticated + session validated
   if (isAuthenticated && user && sessionChecked) {
     if (user.role === "admin") {
       return (<DashboardShell mode="admin"><AdminViewRouter view={activeAdminView} /></DashboardShell>);
     }
+
+    const newMerchantOnboarding =
+      appView === "onboarding" ||
+      (typeof window !== "undefined" && sessionStorage.getItem(XP_ONBOARDING_SESSION_KEY) === "1");
+
+    if (newMerchantOnboarding) {
+      return <MerchantOnboarding />;
+    }
+
     return (<DashboardShell mode="merchant"><MerchantViewRouter view={activeMerchantView} /></DashboardShell>);
   }
 
-  // Unauthenticated + session checked
-  if (!isAuthenticated && (appView === "merchant" || appView === "admin")) {
+  if (!isAuthenticated && (appView === "merchant" || appView === "admin" || appView === "onboarding")) {
     return <SplashScreen />;
   }
   if (appView === "login" || appView === "forgot" || appView === "reset") {

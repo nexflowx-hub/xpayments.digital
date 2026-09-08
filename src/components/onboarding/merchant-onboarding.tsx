@@ -4,22 +4,16 @@ import * as React from "react";
 import {
   ArrowRight,
   BadgeCheck,
-  Building2,
   CheckCircle2,
   Code2,
   ExternalLink,
-  Globe2,
   KeyRound,
-  Landmark,
   MessageCircle,
-  Server,
   ShieldCheck,
-  Smartphone,
   Store as StoreIcon,
-  WalletCards,
 } from "lucide-react";
 import { useUi } from "@/stores/ui";
-import { useAuth } from "@/stores/auth";
+import { useAuth, XP_ONBOARDING_SESSION_KEY } from "@/stores/auth";
 import { xpApi } from "@/lib/api/xpApi";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -99,9 +93,10 @@ function SandboxStatus() {
     Promise.all([xpApi.stores.list(), xpApi.apiKeys.list()])
       .then(([stores, keys]) => {
         if (!active) return;
-        const sandbox = stores.find(
-          (item) => item.name === "XPAY Sandbox" || item.storeCode?.startsWith("XPAY-SANDBOX-")
-        ) || null;
+        const sandbox =
+          stores.find(
+            (item) => item.name === "XPAY Sandbox" || item.storeCode?.startsWith("XPAY-SANDBOX-")
+          ) || null;
         setStore(sandbox);
         setApiKey(
           sandbox
@@ -111,6 +106,7 @@ function SandboxStatus() {
       })
       .catch(() => undefined)
       .finally(() => active && setLoading(false));
+
     return () => {
       active = false;
     };
@@ -149,6 +145,9 @@ export default function MerchantOnboarding() {
   const setMerchantView = useUi((state) => state.setMerchantView);
 
   const goTo = (view: string) => {
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem(XP_ONBOARDING_SESSION_KEY);
+    }
     setMerchantView(view);
     setAppView("merchant");
   };
@@ -175,7 +174,7 @@ export default function MerchantOnboarding() {
               <BadgeCheck className="mr-1.5 h-3.5 w-3.5" /> Ambiente de testes incluído
             </Badge>
             <h1 className="max-w-4xl text-4xl font-semibold tracking-[-0.04em] sm:text-6xl">
-              Bem-vindo{user?.name ? `, ${user.name.split(" ")[0]}` : ""}. O seu XPAY Sandbox está a ser preparado.
+              Bem-vindo{user?.name ? `, ${user.name.split(" ")[0]}` : ""}. O seu XPAY Sandbox está pronto para integração.
             </h1>
             <p className="mt-5 max-w-3xl text-base leading-8 text-muted-foreground sm:text-lg">
               A XPAY Sandbox permite integrar e validar a API S2S, Checkout XPay Hosted e Embedded/SDK sem utilizar credenciais Live. Quando o fluxo estiver aprovado, pode solicitar uma estrutura dedicada de Produção.
@@ -280,9 +279,7 @@ export default function MerchantOnboarding() {
         </section>
 
         <footer className="mt-8 flex flex-col gap-4 border-t border-border/60 py-8 sm:flex-row sm:items-center sm:justify-between">
-          <div className="text-xs text-muted-foreground">
-            Ativação e validação comercial · WhatsApp +351 925 386 409
-          </div>
+          <div className="text-xs text-muted-foreground">Ativação e validação comercial · WhatsApp +351 925 386 409</div>
           <Button variant="outline" onClick={() => openWhatsApp()}>
             <MessageCircle className="mr-2 h-4 w-4" /> Falar com a equipa XPayments
           </Button>

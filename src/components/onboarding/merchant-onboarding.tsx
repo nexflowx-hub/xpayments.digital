@@ -72,6 +72,22 @@ const plans = [
       "Preparação operacional para processamento e reporting",
     ],
   },
+  {
+    id: "pt-premium",
+    eyebrow: "PREMIUM · Portugal · EUR",
+    title: "Estrutura Empresarial Real Ativa — Portugal",
+    setup: ["€5.000", "5.000 USDT", "R$ 30.000"],
+    description:
+      "Serviço Premium para atividades legítimas, de baixa contestação e perfil operacional compatível com adquirência, incluindo projetos de donativos quando elegíveis.",
+    items: [
+      "Estrutura empresarial portuguesa real e ativa",
+      "Operação D0/D1 quando aplicável ao fluxo aprovado e contratado",
+      "Cessão/transferência e atualização societária por via regular",
+      "KYC/KYB e atualização de beneficiário efetivo obrigatórios",
+      "Disponibilidade atual limitada a 5 estruturas",
+      "Prazo previsto de até 3 dias após validação documental e formalização",
+    ],
+  },
 ] as const;
 
 function openWhatsApp(plan?: string) {
@@ -229,12 +245,22 @@ export default function MerchantOnboarding() {
             <p className="mt-4 text-sm leading-7 text-muted-foreground">
               Os valores abaixo correspondem ao setup e aos custos iniciais de estruturação. São alternativas de pagamento — não cumulativas. A prestação continuada de gestão operacional é de <strong className="text-foreground">20% da faturação processada</strong> e pode incluir o fluxo operacional até BRL ou USDT, conforme a operação contratada.
             </p>
+            <button
+              type="button"
+              onClick={() => { window.location.href = "/services/dedicated"; }}
+              className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+            >
+              Ver página completa para serviços dedicados <ExternalLink className="h-4 w-4" />
+            </button>
           </div>
 
-          <div className="mt-8 grid gap-5 xl:grid-cols-3">
+          <div className="mt-8 grid gap-5 xl:grid-cols-2">
             {plans.map((plan) => (
-              <Card key={plan.id} className="flex h-full flex-col border-border/70 bg-card/70 p-6 shadow-sm">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">{plan.eyebrow}</p>
+              <Card
+                key={plan.id}
+                className={`flex h-full flex-col p-6 shadow-sm ${plan.id === "pt-premium" ? "border-amber-500/30 bg-amber-500/[0.04]" : "border-border/70 bg-card/70"}`}
+              >
+                <p className={`text-xs font-semibold uppercase tracking-[0.16em] ${plan.id === "pt-premium" ? "text-amber-400" : "text-primary"}`}>{plan.eyebrow}</p>
                 <h3 className="mt-3 text-xl font-semibold tracking-tight">{plan.title}</h3>
                 <p className="mt-3 text-sm leading-6 text-muted-foreground">{plan.description}</p>
 
@@ -272,7 +298,7 @@ export default function MerchantOnboarding() {
             <div className="text-sm leading-6 text-muted-foreground">
               <p className="font-semibold text-foreground">Elegibilidade e aprovação</p>
               <p className="mt-1">
-                Constituição societária, conta bancária, cartões, adquirência, payout e outros serviços de terceiros estão sujeitos a KYC/KYB, análise de atividade, regras locais e aprovação independente de cada instituição. A XPayments não apresenta estes elementos como aprovação garantida.
+                Constituição societária, cessão/transferência societária, conta bancária, cartões, adquirência, payout e outros serviços de terceiros estão sujeitos a KYC/KYB, identificação do beneficiário efetivo, análise de atividade, regras locais e aprovação independente de cada instituição. A XPayments não apresenta estes elementos como aprovação garantida nem como meio de contornar políticas de providers.
               </p>
             </div>
           </div>

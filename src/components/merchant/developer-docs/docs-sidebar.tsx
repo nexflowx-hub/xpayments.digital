@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   Activity,
   TestTube2,
+  Replace,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -30,6 +31,7 @@ export const NAV_SECTIONS = [
   { id: "webhooks", label: "Webhooks Merchant", icon: Zap, state: "active" },
   { id: "sandbox", label: "Sandbox e Simuladores", icon: TestTube2, state: "active" },
   { id: "checkout", label: "Checkout XPay", icon: ExternalLink, state: "active" },
+  { id: "stripe-compatible", label: "Stripe-compatible", icon: Replace, state: "beta" },
   { id: "errors", label: "Referência de Erros", icon: AlertTriangle, state: "maintenance" },
   { id: "security", label: "Guia de Segurança", icon: ShieldCheck, state: "maintenance" },
   { id: "status", label: "Estado da API", icon: Activity, state: "maintenance" },
@@ -51,20 +53,15 @@ export function DocsSidebar({ active, onSelect }: DocsSidebarProps) {
       <div className="sticky top-0 z-30 mb-4 border-b border-border/60 bg-background/80 backdrop-blur-lg md:hidden">
         <div className="p-4 pb-3">
           <Select value={active} onValueChange={handleClick}>
-            <SelectTrigger className="w-full">
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
             <SelectContent>
               {NAV_SECTIONS.map((s) => (
                 <SelectItem key={s.id} value={s.id}>
                   <span className="flex items-center gap-2">
                     <s.icon className="h-3.5 w-3.5" />
                     {s.label}
-                    {s.state === "maintenance" && (
-                      <span className="text-[9px] uppercase tracking-wide text-amber-400">
-                        manutenção
-                      </span>
-                    )}
+                    {s.state === "maintenance" && <span className="text-[9px] uppercase tracking-wide text-amber-400">manutenção</span>}
+                    {s.state === "beta" && <span className="text-[9px] uppercase tracking-wide text-sky-400">beta</span>}
                   </span>
                 </SelectItem>
               ))}
@@ -78,25 +75,20 @@ export function DocsSidebar({ active, onSelect }: DocsSidebarProps) {
           {NAV_SECTIONS.map((s) => {
             const isActive = active === s.id;
             const maintenance = s.state === "maintenance";
-
+            const beta = s.state === "beta";
             return (
               <button
                 key={s.id}
                 onClick={() => handleClick(s.id)}
                 className={cn(
                   "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] font-medium transition-colors",
-                  isActive
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                  isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                 )}
               >
                 <s.icon className="h-3.5 w-3.5 shrink-0" />
                 <span className="min-w-0 flex-1 truncate">{s.label}</span>
-                {maintenance && (
-                  <span className="rounded border border-amber-500/20 bg-amber-500/10 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide text-amber-400">
-                    manutenção
-                  </span>
-                )}
+                {maintenance && <span className="rounded border border-amber-500/20 bg-amber-500/10 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide text-amber-400">manutenção</span>}
+                {beta && <span className="rounded border border-sky-500/20 bg-sky-500/10 px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-wide text-sky-400">beta</span>}
               </button>
             );
           })}
@@ -112,20 +104,15 @@ export function useActiveSection() {
   React.useEffect(() => {
     const ids = NAV_SECTIONS.map((s) => s.id);
     const observers: IntersectionObserver[] = [];
-
     ids.forEach((id) => {
       const el = document.getElementById(id);
       if (!el) return;
-      const obs = new IntersectionObserver(
-        ([entry]) => {
-          if (entry.isIntersecting) setActive(id);
-        },
-        { rootMargin: "-20% 0px -70% 0px" }
-      );
+      const obs = new IntersectionObserver(([entry]) => {
+        if (entry.isIntersecting) setActive(id);
+      }, { rootMargin: "-20% 0px -70% 0px" });
       obs.observe(el);
       observers.push(obs);
     });
-
     return () => observers.forEach((o) => o.disconnect());
   }, []);
 

@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { CodeBlock } from "./code-block";
 
 const createIntent = `curl https://api.xpayments.digital/api/stripe/v1/payment_intents \\
-  -H "Authorization: Bearer xp_test_xxxxxxxxx" \\
+  -u "xp_test_xxxxxxxxx:" \\
   -H "Content-Type: application/x-www-form-urlencoded" \\
   -H "Idempotency-Key: order-12345" \\
   --data-urlencode "amount=2500" \\
@@ -14,7 +14,7 @@ const createIntent = `curl https://api.xpayments.digital/api/stripe/v1/payment_i
   --data-urlencode "automatic_payment_methods[enabled]=true"`;
 
 const stripeOriginal = `curl https://api.stripe.com/v1/payment_intents \\
-  -H "Authorization: Bearer sk_test_xxxxxxxxx" \\
+  -u "sk_test_xxxxxxxxx:" \\
   -H "Content-Type: application/x-www-form-urlencoded" \\
   -H "Idempotency-Key: order-12345" \\
   --data-urlencode "amount=2500" \\
@@ -64,7 +64,7 @@ export function StripeCompatibleSection() {
       </div>
 
       <Card className="border-emerald-500/20 bg-emerald-500/5 p-5">
-        <div className="flex items-start gap-3"><CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-400" /><div><h3 className="text-sm font-semibold text-emerald-300">Migração mínima do request</h3><p className="mt-1 text-xs leading-5 text-muted-foreground">Formato <code>application/x-www-form-urlencoded</code>, <code>Idempotency-Key</code> e <code>Stripe-Version</code> são preservados pelo relay. Não envie a chave Stripe secreta ao XPayments request; use a API key <code>xp_*</code> associada à Store.</p></div></div>
+        <div className="flex items-start gap-3"><CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-400" /><div><h3 className="text-sm font-semibold text-emerald-300">Migração mínima do request</h3><p className="mt-1 text-xs leading-5 text-muted-foreground">Formato <code>application/x-www-form-urlencoded</code>, <code>Idempotency-Key</code> e <code>Stripe-Version</code> são preservados pelo relay. Para cURL/SDK wrappers que usam HTTP Basic, substitua <code>sk_*</code> por <code>xp_*</code>; Bearer e <code>x-api-key</code> também são aceites. Nunca envie a chave Stripe secreta ao XPayments.</p></div></div>
       </Card>
 
       <div className="grid gap-5 xl:grid-cols-2">

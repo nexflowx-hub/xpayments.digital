@@ -9,6 +9,7 @@ import { MerchantViewRouter, AdminViewRouter } from "@/components/dashboard/view
 import { AuthScreen } from "@/components/auth/auth-screen";
 import MerchantOnboarding from "@/components/onboarding/merchant-onboarding";
 import { XSymbol } from "@/components/shared/x-symbol";
+import { PlatformUpdateNotice } from "@/components/landing/platform-update-notice";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import dynamic from "next/dynamic";
@@ -105,5 +106,11 @@ export default function Home() {
   if (appView === "login" || appView === "forgot" || appView === "reset") {
     return <AuthScreen />;
   }
-  return <LandingPage />;
+
+  return (
+    <>
+      <LandingPage />
+      <PlatformUpdateNotice />
+    </>
+  );
 }

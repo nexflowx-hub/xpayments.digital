@@ -2,6 +2,7 @@
 
 import { BookOpen, ExternalLink } from "lucide-react";
 import ApiKeysPage from "@/components/merchant/api-keys";
+import { DeveloperSecretManagement } from "@/components/merchant/developer-secret-management";
 import { StripeElementsConfigCard } from "@/components/merchant/stripe-elements-config-card";
 import { Card } from "@/components/ui/card";
 import { useStores } from "@/hooks/queries";
@@ -35,6 +36,7 @@ export default function ApiKeysEnhancedPage() {
       </Card>
 
       <ApiKeysPage />
+      <DeveloperSecretManagement />
       <StripeElementsConfigCard
         stores={stores.map((store) => ({
           id: store.id,

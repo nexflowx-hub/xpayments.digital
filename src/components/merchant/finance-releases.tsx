@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/table";
 import type { FinanceNextRelease } from "@/types";
 
+const FINANCE_CURRENCIES = ["EUR", "BRL", "GBP", "PLN"] as const;
+
 type ProviderRelease = FinanceNextRelease & {
   storeId?: string | null;
   storeCode?: string | null;
@@ -89,11 +91,12 @@ function ProviderStatusBadge({ status }: { status?: string }) {
 }
 
 export default function FinanceReleasesPage() {
-  const { data: releases, isLoading, isError, error, refetch, isFetching } = useFinanceReleases("EUR");
+  const [currency, setCurrency] = React.useState<(typeof FINANCE_CURRENCIES)[number]>("EUR");
+  const { data: releases, isLoading, isError, error, refetch, isFetching } = useFinanceReleases(currency);
 
   const items = (releases?.items ?? []) as ProviderRelease[];
   const summary = releases?.summary as ProviderReleaseSummary | undefined;
-  const cur = releases?.currency ?? "EUR";
+  const cur = releases?.currency ?? currency;
 
   if (isError) {
     const msg = (error as { message?: string })?.message ?? "Não foi possível carregar as liberações.";
@@ -112,17 +115,36 @@ export default function FinanceReleasesPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Liberações"
-        description="Calendário previsto de disponibilidade dos seus fundos."
+        description="Calendário previsto de disponibilidade dos seus fundos, separado por moeda."
         actions={
-          <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-1.5">
-            <RefreshCw className={cn("h-3.5 w-3.5", isFetching && "animate-spin")} />
-            Atualizar
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center rounded-md border border-border/60 bg-card/60 p-1">
+              {FINANCE_CURRENCIES.map((code) => (
+                <Button
+                  key={code}
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setCurrency(code)}
+                  className={cn(
+                    "h-7 px-2.5 text-xs",
+                    currency === code && "bg-primary/15 text-primary hover:bg-primary/20 hover:text-primary"
+                  )}
+                >
+                  {code}
+                </Button>
+              ))}
+            </div>
+            <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-1.5">
+              <RefreshCw className={cn("h-3.5 w-3.5", isFetching && "animate-spin")} />
+              Atualizar
+            </Button>
+          </div>
         }
       />
 
       <div className="rounded-lg border border-sky-500/20 bg-sky-500/5 px-4 py-3 text-xs text-sky-300">
-        As datas apresentadas são previsões informativas. A disponibilização e os payouts permanecem sujeitos à validação operacional da XPayments.
+        As datas são previsões informativas por moeda. Não existe conversão automática entre EUR, BRL, GBP ou PLN. A disponibilização e os payouts permanecem sujeitos à validação operacional da XPayments.
       </div>
 
       {isLoading ? (
@@ -132,7 +154,7 @@ export default function FinanceReleasesPage() {
       ) : summary ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Card className="border-border/60 bg-card/60 p-4 backdrop-blur-xl">
-            <p className="text-xs text-muted-foreground">Total previsto</p>
+            <p className="text-xs text-muted-foreground">Total previsto · {cur}</p>
             <p className="mt-1 font-mono text-lg font-semibold tabular-nums text-emerald-400">
               {formatCurrency(summary.totalNet, cur)}
             </p>
@@ -144,7 +166,7 @@ export default function FinanceReleasesPage() {
             </p>
           </Card>
           <Card className="border-border/60 bg-card/60 p-4 backdrop-blur-xl">
-            <p className="text-xs text-muted-foreground">Aguarda validação administrativa</p>
+            <p className="text-xs text-muted-foreground">Aguarda validação administrativa · {cur}</p>
             <p className="mt-1 font-mono text-lg font-semibold tabular-nums text-amber-400">
               {formatCurrency(summary.awaitingAdminNet ?? summary.overdueNet, cur)}
             </p>
@@ -157,8 +179,8 @@ export default function FinanceReleasesPage() {
       ) : items.length === 0 ? (
         <EmptyState
           icon={CalendarClock}
-          title="Nenhuma liberação encontrada"
-          description="Não há previsões de liberação no momento."
+          title={`Nenhuma liberação encontrada em ${currency}`}
+          description="Não há previsões de liberação para esta moeda no momento."
         />
       ) : (
         <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
@@ -166,7 +188,7 @@ export default function FinanceReleasesPage() {
             <div>
               <h3 className="text-sm font-semibold">Calendário de liberações</h3>
               <p className="text-xs text-muted-foreground">
-                Valores previstos agrupados por data de disponibilidade.
+                Valores previstos em {cur}, agrupados por data de disponibilidade.
               </p>
             </div>
             <Badge variant="outline" className="text-[10px]">

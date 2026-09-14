@@ -11,14 +11,13 @@ import { FinanceCurrencySelector } from "@/components/shared/finance-currency-se
 import { useFinanceCurrencyStore } from "@/stores/finance-currency";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { cn, formatCurrency } from "@/lib/utils";
 import { useUi } from "@/stores/ui";
 import { StoreWalletGrid } from "@/components/merchant/finance/store-wallet-card";
 import { StoreWalletDialog } from "@/components/merchant/finance/store-wallet-dialog";
+import { PhysicalWalletMirror } from "@/components/merchant/physical-wallet-mirror";
 import type { FinanceOverview, FinanceStore } from "@/types";
 
-// ---- Animated KPI Card ----
 function KpiCard({
   label,
   value,
@@ -70,10 +69,7 @@ function KpiCard({
         )} />
         <div className="flex items-start justify-between">
           <p className="text-sm font-medium text-muted-foreground">{label}</p>
-          <div className={cn(
-            "rounded-lg p-1.5",
-            accentBg[accent] ?? "",
-          )}>
+          <div className={cn("rounded-lg p-1.5", accentBg[accent] ?? "")}>
             <Icon className="h-4 w-4" />
           </div>
         </div>
@@ -85,9 +81,7 @@ function KpiCard({
 }
 
 function KpiSkeleton() {
-  return (
-    <div className="min-h-[120px] rounded-xl bg-muted/30 animate-pulse" />
-  );
+  return <div className="min-h-[120px] rounded-xl bg-muted/30 animate-pulse" />;
 }
 
 export default function MerchantOverview() {
@@ -106,7 +100,6 @@ export default function MerchantOverview() {
   const cur = d?.currency ?? financeCurrency;
   const storesList = storesRes?.stores ?? [];
 
-  // Store detail dialog
   const [selectedStore, setSelectedStore] = React.useState<FinanceStore | null>(null);
   const [storeDialogOpen, setStoreDialogOpen] = React.useState(false);
 
@@ -143,13 +136,11 @@ export default function MerchantOverview() {
         }
       />
 
-      {/* ---- KPI Grid (4 cards) ---- */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {isLoading ? (
           Array.from({ length: 4 }).map((_, i) => <KpiSkeleton key={i} />)
         ) : (
           <>
-            {/* 1. Vendas brutas de hoje */}
             <KpiCard
               label="Vendas brutas de hoje"
               value={formatCurrency(d?.sales.today.gross ?? 0, cur)}
@@ -157,8 +148,6 @@ export default function MerchantOverview() {
               accent="emerald"
               sub={todayTx != null ? `${todayTx} transações` : undefined}
             />
-
-            {/* 2. Vendas líquidas de hoje */}
             <KpiCard
               label="Vendas líquidas de hoje"
               value={formatCurrency(d?.sales.today.net ?? 0, cur)}
@@ -166,18 +155,14 @@ export default function MerchantOverview() {
               accent="emerald"
               sub="Líquido contabilizado das vendas de hoje"
             />
-
-            {/* 3. Wallet total */}
             <KpiCard
-              label="Wallet total"
+              label="Wallet contabilística"
               value={formatCurrency(d?.wallet.balance ?? 0, cur)}
               icon={WalletIcon}
               accent="primary"
-              sub="Saldo operacional após payouts e ajustes contabilísticos"
+              sub="Ledger operacional da moeda selecionada"
               onClick={() => setMerchantView("wallets")}
             />
-
-            {/* 4. Payouts pagos */}
             <KpiCard
               label="Payouts pagos"
               value={formatCurrency(d?.payouts.paid ?? 0, cur)}
@@ -189,12 +174,13 @@ export default function MerchantOverview() {
         )}
       </div>
 
-      {/* ---- Carteiras por Store ---- */}
+      <PhysicalWalletMirror />
+
       <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h3 className="text-sm font-semibold">Carteiras por Store</h3>
-            <p className="text-xs text-muted-foreground">Dados financeiros associados a cada loja/moeda.</p>
+            <p className="text-xs text-muted-foreground">Dados financeiros contabilísticos associados a cada loja/moeda.</p>
           </div>
         </div>
         <StoreWalletGrid
@@ -205,7 +191,6 @@ export default function MerchantOverview() {
         />
       </Card>
 
-      {/* ---- Quick navigation shortcuts ---- */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <Card
           role="button"
@@ -216,10 +201,7 @@ export default function MerchantOverview() {
           onClick={() => setMerchantView("finance-releases")}
         >
           <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-semibold">Liberações</h3>
-              <p className="mt-0.5 text-xs text-muted-foreground">Calendário de liberações previstas.</p>
-            </div>
+            <div><h3 className="text-sm font-semibold">Liberações</h3><p className="mt-0.5 text-xs text-muted-foreground">Calendário de liberações previstas.</p></div>
             <ChevronRight className="h-4 w-4 text-muted-foreground transition group-hover:text-primary" />
           </div>
         </Card>
@@ -232,10 +214,7 @@ export default function MerchantOverview() {
           onClick={() => setMerchantView("finance-payouts")}
         >
           <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-semibold">Payouts & Saídas</h3>
-              <p className="mt-0.5 text-xs text-muted-foreground">Extratos de pagamento processados e agendados.</p>
-            </div>
+            <div><h3 className="text-sm font-semibold">Payouts & Saídas</h3><p className="mt-0.5 text-xs text-muted-foreground">Extratos de pagamento processados e agendados.</p></div>
             <ChevronRight className="h-4 w-4 text-muted-foreground transition group-hover:text-primary" />
           </div>
         </Card>
@@ -248,16 +227,12 @@ export default function MerchantOverview() {
           onClick={() => setMerchantView("finance-stores")}
         >
           <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-semibold">Por Store</h3>
-              <p className="mt-0.5 text-xs text-muted-foreground">Dados financeiros por unidade de venda.</p>
-            </div>
+            <div><h3 className="text-sm font-semibold">Por Store</h3><p className="mt-0.5 text-xs text-muted-foreground">Dados financeiros por unidade de venda.</p></div>
             <ChevronRight className="h-4 w-4 text-muted-foreground transition group-hover:text-primary" />
           </div>
         </Card>
       </div>
 
-      {/* ---- Store Detail Dialog ---- */}
       <StoreWalletDialog
         open={storeDialogOpen}
         onOpenChange={setStoreDialogOpen}

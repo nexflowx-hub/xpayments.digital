@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/table";
 import type { PayoutStatementV4 } from "@/types";
 
+const FINANCE_CURRENCIES = ["EUR", "BRL", "GBP", "PLN"] as const;
+
 const payoutStatusMap: Record<string, { label: string; className: string }> = {
   paid: { label: "Pago", className: "border-emerald-500/25 bg-emerald-500/12 text-emerald-400" },
   scheduled: { label: "Programado", className: "border-sky-500/25 bg-sky-500/12 text-sky-400" },
@@ -32,7 +34,8 @@ function PayoutStatusBadge({ status }: { status: string }) {
 }
 
 export default function FinancePayoutsPage() {
-  const { data: payoutRes, isLoading, isError, error, refetch, isFetching } = usePayoutStatements("EUR");
+  const [currency, setCurrency] = React.useState<(typeof FINANCE_CURRENCIES)[number]>("EUR");
+  const { data: payoutRes, isLoading, isError, error, refetch, isFetching } = usePayoutStatements(currency);
 
   if (isError) {
     const msg = (error as { message?: string })?.message ?? "Não foi possível carregar os extratos de pagamento.";
@@ -46,20 +49,43 @@ export default function FinancePayoutsPage() {
 
   const items: PayoutStatementV4[] = payoutRes?.items ?? [];
   const summary = payoutRes?.summary;
-  const cur = payoutRes?.currency ?? "EUR";
+  const cur = payoutRes?.currency ?? currency;
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Payouts & Saídas"
-        description="Extratos de pagamento processados e agendados."
+        description="Extratos de pagamento processados e agendados, separados por moeda."
         actions={
-          <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-1.5">
-            <RefreshCw className={cn("h-3.5 w-3.5", isFetching && "animate-spin")} />
-            Atualizar
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center rounded-md border border-border/60 bg-card/60 p-1">
+              {FINANCE_CURRENCIES.map((code) => (
+                <Button
+                  key={code}
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setCurrency(code)}
+                  className={cn(
+                    "h-7 px-2.5 text-xs",
+                    currency === code && "bg-primary/15 text-primary hover:bg-primary/20 hover:text-primary"
+                  )}
+                >
+                  {code}
+                </Button>
+              ))}
+            </div>
+            <Button variant="outline" size="sm" onClick={() => refetch()} className="gap-1.5">
+              <RefreshCw className={cn("h-3.5 w-3.5", isFetching && "animate-spin")} />
+              Atualizar
+            </Button>
+          </div>
         }
       />
+
+      <div className="rounded-lg border border-border/60 bg-card/40 px-4 py-3 text-xs text-muted-foreground">
+        A moeda selecionada filtra os extratos sem converter valores. Não são somadas moedas diferentes sem uma operação de câmbio explícita.
+      </div>
 
       {/* Payout Requests panel — hidden when feature disabled, non-blocking */}
       <PayoutRequestPanel />
@@ -72,14 +98,14 @@ export default function FinancePayoutsPage() {
       ) : summary ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Card className="border-border/60 bg-card/60 p-4 backdrop-blur-xl">
-            <p className="text-xs text-muted-foreground">Total pago</p>
+            <p className="text-xs text-muted-foreground">Total pago · {cur}</p>
             <p className="mt-1 font-mono text-lg font-semibold tabular-nums text-emerald-400">
               {formatCurrency(summary.paidAmount, cur)}
               <span className="ml-2 text-xs font-normal text-muted-foreground">({summary.paidCount})</span>
             </p>
           </Card>
           <Card className="border-border/60 bg-card/60 p-4 backdrop-blur-xl">
-            <p className="text-xs text-muted-foreground">Agendado</p>
+            <p className="text-xs text-muted-foreground">Agendado · {cur}</p>
             <p className="mt-1 font-mono text-lg font-semibold tabular-nums text-amber-400">
               {formatCurrency(summary.scheduledAmount, cur)}
               <span className="ml-2 text-xs font-normal text-muted-foreground">({summary.scheduledCount})</span>
@@ -94,15 +120,15 @@ export default function FinancePayoutsPage() {
       ) : items.length === 0 ? (
         <EmptyState
           icon={ArrowUpRight}
-          title="Nenhum payout encontrado"
-          description="Não há extratos de pagamento registados."
+          title={`Nenhum payout encontrado em ${currency}`}
+          description="Não há extratos de pagamento registados para esta moeda."
         />
       ) : (
         <Card className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
           <div className="mb-4 flex items-center justify-between">
             <div>
               <h3 className="text-sm font-semibold">Extratos de pagamento</h3>
-              <p className="text-xs text-muted-foreground">Todos os extratos processados e agendados.</p>
+              <p className="text-xs text-muted-foreground">Extratos processados e agendados em {cur}.</p>
             </div>
             <Badge variant="outline" className="text-[10px]">
               {items.length} extratos

@@ -2,9 +2,10 @@
 
 import * as React from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Webhook, Plus, Pencil, Trash2, Loader2, Store, Copy, Eye, EyeOff } from "lucide-react";
+import { Webhook, Plus, Pencil, Trash2, Loader2, Store, Copy, Eye, EyeOff, KeyRound } from "lucide-react";
 import { useWebhooks, useStores } from "@/hooks/queries";
 import { xpApi } from "@/lib/api/xpApi";
+import { revealWebhookSecret } from "@/lib/api/webhook-secrets";
 import { PageHeader, EmptyState } from "@/components/shared";
 import { StatusBadge } from "@/components/shared/badges";
 import { Card } from "@/components/ui/card";
@@ -70,7 +71,7 @@ export default function WebhooksLegacyScopedPage({ allowedStoreIds }: { allowedS
 
   const [createOpen, setCreateOpen] = React.useState(false);
   const [editWebhook, setEditWebhook] = React.useState<WebhookType | null>(null);
-  const [secretVisible, setSecretVisible] = React.useState<string | null>(null);
+  const [revealedSecret, setRevealedSecret] = React.useState<{ id: string; value: string } | null>(null);
   const [storeId, setStoreId] = React.useState("");
   const [url, setUrl] = React.useState("");
   const [events, setEvents] = React.useState<string[]>(["payment.succeeded", "payment.failed"]);
@@ -93,15 +94,30 @@ export default function WebhooksLegacyScopedPage({ allowedStoreIds }: { allowedS
 
   const refresh = () => qc.invalidateQueries({ queryKey: ["webhooks"] });
 
+  const revealMutation = useMutation({
+    mutationFn: (id: string) => revealWebhookSecret(id),
+    onSuccess: (data) => {
+      setRevealedSecret({ id: data.id, value: data.secret });
+      toast.success("Signing secret revelado");
+    },
+    onError: (error: { message?: string }) =>
+      toast.error(error?.message || "Não foi possível revelar o signing secret"),
+  });
+
   const createMutation = useMutation({
     mutationFn: () => {
       if (!allowed.has(storeId)) throw new Error("STORE_MODE_MISMATCH");
       return xpApi.webhooks.create({ storeId, url, events });
     },
-    onSuccess: () => {
+    onSuccess: (created) => {
       refresh();
       setCreateOpen(false);
-      toast.success("Webhook Legacy criado");
+      if (created.secret) {
+        setRevealedSecret({ id: created.id, value: created.secret });
+        toast.success("Webhook criado. Signing secret disponível para copiar.");
+      } else {
+        toast.success("Webhook Legacy criado");
+      }
     },
     onError: (error: { message?: string }) => toast.error(error?.message || "Não foi possível criar o webhook"),
   });
@@ -124,8 +140,9 @@ export default function WebhooksLegacyScopedPage({ allowedStoreIds }: { allowedS
       if (!webhook.storeId || !allowed.has(webhook.storeId)) throw new Error("STORE_MODE_MISMATCH");
       return xpApi.webhooks.remove(webhook.id);
     },
-    onSuccess: () => {
+    onSuccess: (_, webhook) => {
       refresh();
+      setRevealedSecret((current) => current?.id === webhook.id ? null : current);
       toast.success("Webhook Legacy removido");
     },
     onError: (error: { message?: string }) => toast.error(error?.message || "Não foi possível remover o webhook"),
@@ -135,22 +152,39 @@ export default function WebhooksLegacyScopedPage({ allowedStoreIds }: { allowedS
     setEvents((current) => current.includes(event) ? current.filter((item) => item !== event) : [...current, event]);
   };
 
+  const copySecret = async (secret: string) => {
+    try {
+      await navigator.clipboard.writeText(secret);
+      toast.success("Signing secret XPayments copiado");
+    } catch {
+      toast.error("Não foi possível copiar o signing secret");
+    }
+  };
+
   const loading = storesLoading || hooksLoading;
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        title="Webhooks Legacy"
-        description="Compatibilidade com Stores ainda não migradas para o Store Control Plane VNext."
+        title="Webhooks"
+        description="Endpoints Merchant Delivery assinados pelo XPayments, separados por Store."
         actions={
           <Button size="sm" className="gap-1.5" onClick={() => setCreateOpen(true)} disabled={legacyStores.length === 0}>
-            <Plus className="h-3.5 w-3.5" /> Novo endpoint Legacy
+            <Plus className="h-3.5 w-3.5" /> Novo endpoint
           </Button>
         }
       />
 
-      <Card className="border-amber-500/25 bg-amber-500/5 p-4 text-xs text-muted-foreground">
-        Esta superfície só permite operações nas {legacyStores.length} Store(s) identificadas como LEGACY. Stores VNEXT/OBSERVED estão bloqueadas deste CRUD por design.
+      <Card className="border-primary/20 bg-primary/[0.04] p-4 text-xs text-muted-foreground">
+        <div className="flex items-start gap-3">
+          <KeyRound className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+          <div className="space-y-1">
+            <p className="font-medium text-foreground">Signing secret XPayments → Merchant</p>
+            <p>
+              O secret é ocultado por padrão e só é carregado quando clicar em Revelar. Use-o apenas no backend do seu sistema para validar a assinatura HMAC do header <code className="font-mono">x-nexflowx-signature</code>. Nunca o exponha no browser.
+            </p>
+          </div>
+        </div>
       </Card>
 
       {loading ? (
@@ -161,8 +195,8 @@ export default function WebhooksLegacyScopedPage({ allowedStoreIds }: { allowedS
         <Card className="border-border/60 bg-card/60 p-5">
           <EmptyState
             icon={Webhook}
-            title="Nenhum webhook Legacy"
-            description="As Stores Legacy deste Merchant não têm endpoints configurados neste CRUD."
+            title="Nenhum webhook configurado"
+            description="Crie um endpoint HTTPS para receber notificações assinadas do XPayments."
             action={legacyStores.length > 0 ? <Button size="sm" onClick={() => setCreateOpen(true)}>Criar endpoint</Button> : undefined}
           />
         </Card>
@@ -170,31 +204,64 @@ export default function WebhooksLegacyScopedPage({ allowedStoreIds }: { allowedS
         <div className="flex flex-col gap-3">
           {legacyHooks.map((hook) => {
             const store = legacyStores.find((item) => item.id === hook.storeId);
-            const visible = secretVisible === hook.id;
+            const currentSecret = revealedSecret?.id === hook.id ? revealedSecret.value : null;
+            const revealing = revealMutation.isPending && revealMutation.variables === hook.id;
             return (
               <Card key={hook.id} className="border-border/60 bg-card/60 p-5 backdrop-blur-xl">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <Store className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">{store?.name ?? hook.storeName ?? "Legacy Store"}</span>
-                      <Badge variant="outline" className="font-mono text-[10px]">{store?.storeCode ?? hook.storeCode ?? "LEGACY"}</Badge>
+                      <span className="font-medium">{store?.name ?? hook.storeName ?? "Store"}</span>
+                      <Badge variant="outline" className="font-mono text-[10px]">{store?.storeCode ?? hook.storeCode ?? "STORE"}</Badge>
                       <StatusBadge status={hook.status} />
                     </div>
                     <p className="mt-2 break-all font-mono text-xs text-muted-foreground">{hook.url}</p>
                     <div className="mt-3 flex flex-wrap gap-1.5">
                       {(hook.events ?? []).map((event) => <Badge key={event} variant="outline" className="font-mono text-[10px]">{event}</Badge>)}
                     </div>
-                    <div className="mt-4 flex items-center gap-2">
-                      <code className="min-w-0 flex-1 truncate rounded bg-black/30 px-2 py-1 font-mono text-xs text-zinc-300">
-                        {visible ? hook.secret : "whsec_••••••••••••"}
-                      </code>
-                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setSecretVisible(visible ? null : hook.id)}>
-                        {visible ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-                      </Button>
-                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => navigator.clipboard.writeText(hook.secret).then(() => toast.success("Signing secret copiado"))}>
-                        <Copy className="h-3.5 w-3.5" />
-                      </Button>
+
+                    <div className="mt-4 rounded-xl border border-border/50 bg-background/40 p-3">
+                      <div className="mb-2 flex items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs font-medium">Signing secret</p>
+                          <p className="text-[10px] text-muted-foreground">XPayments → Merchant · HMAC-SHA256</p>
+                        </div>
+                        <Badge variant="outline" className="text-[9px]">SENSITIVE</Badge>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <code className="min-w-0 flex-1 truncate rounded bg-black/30 px-2 py-1.5 font-mono text-xs text-zinc-300">
+                          {currentSecret ?? "••••••••••••••••••••••••••••••••"}
+                        </code>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8"
+                          title={currentSecret ? "Ocultar signing secret" : "Revelar signing secret"}
+                          onClick={() => {
+                            if (currentSecret) {
+                              setRevealedSecret(null);
+                            } else {
+                              revealMutation.mutate(hook.id);
+                            }
+                          }}
+                          disabled={revealing}
+                        >
+                          {revealing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : currentSecret ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                        </Button>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8"
+                          title={currentSecret ? "Copiar signing secret" : "Revele o secret antes de copiar"}
+                          disabled={!currentSecret}
+                          onClick={() => currentSecret && copySecret(currentSecret)}
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -205,8 +272,8 @@ export default function WebhooksLegacyScopedPage({ allowedStoreIds }: { allowedS
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Remover webhook Legacy?</AlertDialogTitle>
-                          <AlertDialogDescription>Esta ação usa o CRUD Legacy atual e afeta somente a Store Legacy selecionada.</AlertDialogDescription>
+                          <AlertDialogTitle>Remover webhook?</AlertDialogTitle>
+                          <AlertDialogDescription>Este endpoint deixará de receber novas notificações desta Store.</AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancelar</AlertDialogCancel>
@@ -278,8 +345,12 @@ function LegacyEditor({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{mode === "create" ? "Novo webhook Legacy" : "Editar webhook Legacy"}</DialogTitle>
-          <DialogDescription>O Store Mode foi validado antes desta operação; apenas Stores LEGACY aparecem neste formulário.</DialogDescription>
+          <DialogTitle>{mode === "create" ? "Novo webhook" : "Editar webhook"}</DialogTitle>
+          <DialogDescription>
+            {mode === "create"
+              ? "O XPayments gera automaticamente um signing secret exclusivo para este endpoint."
+              : "Atualize a URL e os eventos. O signing secret atual não é alterado."}
+          </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-4 py-2">
           <div className="flex flex-col gap-1.5">

@@ -68,8 +68,19 @@ export default function WebhooksPage() {
     );
   }
 
-  if (isError || !hasVNext) {
+  // If Store Control itself is unavailable, retain the old compatibility
+  // surface. In the normal path, every Legacy store uses the scoped page,
+  // which reveals signing secrets only through the authenticated reveal API.
+  if (isError) {
     return <WebhooksLegacyPage />;
+  }
+
+  if (!hasVNext) {
+    return (
+      <WebhooksLegacyScopedPage
+        allowedStoreIds={(hasLegacy ? legacyStores : stores).map((store) => store.id)}
+      />
+    );
   }
 
   const vnextSurface = (

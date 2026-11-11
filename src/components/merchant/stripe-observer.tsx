@@ -103,7 +103,7 @@ export default function ObserverDashboard() {
   }, [sourceCode, currency, revision]);
 
   const completed = summary.filter(row => row.status === "succeeded");
-  const amount = completed.reduce((sum, row) => sum + BigInt(row.receivedMinor || "0"), 0n);
+  const amount = completed.reduce((sum, row) => sum + BigInt(row.receivedMinor || "0"), BigInt(0));
   const successfulCount = completed.reduce((sum, row) => sum + row.count, 0);
   const otherCount = summary.filter(row => row.status !== "succeeded")
     .reduce((sum, row) => sum + row.count, 0);

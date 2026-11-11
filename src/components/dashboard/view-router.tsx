@@ -89,6 +89,7 @@ const lazy = (loader: () => Promise<{ default: React.ComponentType }>) =>
 const merchantPages: Record<string, React.ComponentType> = {
   dashboard: lazy(() => import("@/components/merchant/dashboard")),
   analytics: lazy(() => import("@/components/merchant/analytics")),
+  "stripe-observer": lazy(() => import("@/components/merchant/stripe-observer")),
   risk: lazy(() => import("@/components/merchant/risk")),
   payments: lazy(() => import("@/components/merchant/payments")),
   wallets: lazy(() => import("@/components/merchant/wallets")),

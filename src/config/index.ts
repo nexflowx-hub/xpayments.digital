@@ -28,6 +28,7 @@ import {
   Cpu,
   Gauge,
   Landmark,
+  Eye,
 } from "lucide-react";
 
 export interface NavItem {
@@ -53,6 +54,7 @@ export const merchantNav: NavSection[] = [
     items: [
       { id: "dashboard", label: "Dashboard", tKey: "nav.dashboard", icon: LayoutDashboard },
       { id: "analytics", label: "Analytics", tKey: "nav.analytics", icon: BarChart3 },
+      { id: "stripe-observer", label: "Stripe Observer", icon: Eye },
       { id: "risk", label: "Risk Center", tKey: "nav.risk", icon: ShieldCheck },
     ],
   },
